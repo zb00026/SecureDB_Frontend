@@ -1,0 +1,124 @@
+@import "./assets/css/cb1.css";
+
+*,
+p {
+  margin-bottom: 0;
+}
+
+body {
+  --auto-white-black: 'rgba(255,255,255,1)';
+  --auto-white-black-hover: '#eee';
+}
+
+[data-theme=dark] body {
+  --auto-white-black: 'rgba(0,0,0,1)';
+  --auto-white-black-hover: '#666';
+}
+
+.swiper {
+  --swiper-theme-color: #c5c5c5;
+  --swiper-navigation-color: #c5c5c5;
+  --swiper-navigation-size: 20px;
+  --swiper-theme-color: #0a0b0d;
+  --swiper-pagination-color: #0a0b0d;
+
+  .swiper-pagination-bullet {
+    width: 10px;
+    height: 10px;
+  }
+}
+
+.DAMSwiper {
+  width: 100%;
+  height: 100%;
+
+  .swiper-slide {
+    text-align: center;
+    font-size: 18px;
+
+    /* Center slide text vertically */
+    display: -webkit-box;
+    display: -ms-flexbox;
+    display: -webkit-flex;
+    display: flex;
+    -webkit-box-pack: center;
+    -ms-flex-pack: center;
+    -webkit-justify-content: center;
+    justify-content: center;
+    -webkit-box-align: center;
+    -ms-flex-align: center;
+    -webkit-align-items: center;
+    align-items: center;
+  }
+
+  .swiper-button-disabled {
+    opacity: 1 !important;
+  }
+}
+
+#sidebar-content::-webkit-scrollbar {
+  display: none;
+}
+
+#mention-input {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+
+  > :first-child {
+    flex: 1;
+  }
+
+  [type='text'] {
+    height: 40px;
+    border: 1px solid #3773f5 !important;
+    border-radius: 5px;
+    color: white;
+    padding-left: 5px !important;
+    // transform: translateY(-5px);
+    // position: absolute;
+    // top: 50%;
+    transform: translateY(-15%);
+  }
+}
+
+#mention-input>div:first-child>div {
+  background-color: unset !important;
+
+  &> :focus-visible {
+    outline: none;
+  }
+}
+
+
+// .menu-icons {
+// }
+.message-box:hover .at-symbol {
+  display: flex;
+}
+
+.at-symbol {
+  transition: all 200ms ease-in;
+}
+
+span[user-id] {
+  color: skyblue;
+  cursor: pointer;
+}
+
+// div#chat-widget-container {
+//   right: var(--right-sidebar-width, 0px)!important;
+// }
+.chakra-modal__overlay {
+  z-index: 10000;
+}
+
+.chakra-modal__content-container {
+  z-index: 100000;
+}
+[data-theme=dark] #chat-message {
+background-color: #242424;
+ > div{
+  color: #fff;
+}
+}
