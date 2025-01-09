@@ -1,8 +1,34 @@
-# React + TypeScript + Vite
+# React + TypeScript + Vite DAM Frontend
 
-This template provides a minimal setup to get React working in Vite with HMR.
+# Steps to Test the React/Vite Project
 
-Currently, two official plugins are available:
+1. **Ensure Node.js is Installed**
+   - Confirm that Node.js version **18** (or higher) is installed on your system.
+   - You can verify this by running the following command in your terminal:
+     ```bash
+     node -v
+     ```
+     If Node.js is not installed, download it from [Node.js official site](https://nodejs.org/) or use a package manager like `nvm` to install version 22.13.
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react/README.md) uses [Babel](https://babeljs.io/) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+2. **Install Dependencies**
+   - Navigate to the project directory in your terminal.
+   - Run the following command to install all required dependencies:
+     ```bash
+     yarn install
+     ```
+
+3. **Start the Development Server**
+   - Once the dependencies are installed, start the Vite development server by running:
+     ```bash
+     yarn start
+     ```
+
+4. **Access the Application**
+   - Open a web browser and visit:
+     ```
+     http://localhost:5173
+     ```
+
+5. **Test the Application**
+   - Verify that all functionality and features are working as expected.
+   - Ensure there are no console errors in the browser's developer tools.
