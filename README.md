@@ -3,7 +3,7 @@
 # Steps to Test the React/Vite Project
 
 1. **Ensure Node.js is Installed**
-   - Confirm that Node.js version **18** (or higher) is installed on your system.
+   - Confirm that Node.js version **22** (or higher) is installed on your system.
    - You can verify this by running the following command in your terminal:
      ```bash
      node -v
