@@ -1,5 +1,6 @@
 import axios from 'axios';
 import { state, stateActions } from '../../state';
+import keycloak from '@common/keycloak/keycloak';
 
 export const request = axios.create({
   baseURL: import.meta.env.VITE_REQUEST_BASE_URL || '/api',
@@ -10,8 +11,7 @@ export const request = axios.create({
 request.interceptors.request.use((config) => {
   // if (!config.url?.includes('login')) stateActions.addLoading();
   config.headers.account = JSON.stringify(state.storage ?? '');
-  // config.headers.authorization =
-  //   'Bearer ' + (state.storage.token?.access_token ?? '0');
+  config.headers.Authorization = `Bearer ${keycloak.token}`;
   return config;
 });
 

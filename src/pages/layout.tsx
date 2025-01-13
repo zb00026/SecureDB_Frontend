@@ -17,9 +17,9 @@ export function loader() {
   }
 }
 
-export function handle() {}
+export function handle() { }
 
-export function action() {}
+export function action() { }
 
 export function ErrorBoundary() {
   return (
