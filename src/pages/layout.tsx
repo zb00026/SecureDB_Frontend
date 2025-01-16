@@ -7,6 +7,12 @@ import {
   MyIntlProvider,
   MyLoading,
 } from '@/common'
+
+import keycloak from "@common/keycloak/keycloak";
+import { ReactKeycloakProvider } from "@react-keycloak/web";
+import Login from "@pages/auth/login";
+import { GoogleOAuthProvider } from '@react-oauth/google';
+
 export const MyAlertRootContext = React.createContext({})
 
 export const id = '/'
@@ -35,11 +41,27 @@ export function Component() {
   return (
     <MyIntlProvider>
       <MyChakraProvider>
-        <MyAlertRootContext.Provider value={myAlertRef}>
-          <MyAlert ref={myAlertRef} />
-          <MyLoading />
-          <MyInitialState />
-        </MyAlertRootContext.Provider>
+
+        <GoogleOAuthProvider clientId={import.meta.env.VITE_GOOGLE_CLIENT_ID}>
+          <ReactKeycloakProvider
+            authClient={keycloak}
+            initOptions={{
+              onLoad: 'check-sso',
+              silentCheckSsoRedirectUri: window.location.origin + '/silent-check-sso.html',
+              checkLoginIframe: false
+            }}
+          >
+            <Login>
+              <MyAlertRootContext.Provider value={myAlertRef}>
+                <MyAlert ref={myAlertRef} />
+                <MyLoading />
+                <MyInitialState />
+              </MyAlertRootContext.Provider>
+
+            </Login>
+
+          </ReactKeycloakProvider>
+        </GoogleOAuthProvider>
       </MyChakraProvider>
     </MyIntlProvider>
   )

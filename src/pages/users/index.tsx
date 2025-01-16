@@ -1,9 +1,10 @@
 import { AlertDialog, AlertDialogBody, AlertDialogContent, AlertDialogFooter, AlertDialogHeader, AlertDialogOverlay, Box, Button, Flex, Input, Table, TableContainer, Tbody, Td, Th, Thead, Tr, useColorModeValue } from "@chakra-ui/react";
-import { MyCard, MyCardBody, MyCardDivider, MyContent, PrimaryButton, request, stateActions, TextCardHeader, useListPage, useMyToast } from "@common/index";
+import { MyButton, MyCard, MyCardBody, MyCardDivider, MyContent, PrimaryButton, request, stateActions, TextCardHeader, useListPage, useMyToast } from "@common/index";
 import { User } from "@models/User";
 import { ConfigProvider } from "antd";
 import { useEffect, useRef, useState } from "react";
 import { FormattedMessage, useIntl } from "react-intl";
+import { Link } from "react-router-dom";
 
 export function Component() {
     const { showSuccess, showError } = useMyToast();
@@ -116,6 +117,11 @@ export function Component() {
             <Flex flexDir="column">
                 <Flex w="100%">
                     <Flex pt={5} w="100%">
+                        <Link to="/">
+                            <MyButton colorScheme="green">
+                                <FormattedMessage id="text.home" />
+                            </MyButton>
+                        </Link>
                         <Input
                             value={name}
                             onChange={(e) => setName(e.target.value)}

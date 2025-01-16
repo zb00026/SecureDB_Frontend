@@ -23,5 +23,8 @@
   "text.user_delete_success": "User has been deleted successfully.",
   "text.user_delete_failed": "Failed to delete user.",
   "text.users": "Users",
-  "text.api_test": "API Test"
+  "text.api_test": "API Test",
+  "text.login_failed": "Login failed",
+  "text.logout": "Logout",
+  "text.home": "Home"
 }

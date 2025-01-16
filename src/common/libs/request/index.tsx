@@ -1,17 +1,40 @@
-import axios from 'axios';
+import axios, { AxiosRequestConfig } from 'axios';
 import { state, stateActions } from '../../state';
 import keycloak from '@common/keycloak/keycloak';
 
 export const request = axios.create({
-  baseURL: import.meta.env.VITE_REQUEST_BASE_URL || '/api',
+  baseURL: import.meta.env.VITE_REQUEST_BASE_URL,
   timeout: 60000,
   headers: { 'Content-Type': 'application/json' },
 });
 
+// Initialize googleToken from localStorage
+let googleToken: string | null = localStorage.getItem('googleToken');
+
+// Function to set the Google token
+export const setGoogleToken = (token: string) => {
+  googleToken = token;
+  localStorage.setItem('googleToken', token);
+};
+
+// Function to get the Google token
+export const getGoogleToken = () => {
+  return googleToken || localStorage.getItem('googleToken');
+};
+
+// Function to clear the Google token
+export const clearGoogleToken = () => {
+  googleToken = null;
+  localStorage.removeItem('googleToken');
+};
+
 request.interceptors.request.use((config) => {
-  // if (!config.url?.includes('login')) stateActions.addLoading();
-  config.headers.account = JSON.stringify(state.storage ?? '');
-  config.headers.Authorization = `Bearer ${keycloak.token}`;
+  const storedToken = localStorage.getItem('googleToken');
+  if (storedToken) {
+    config.headers['Authorization'] = `Bearer ${storedToken}`;
+  } else if(keycloak.token) {
+    config.headers['Authorization'] = `Bearer ${keycloak.token}`;
+  }
   return config;
 });
 

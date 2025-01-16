@@ -1,9 +1,14 @@
 import { Flex } from "@chakra-ui/react";
-import { MyCard, MyCardBody, MyCardDivider, MyContent, PrimaryButton, TextCardHeader } from "@common/index";
+import { clearGoogleToken, MyButton, MyCard, MyCardBody, MyCardDivider, MyContent, PrimaryButton, TextCardHeader } from "@common/index";
+import keycloak from "@common/keycloak/keycloak";
 import { FormattedMessage } from "react-intl";
 import { Link } from 'react-router-dom';
 
 export function Component() {
+    const handleLogout = () => {
+        clearGoogleToken();
+        keycloak.logout();
+    }
     return (
         <MyContent w="98%">
             <Flex flexDir="column">
@@ -11,12 +16,17 @@ export function Component() {
                     <Flex pt={5} flexDir="column" w="100%">
                         <MyCard mt="4">
                             <MyCardBody>
-                                <TextCardHeader>
-                                    <FormattedMessage id="text.api_test" />
+                                <TextCardHeader w="full" pb={0}>
+                                    <Flex justifyContent="space-between" alignItems="center">
+                                        <FormattedMessage id="text.api_test" />
+                                        <MyButton onClick={handleLogout} colorScheme="red">
+                                            <FormattedMessage id="text.logout" />
+                                        </MyButton>
+                                    </Flex>
                                 </TextCardHeader>
-                                <Flex flexDir="column" w="full" px={6} py={8}>
-                                    <MyCardDivider/>
-                                    <Flex mt={6}/>
+                                <Flex flexDir="column" w="full" px={6} pb={6}>
+                                    <MyCardDivider />
+                                    <Flex mt={6} />
                                     <Link to="/users" >
                                         <PrimaryButton>
                                             <FormattedMessage id="text.users" />

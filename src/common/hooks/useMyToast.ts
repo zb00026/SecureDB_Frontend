@@ -15,7 +15,7 @@ export function useMyToast() {
     });
   };
 
-  const showError = ({ description }: any) => {
+  const showError = ({ description, onCloseComplete }: any) => {
     toast({
       // title: "Error",
       status: "error",
@@ -23,6 +23,7 @@ export function useMyToast() {
       duration: 5000,
       isClosable: true,
       description: description,
+      onCloseComplete
     });
   };
 
