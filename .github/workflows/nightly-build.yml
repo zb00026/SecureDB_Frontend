@@ -1,0 +1,114 @@
+name: Nightly Build for Frontend with AWS SES Notification
+
+on:
+  schedule:
+    # Runs every day at midnight (UTC)
+    - cron: "0 0 * * *"  # Change if you want a different schedule
+  push:
+    branches:
+      - main
+      
+  workflow_dispatch:  # Allows manual trigger of the workflow
+
+jobs:
+  frontend_build:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read  # To fetch repository content
+
+    strategy:
+      matrix:
+        node-version: [23.x]
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+
+    - name: Set timestamp variable
+      id: timestamp
+      run: echo "timestamp=$(date +'%Y-%m-%d-%H-%M')" >> $GITHUB_ENV
+
+    - name: Set up Node.js
+      uses: actions/setup-node@v3
+      with:
+        node-version: ${{ matrix.node-version }}
+        cache: 'yarn' # Cache Yarn dependencies
+
+    - name: Install dependencies
+      run: yarn install
+
+    - name: TypeScript check
+      run: yarn tsc --noEmit
+
+    - name: Build the project
+      run: yarn build
+
+    - name: Verify dist folder and list its contents
+      run: |
+        # Check if the dist folder exists and list its contents
+        if [ -d "dist" ]; then
+          echo "Dist folder exists"
+          ls -lh dist/
+        else
+          echo "Dist folder does not exist!"
+          exit 1
+        fi
+
+    - name: Bundle frontend build artifact
+      run: |
+        # Create a zip file with the built frontend
+        echo "Zipping the frontend build verlake-dam-frontend-${{ env.timestamp }}.zip"
+        zip -r "verlake-dam-frontend-${{ env.timestamp }}.zip" dist/
+
+    - name: Install AWS CLI
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y awscli
+
+    - name: Configure AWS CLI
+      run: |
+        aws configure set aws_access_key_id ${{ secrets.AWS_ACCESS_KEY_ID }}
+        aws configure set aws_secret_access_key ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+        aws configure set region ap-south-1
+
+    - name: Upload frontend artifact to S3
+      run: |
+        # Ensure the file exists and upload it to S3
+        if [ -f "verlake-dam-frontend-${{ env.timestamp }}.zip" ]; then
+          echo "Uploading frontend artifact verlake-dam-frontend-${{ env.timestamp }}.zip to S3..."
+          aws s3 cp "verlake-dam-frontend-${{ env.timestamp }}.zip" s3://dam-bundle/ --region ap-south-1
+        else
+          echo "Artifact not found, cannot upload to S3!"
+          exit 1
+        fi
+
+  notify_on_failure:
+    needs: frontend_build
+    if: failure()  # Only runs if the frontend build fails
+    runs-on: ubuntu-latest
+
+    steps:
+
+    - name: Install AWS CLI
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y awscli
+
+    - name: Configure AWS CLI
+      run: |
+        aws configure set aws_access_key_id ${{ secrets.AWS_ACCESS_KEY_ID }}
+        aws configure set aws_secret_access_key ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+        aws configure set region ap-south-1
+
+    - name: Send failure notification email using AWS SES
+      run: |
+        SUBJECT="Nightly Frontend Build Failure"
+        BODY="The nightly build for the frontend has failed. Please check the logs for more details."
+        EMAIL_FROM="m_abhi@mindslake.com"  # Verified email address in SES
+        EMAIL_TO="abhinandanb@mindslake.com"  # Email to notify in case of failure
+
+        aws ses send-email \
+          --region ap-south-1 \
+          --from "$EMAIL_FROM" \
+          --destination "ToAddresses=$EMAIL_TO" \
+          --message "Subject={Data=$SUBJECT},Body={Text={Data=$BODY}}"
