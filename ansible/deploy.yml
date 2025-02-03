@@ -1,0 +1,129 @@
+---
+- name: Deploy Frontend on EC2 Instance
+  hosts: ec2
+  become: true
+  vars:
+    frontend_port: 443
+
+  tasks:
+    - name: Install required packages
+      dnf:
+        name:
+          - nginx
+          - python3
+          - python3-pip
+          - openssl
+        state: latest
+    - name: Install boto3 and botocore Python libraries
+      pip:
+        name:
+          - boto3
+          - botocore
+        state: latest
+
+    - name: Start and enable Nginx service
+      systemd:
+        name: nginx
+        state: started
+        enabled: yes
+
+    - name: Ensure the frontend directory exists
+      file:
+        path: "/var/www"
+        state: directory
+        mode: '0770'
+        owner: 'nginx'
+        group: 'nginx'
+
+    - name: Ensure the frontend directory exists
+      file:
+        path: "/var/www/frontend"
+        state: directory
+        mode: '0770'
+        owner: 'nginx'
+        group: 'nginx'
+
+    - name: Debug Frontend Artificat
+      debug:
+        msg: "Frontend Artifact: {{ frontend_artifact }}"
+
+    - name: Download frontend artifact from S3 using AWS CLI
+      shell: |
+        pip3 install awscli --upgrade --user
+        export AWS_ACCESS_KEY_ID="{{ aws_access_key }}"
+        export AWS_SECRET_ACCESS_KEY="{{ aws_secret_key }}"
+        export AWS_DEFAULT_REGION="ap-south-1"
+        aws s3 cp s3://{{ s3_bucket }}/{{ frontend_artifact }} /tmp/{{ frontend_artifact }} --region ap-south-1
+
+    - name: Unzip frontend artifact
+      unarchive:
+        src: "/tmp/{{ frontend_artifact }}"
+        dest: "/var/www/frontend"
+        remote_src: yes
+
+        # Set up directories for SSL
+    - name: Create directory for SSL certificates
+      file:
+        path: /etc/nginx/ssl
+        state: directory
+        mode: '0770'
+        owner: 'nginx'
+        group: 'nginx'
+
+    # Generate self-signed SSL certificates
+    - name: Generate self-signed SSL certificate
+      shell: |
+        openssl req -x509 -nodes -days 365 -newkey rsa:2048 \
+        -keyout /etc/nginx/ssl/self-signed.key \
+        -out /etc/nginx/ssl/self-signed.crt \
+        -subj "/C=US/ST=State/L=City/O=Organization/OU=OrgUnit/CN={{ domain_name }}"
+
+    - name: Configure Nginx to serve the frontend
+      shell: |
+        # Configure Nginx to serve the frontend
+        echo "user nginx;
+        worker_processes auto;
+        error_log /var/log/nginx/error.log;
+        pid /run/nginx.pid;
+
+        events {
+            worker_connections 1024;
+        }
+
+        http {
+            include             /etc/nginx/mime.types;
+            default_type        application/octet-stream;
+            
+            server {
+                listen 80;
+                server_name {{  domain_name }};
+                return 301 https://\$host\$request_uri;
+            }
+            
+            server {
+                listen {{ frontend_port }} ssl;
+                server_name {{ domain_name }};
+
+                ssl_certificate /etc/nginx/ssl/self-signed.crt;
+                ssl_certificate_key /etc/nginx/ssl/self-signed.key;
+
+                root /var/www/frontend;
+                index index.html;
+
+                location / {
+                    try_files \$uri \$uri/ /index.html;
+                }
+            }
+        }" | sudo tee /etc/nginx/nginx.conf > /dev/null
+
+        # Reload Nginx configuration
+        sudo systemctl reload nginx
+
+    - name: Restart Nginx service
+      systemd:
+        name: nginx
+        state: restarted
+        enabled: yes
+
+
+

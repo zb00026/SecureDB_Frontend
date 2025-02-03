@@ -26,5 +26,16 @@
   "text.api_test": "API Test",
   "text.login_failed": "Login failed",
   "text.logout": "Logout",
-  "text.home": "Home"
+  "text.home": "Home",
+  "text.admin_page": "Admin Page",
+  "text.role": "Role",
+  "text.password": "Password",
+  "text.failed_getting_roles": "Failed to get roles",
+  "text.select_a_role": "Select a role",
+  "text.approver_page": "Approver",
+  "text.resource_owner": "Resource Owner",
+  "text.developer": "Developer",
+  "text.auditor": "Auditor",
+  "text.admin": "Admin",
+  "text.dashboard": "Dashboard"
 }

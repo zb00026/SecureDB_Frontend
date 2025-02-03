@@ -48,23 +48,32 @@
       "~pages/*": [
         "src/pages/*"
       ],
-      "~MyAlert/*": [
-        "src/MyAlert/*"
-      ],
-      "~MyAlert copy/*": [
-        "src/MyAlert copy/*"
-      ],
       "~locales/*": [
         "src/locales/*"
       ],
-      "~users/*": [
-        "src/pages/users/*"
-      ],
-      "~hooks/*": [
-        "src/common/hooks/*"
-      ],
       "~models/*": [
         "src/models/*"
+      ],
+      "~developer/*": [
+        "src/pages/developer/*"
+      ],
+      "~admin/*": [
+        "src/pages/admin/*"
+      ],
+      "~resource_owner/*": [
+        "src/pages/resource_owner/*"
+      ],
+      "~approver/*": [
+        "src/pages/approver/*"
+      ],
+      "~auditor/*": [
+        "src/pages/auditor/*"
+      ],
+      "~constants/*": [
+        "src/constants/*"
+      ],
+      "~error/*": [
+        "src/pages/error/*"
       ]
     }
   },

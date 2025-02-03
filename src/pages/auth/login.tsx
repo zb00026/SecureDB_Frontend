@@ -1,5 +1,5 @@
 import { Flex, Box, Button } from "@chakra-ui/react";
-import { request, setGoogleToken, useMyToast, getGoogleToken, clearGoogleToken, stateActions } from "@common/index";
+import { request, setGoogleToken, useMyToast, getGoogleToken, clearGoogleToken, stateActions, MyFullLoading } from "@common/index";
 import colors from "@common/libs/chakra/colors";
 import { useKeycloak } from "@react-keycloak/web";
 import { GoogleLogin, googleLogout } from '@react-oauth/google';
@@ -8,13 +8,11 @@ import { useIntl } from "react-intl";
 
 export default function Login({ children }: { children: React.ReactNode }) {
     const { showError } = useMyToast();
-    const navigate = (path: string) => {
-        window.location.href = path;
-    };
     const { keycloak, initialized } = useKeycloak();
     const [authenticating, setAuthenticating] = useState<boolean>(false);
     const [isValidToken, setIsValidToken] = useState<boolean>(false);
     const [isCheckingLocalToken, setIsCheckingLocalToken] = useState<boolean>(false);
+    const [isLoading, setIsLoading] = useState<boolean>(true);
     const intl = useIntl();
 
     useEffect(() => {
@@ -25,6 +23,14 @@ export default function Login({ children }: { children: React.ReactNode }) {
             verifyUserToken(storedToken, 'GOOGLE', true);
         }
     }, []);
+
+    useEffect(() => {
+        if( initialized && !authenticating && !isCheckingLocalToken) {
+            setIsLoading(false);
+        } else {
+            setIsLoading(true);
+        }
+    }, [initialized, authenticating, isCheckingLocalToken]);
 
     // Handle Keycloak authentication changes
     useEffect(() => {
@@ -49,7 +55,7 @@ export default function Login({ children }: { children: React.ReactNode }) {
         }
         stateActions.addLoading();
         setAuthenticating(true);
-        request(`api/auth/verifyToken`, {
+        request(`/api/auth/verifyToken`, {
             method: 'POST',
             data: {
                 token,
@@ -59,11 +65,12 @@ export default function Login({ children }: { children: React.ReactNode }) {
             stateActions.subLoading();
             if (res.authorized) {
                 setIsValidToken(true);
+                stateActions.setUser(res.user);
+                stateActions.setIsLogin(true);
                 if (!isLocalToken) {
                     if (authProvider === 'GOOGLE') {
                         setGoogleToken(token);
                     }
-                    navigate('/');
                 }
             } else {
                 setIsValidToken(false);
@@ -123,8 +130,8 @@ export default function Login({ children }: { children: React.ReactNode }) {
 
     // Show loading state or login buttons
     return (
-        (isCheckingLocalToken || authenticating || !initialized) ? (
-            <></>
+        (isLoading) ? (
+            <MyFullLoading/>
         ) : (
             <Flex direction="column" align="center" justify="center" height="100vh">
                 <Box mb="5">

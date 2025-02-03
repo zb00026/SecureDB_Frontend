@@ -1,5 +1,4 @@
 import React, { useRef } from 'react'
-import { Outlet, Link, useRouteLoaderData } from 'react-router-dom'
 import {
   MyAlert,
   MyChakraProvider,
@@ -37,6 +36,8 @@ export function shouldRevalidate() {
   return false
 }
 export function Component() {
+
+
   const myAlertRef = useRef()
   return (
     <MyIntlProvider>
@@ -47,7 +48,7 @@ export function Component() {
             authClient={keycloak}
             initOptions={{
               onLoad: 'check-sso',
-              silentCheckSsoRedirectUri: window.location.origin + '/silent-check-sso.html',
+              silentCheckSsoRedirectUri: window.location.origin + window.location.pathname,
               checkLoginIframe: false
             }}
           >

@@ -29,7 +29,7 @@ type DefaultStorageType = {
   name: string;
   email: string;
   locale: string;
-
+  isLogin: boolean;
 };
 
 const storage: StorageType = proxyWithPersistant(
@@ -37,6 +37,7 @@ const storage: StorageType = proxyWithPersistant(
     name: "",
     email: "",
     locale: "en",
+    isLogin: false,
   },
   {
     key: "account",
@@ -48,12 +49,14 @@ type SessionType = {
   count: number; // loading count
   user: any; // wechat
   global: any; // global
+  isLogin: boolean;
 };
 const session: SessionType = proxy({
   ready: true,
   count: 0,
   user: undefined,
-  global: {}
+  global: {},
+  isLogin: false,
 });
 
 export type StateType = {

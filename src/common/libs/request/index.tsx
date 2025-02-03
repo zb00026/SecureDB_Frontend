@@ -1,6 +1,7 @@
 import axios, { AxiosRequestConfig } from 'axios';
 import { state, stateActions } from '../../state';
 import keycloak from '@common/keycloak/keycloak';
+import { useNavigate } from 'react-router';
 
 export const request = axios.create({
   baseURL: import.meta.env.VITE_REQUEST_BASE_URL,
@@ -27,6 +28,15 @@ export const clearGoogleToken = () => {
   googleToken = null;
   localStorage.removeItem('googleToken');
 };
+
+export const logout = () => {
+  const navigate = useNavigate();
+  clearGoogleToken();
+  keycloak.logout();
+  state.storage.isLogin = false;
+  state.storage.token = '';
+  navigate('/');
+}
 
 request.interceptors.request.use((config) => {
   const storedToken = localStorage.getItem('googleToken');

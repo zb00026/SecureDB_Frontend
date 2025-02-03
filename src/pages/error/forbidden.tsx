@@ -1,0 +1,26 @@
+import { Flex, Text } from "@chakra-ui/react";
+import { MyBasePage } from "@common/components/MyBasePage";
+import { useIntl } from "react-intl";
+
+export function ForbiddenPage() {
+    const intl = useIntl();
+    return (
+        <MyBasePage
+            title="Permission Error"
+            backTitle={intl.formatMessage({ id: 'text.dashboard' })}
+            backURI="/">
+            <Flex w='full' h='300px' textAlign={'center'} alignItems={'center'} justifyContent={'center'}>
+                <Text
+                    fontSize='18px'
+                    fontWeight='500'
+                    textAlign='center'
+                    alignItems='center'
+                    color='red'>
+                    You are not authorized to access this page
+                </Text>
+            </Flex>
+
+            <Flex mt={6} />
+        </MyBasePage>
+    );
+}

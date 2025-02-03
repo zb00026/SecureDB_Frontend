@@ -19,4 +19,8 @@ export const stateActions = {
   setUser(user: any) {
     state.session.user = user;
   },
+  setIsLogin(isLogin: boolean) {
+    state.session.isLogin = isLogin;
+  },
 };
+
