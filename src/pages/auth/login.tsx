@@ -1,162 +1,166 @@
-import { Flex, Box, Button } from "@chakra-ui/react";
+import { AUTH_PROVIDER } from "@/constants/enums";
+import { Flex } from "@chakra-ui/react";
+import KeycloakLogin from "@common/components/MyAuthProvider/KeycloakLogin";
 import { request, setGoogleToken, useMyToast, getGoogleToken, clearGoogleToken, stateActions, MyFullLoading } from "@common/index";
-import colors from "@common/libs/chakra/colors";
-import { useKeycloak } from "@react-keycloak/web";
 import { GoogleLogin, googleLogout } from '@react-oauth/google';
 import { useEffect, useState } from "react";
 import { useIntl } from "react-intl";
 
-export default function Login({ children }: { children: React.ReactNode }) {
-    const { showError } = useMyToast();
-    const { keycloak, initialized } = useKeycloak();
-    const [authenticating, setAuthenticating] = useState<boolean>(false);
-    const [isValidToken, setIsValidToken] = useState<boolean>(false);
-    const [isCheckingLocalToken, setIsCheckingLocalToken] = useState<boolean>(false);
-    const [isLoading, setIsLoading] = useState<boolean>(true);
-    const intl = useIntl();
+export default function Login({ authProviders, children }: { authProviders: string, children: React.ReactNode }) {
+  const { showError } = useMyToast();
+  const [authenticating, setAuthenticating] = useState<boolean>(false);
+  const [isValidToken, setIsValidToken] = useState<boolean>(false);
+  const [isCheckingLocalToken, setIsCheckingLocalToken] = useState<boolean>(false);
+  const [isLoading, setIsLoading] = useState<boolean>(true);
+  const [keycloakInitialized, setKeycloakInitialized] = useState<boolean>(false);
+  const [keycloakAuthenticated, setKeycloakAuthenticated] = useState<any>(null);
+  const [keycloakLoggedOut, setKeycloakLoggedOut] = useState<boolean>(false);
+  const intl = useIntl();
 
-    useEffect(() => {
-        // Check if there's a stored Google token and verify it
-        const storedToken = getGoogleToken();
-        if (storedToken) {
-            setIsCheckingLocalToken(true);
-            verifyUserToken(storedToken, 'GOOGLE', true);
-        }
-    }, []);
+  const isAuthProviderAvailable = (provider: string) => {
+    const auth_providers: string[] = authProviders.split(',');
+    return auth_providers.indexOf(provider) != -1;
+  }
 
-    useEffect(() => {
-        if( initialized && !authenticating && !isCheckingLocalToken) {
-            setIsLoading(false);
-        } else {
-            setIsLoading(true);
-        }
-    }, [initialized, authenticating, isCheckingLocalToken]);
+  useEffect(() => {
+    // Check if there's a stored Google token and verify it
+    const storedToken = getGoogleToken();
+    if (storedToken) {
+      setIsCheckingLocalToken(true);
+      verifyUserToken(storedToken, AUTH_PROVIDER.GOOGLE.toUpperCase(), true);
+    }
+  }, []);
 
-    // Handle Keycloak authentication changes
-    useEffect(() => {
-        if (keycloak.authenticated && keycloak.token) {
-            setIsCheckingLocalToken(true);
-            verifyUserToken(keycloak.token, 'KEYCLOAK', true);
-        }
-    }, [keycloak.authenticated, keycloak.token]);
+  useEffect(() => {
+    if ((isAuthProviderAvailable(AUTH_PROVIDER.KEYCLOAK) && !keycloakInitialized) ||
+      authenticating || isCheckingLocalToken) {
+      setIsLoading(true);
+    } else {
+      setIsLoading(false);
+    }
+  }, [keycloakInitialized, authenticating, isCheckingLocalToken]);
 
-    useEffect(() => {
-        if (isCheckingLocalToken) {
-            stateActions.addLoading();
-        } else {
-            stateActions.subLoading();
-        }
-    }, [isCheckingLocalToken]);
+  useEffect(() => {
+    if (isCheckingLocalToken) {
+      stateActions.addLoading();
+    } else {
+      stateActions.subLoading();
+    }
+  }, [isCheckingLocalToken]);
 
-    const verifyUserToken = async (token: string | undefined, authProvider: string, isLocalToken: boolean = false) => {
-        if (!token) {
-            console.error("No token found.");
-            return;
+  const verifyUserToken = async (token: string | undefined, authProvider: string, isLocalToken: boolean = false) => {
+    if (!token) {
+      console.error("No token found.");
+      return;
+    }
+    stateActions.addLoading();
+    setAuthenticating(true);
+    request(`/api/auth/verifyToken`, {
+      method: 'POST',
+      data: {
+        token,
+        authProvider: authProvider.toUpperCase()
+      }
+    }).then((res: any) => {
+      stateActions.subLoading();
+      if (res.authorized) {
+        setIsValidToken(true);
+        stateActions.setUser(res.user);
+        stateActions.setIsLogin(true);
+        if (!isLocalToken) {
+          if (authProvider === AUTH_PROVIDER.GOOGLE) {
+            setGoogleToken(token);
+          }
         }
-        stateActions.addLoading();
-        setAuthenticating(true);
-        request(`/api/auth/verifyToken`, {
-            method: 'POST',
-            data: {
-                token,
-                authProvider: authProvider
-            }
-        }).then((res: any) => {
-            stateActions.subLoading();
-            if (res.authorized) {
-                setIsValidToken(true);
-                stateActions.setUser(res.user);
-                stateActions.setIsLogin(true);
-                if (!isLocalToken) {
-                    if (authProvider === 'GOOGLE') {
-                        setGoogleToken(token);
-                    }
-                }
-            } else {
-                setIsValidToken(false);
-                handleAuthFailure(authProvider);
-            }
-        }).catch((e: any) => {
-            setIsValidToken(false);
-            handleAuthError(e, authProvider);
-        }).finally(() => {
-            setAuthenticating(false);
-            setIsCheckingLocalToken(false);
-            stateActions.subLoading();
-        });
-    };
-    const logoutToken = (authProvider: string) => {
-        if (authProvider === 'KEYCLOAK') {
-            keycloak.logout({ logoutMethod: 'POST' });
-        } else if (authProvider === 'GOOGLE') {
-            googleLogout();
-            clearGoogleToken();
-        }
+      } else {
         setIsValidToken(false);
+        handleAuthFailure(authProvider);
+      }
+    }).catch((e: any) => {
+      setIsValidToken(false);
+      handleAuthError(e, authProvider);
+    }).finally(() => {
+      setAuthenticating(false);
+      setIsCheckingLocalToken(false);
+      stateActions.subLoading();
+    });
+  };
+  const logoutToken = (authProvider: string) => {
+    if (isAuthProviderAvailable(AUTH_PROVIDER.KEYCLOAK) &&
+      authProvider === AUTH_PROVIDER.KEYCLOAK) {
+      setKeycloakLoggedOut(true);
+    } else if (isAuthProviderAvailable(AUTH_PROVIDER.GOOGLE) &&
+      authProvider === AUTH_PROVIDER.GOOGLE) {
+      googleLogout();
+      clearGoogleToken();
     }
-    const handleAuthFailure = (authProvider: string) => {
-        showError({
-            description: "Authentication failed",
-            onCloseComplete: () => {
-                logoutToken(authProvider);
-            }
-        });
-    };
+    setIsValidToken(false);
+  }
+  const handleAuthFailure = (authProvider: string) => {
+    showError({
+      description: "Authentication failed",
+      onCloseComplete: () => {
+        logoutToken(authProvider);
+      }
+    });
+  };
 
-    const handleAuthError = (error: any, authProvider: string) => {
-        showError({
-            description: error?.response?.data?.error ??
-                intl.formatMessage({ id: 'text.login_failed' }),
-            onCloseComplete: () => {
-                logoutToken(authProvider);
-            }
-        });
-    };
+  const handleAuthError = (error: any, authProvider: string) => {
+    showError({
+      description: error?.response?.data?.error ??
+        intl.formatMessage({ id: 'text.login_failed' }),
+      onCloseComplete: () => {
+        logoutToken(authProvider);
+      }
+    });
+  };
 
-    const handleKeycloakLogin = () => {
-        setAuthenticating(true);
-        keycloak.login();
-    };
+  const handleKeycloakLogin = () => {
+    setAuthenticating(true);
+  };
 
-    const handleGoogleSuccess = (credentialResponse: any) => {
-        const token = credentialResponse.credential;
-        verifyUserToken(token, 'GOOGLE');
-    };
+  const handleGoogleSuccess = (credentialResponse: any) => {
+    const token = credentialResponse.credential;
+    verifyUserToken(token, AUTH_PROVIDER.GOOGLE);
+  };
 
-    // Show children if authenticated with either method
-    if (isValidToken && (keycloak.authenticated || getGoogleToken())) {
-        return <>{children}</>;
-    }
+  // Show children if authenticated with either method
+  if (isValidToken && (
+    (isAuthProviderAvailable(AUTH_PROVIDER.KEYCLOAK) && keycloakAuthenticated) ||
+    (isAuthProviderAvailable(AUTH_PROVIDER.GOOGLE) && getGoogleToken()))) {
+    return <>{children}</>;
+  }
 
-    // Show loading state or login buttons
-    return (
-        (isLoading) ? (
-            <MyFullLoading/>
-        ) : (
-            <Flex direction="column" align="center" justify="center" height="100vh">
-                <Box mb="5">
-                    <Button
-                        isLoading={authenticating}
-                        onClick={handleKeycloakLogin}
-                        size="lg"
-                        color="white"
-                        backgroundColor={colors.blue[60]}
-                        width="158"
-                        borderRadius="10"
-                    >
-                        Login with Keycloak
-                    </Button>
-                </Box>
-                <GoogleLogin
-                    onSuccess={handleGoogleSuccess}
-                    onError={() => {
-                        setAuthenticating(false);
-                        setIsValidToken(false);
-                    }}
-                    useOneTap
-                />
-            </Flex>
-        )
-    );
+  // Show loading state or login buttons
+  return (
+    <Flex direction="column" align="center" justify="center" height="100vh">
+      {isLoading && <MyFullLoading showBackground/>}
+      {
+        isAuthProviderAvailable(AUTH_PROVIDER.KEYCLOAK) &&
+
+        <KeycloakLogin
+          authenticating={authenticating}
+          handleKeycloakLogin={handleKeycloakLogin}
+          onInitialized={() => { setKeycloakInitialized(true) }}
+          isLoggedOut={keycloakLoggedOut}
+          onAuthenticated={(token: string) => {
+            setIsCheckingLocalToken(true);
+            setKeycloakAuthenticated(true);
+            verifyUserToken(token, AUTH_PROVIDER.KEYCLOAK, true);
+          }}
+        />
+      }
+      {
+        isAuthProviderAvailable(AUTH_PROVIDER.GOOGLE) && <GoogleLogin
+          onSuccess={handleGoogleSuccess}
+          onError={() => {
+            setAuthenticating(false);
+            setIsValidToken(false);
+          }}
+          useOneTap
+        />
+      }
+    </Flex>
+  );
 }
 

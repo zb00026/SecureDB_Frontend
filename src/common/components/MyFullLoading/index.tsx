@@ -1,6 +1,6 @@
 import { Flex, Portal, Spinner } from "@chakra-ui/react";
 
-export function MyFullLoading() {
+export function MyFullLoading({showBackground = false} : {showBackground?: boolean}) {
   return (
     <Portal>
       <Flex
@@ -14,6 +14,7 @@ export function MyFullLoading() {
           justifyContent: "center",
           alignItems: "center",
           zIndex: "99999",
+          background: showBackground ? 'black' : 'transparent'
         }}
       >
         <Spinner

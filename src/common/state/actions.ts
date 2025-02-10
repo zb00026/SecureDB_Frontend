@@ -1,3 +1,4 @@
+import { PageRoute } from '@models/PageRoute';
 import { state } from '.';
 import globalAction from './global';
 export const stateActions = {
@@ -22,5 +23,8 @@ export const stateActions = {
   setIsLogin(isLogin: boolean) {
     state.session.isLogin = isLogin;
   },
+  setPageRoutes(routes: Array<PageRoute>) {
+    state.storage.pageRoutes = routes;
+  }
 };
 

@@ -1,16 +1,15 @@
 import React, { useRef } from 'react'
 import {
   MyAlert,
+  MyAuthProvider,
   MyChakraProvider,
   MyInitialState,
   MyIntlProvider,
   MyLoading,
-} from '@/common'
-
-import keycloak from "@common/keycloak/keycloak";
-import { ReactKeycloakProvider } from "@react-keycloak/web";
+  MyPageSearch,
+} from '@/common';
 import Login from "@pages/auth/login";
-import { GoogleOAuthProvider } from '@react-oauth/google';
+import { AUTH_PROVIDER } from '@/constants/enums';
 
 export const MyAlertRootContext = React.createContext({})
 
@@ -35,34 +34,24 @@ export function ErrorBoundary() {
 export function shouldRevalidate() {
   return false
 }
+
 export function Component() {
-
-
+  const auth_providers = import.meta.env.VITE_AUTH_PROVIDER || AUTH_PROVIDER.GOOGLE;
   const myAlertRef = useRef()
   return (
     <MyIntlProvider>
       <MyChakraProvider>
-
-        <GoogleOAuthProvider clientId={import.meta.env.VITE_GOOGLE_CLIENT_ID}>
-          <ReactKeycloakProvider
-            authClient={keycloak}
-            initOptions={{
-              onLoad: 'check-sso',
-              silentCheckSsoRedirectUri: window.location.origin + window.location.pathname,
-              checkLoginIframe: false
-            }}
-          >
-            <Login>
-              <MyAlertRootContext.Provider value={myAlertRef}>
-                <MyAlert ref={myAlertRef} />
-                <MyLoading />
-                <MyInitialState />
-              </MyAlertRootContext.Provider>
-
+        <MyAuthProvider authProviders={auth_providers}>
+            <Login authProviders={auth_providers}>
+              <MyPageSearch>
+                <MyAlertRootContext.Provider value={myAlertRef}>
+                  <MyAlert ref={myAlertRef} />
+                  <MyLoading />
+                  <MyInitialState />
+                </MyAlertRootContext.Provider>
+              </MyPageSearch>
             </Login>
-
-          </ReactKeycloakProvider>
-        </GoogleOAuthProvider>
+          </MyAuthProvider>
       </MyChakraProvider>
     </MyIntlProvider>
   )

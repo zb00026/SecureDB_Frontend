@@ -1,3 +1,4 @@
+import { PageRoute } from "@models/PageRoute";
 import { proxy, subscribe, snapshot, useSnapshot } from "valtio";
 
 export * from "./actions";
@@ -23,6 +24,7 @@ type StorageType = {
   token: string;
   locale: string;
   isLogin: boolean;
+  pageRoutes: Array<PageRoute>;
 };
 
 type DefaultStorageType = {
@@ -30,6 +32,7 @@ type DefaultStorageType = {
   email: string;
   locale: string;
   isLogin: boolean;
+  pageRoutes: Array<PageRoute>;
 };
 
 const storage: StorageType = proxyWithPersistant(
@@ -38,6 +41,7 @@ const storage: StorageType = proxyWithPersistant(
     email: "",
     locale: "en",
     isLogin: false,
+    pageRoutes: [],
   },
   {
     key: "account",
