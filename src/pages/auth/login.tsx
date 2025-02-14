@@ -5,6 +5,7 @@ import { request, setGoogleToken, useMyToast, getGoogleToken, clearGoogleToken, 
 import { GoogleLogin, googleLogout } from '@react-oauth/google';
 import { useEffect, useState } from "react";
 import { useIntl } from "react-intl";
+import { useSearchParams } from "react-router-dom";
 
 export default function Login({ authProviders, children }: { authProviders: string, children: React.ReactNode }) {
   const { showError } = useMyToast();
@@ -16,6 +17,9 @@ export default function Login({ authProviders, children }: { authProviders: stri
   const [keycloakAuthenticated, setKeycloakAuthenticated] = useState<any>(null);
   const [keycloakLoggedOut, setKeycloakLoggedOut] = useState<boolean>(false);
   const intl = useIntl();
+  const [searchParams] = useSearchParams();
+  const inviteCode = searchParams.get('inviteCode');
+
 
   const isAuthProviderAvailable = (provider: string) => {
     const auth_providers: string[] = authProviders.split(',');
@@ -59,6 +63,7 @@ export default function Login({ authProviders, children }: { authProviders: stri
       method: 'POST',
       data: {
         token,
+        inviteCode,
         authProvider: authProvider.toUpperCase()
       }
     }).then((res: any) => {
@@ -128,18 +133,23 @@ export default function Login({ authProviders, children }: { authProviders: stri
   if (isValidToken && (
     (isAuthProviderAvailable(AUTH_PROVIDER.KEYCLOAK) && keycloakAuthenticated) ||
     (isAuthProviderAvailable(AUTH_PROVIDER.GOOGLE) && getGoogleToken()))) {
+    const queryParams = new URLSearchParams(window.location.search);
+    queryParams.delete('inviteCode');
+    const newUrl = window.location.pathname + '?' + queryParams.toString();
+    window.history.replaceState({}, '', newUrl);
     return <>{children}</>;
   }
 
   // Show loading state or login buttons
   return (
     <Flex direction="column" align="center" justify="center" height="100vh">
-      {isLoading && <MyFullLoading showBackground/>}
+      {isLoading && <MyFullLoading showBackground />}
       {
         isAuthProviderAvailable(AUTH_PROVIDER.KEYCLOAK) &&
 
         <KeycloakLogin
           authenticating={authenticating}
+          inviteCode={inviteCode}
           handleKeycloakLogin={handleKeycloakLogin}
           onInitialized={() => { setKeycloakInitialized(true) }}
           isLoggedOut={keycloakLoggedOut}

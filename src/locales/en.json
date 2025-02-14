@@ -38,5 +38,9 @@
   "text.auditor": "Auditor",
   "text.admin": "Admin",
   "text.dashboard": "Dashboard",
-  "text.search": "Search"
+  "text.search": "Search",
+  "text.first_name": "First Name",
+  "text.last_name": "Last Name",
+  "text.invite_email": "Send Invitation Email",
+  "text.clear": "Clear"
 }

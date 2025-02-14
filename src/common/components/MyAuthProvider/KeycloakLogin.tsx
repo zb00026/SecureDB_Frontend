@@ -8,6 +8,7 @@ export interface KeycloakLoginType {
   handleKeycloakLogin: () => void,
   onAuthenticated: (token: string) => void,
   isLoggedOut: boolean,
+  inviteCode: string | null,
   authenticating: boolean
 }
 export default function KeycloakLogin({
@@ -15,14 +16,28 @@ export default function KeycloakLogin({
   handleKeycloakLogin,
   onAuthenticated,
   isLoggedOut,
-  authenticating }: KeycloakLoginType) {
+  inviteCode,
+  authenticating }: Readonly<KeycloakLoginType>) {
 
   const { keycloak, initialized } = useKeycloak();
+
+  const params = new URLSearchParams(window.location.hash);
+  const state = params.get('state');
+  const session_state = params.get('session_state');
+  const iss = params.get('iss');
+  const code = params.get('code');
+  const hasSession = state && session_state && iss && code;
+  
   useEffect(() => {
     if (initialized) {
       onInitialized();
     }
   }, [initialized, onInitialized]);
+
+  const doLogin = () => {
+    keycloak?.login();
+    handleKeycloakLogin();
+  };
 
   useEffect(() => {
     if (isLoggedOut) {
@@ -33,8 +48,10 @@ export default function KeycloakLogin({
   useEffect(() => {
     if (keycloak?.authenticated && keycloak?.token) {
       onAuthenticated(keycloak?.token);
+    } else if (inviteCode && !hasSession) {
+      doLogin();
     }
-  }, [keycloak?.authenticated, keycloak?.token]);
+  }, [keycloak?.authenticated, keycloak?.token, inviteCode]);
   useEffect(() => {
     console.log('authenticating', authenticating);
   }, [authenticating]);
@@ -42,10 +59,7 @@ export default function KeycloakLogin({
     <Box mb="5">
       <Button
         isLoading={authenticating}
-        onClick={() => {
-          keycloak?.login();
-          handleKeycloakLogin();
-        }}
+        onClick={doLogin}
         size="lg"
         color="white"
         backgroundColor={colors.blue[60]}
