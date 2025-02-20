@@ -2,8 +2,6 @@
 - name: Deploy Frontend on EC2 Instance
   hosts: ec2
   become: true
-  vars:
-    frontend_port: 443
 
   tasks:
     - name: Install required packages
@@ -61,23 +59,6 @@
         dest: "/var/www/frontend"
         remote_src: yes
 
-        # Set up directories for SSL
-    - name: Create directory for SSL certificates
-      file:
-        path: /etc/nginx/ssl
-        state: directory
-        mode: '0770'
-        owner: 'nginx'
-        group: 'nginx'
-
-    # Generate self-signed SSL certificates
-    - name: Generate self-signed SSL certificate
-      shell: |
-        openssl req -x509 -nodes -days 365 -newkey rsa:2048 \
-        -keyout /etc/nginx/ssl/self-signed.key \
-        -out /etc/nginx/ssl/self-signed.crt \
-        -subj "/C=US/ST=State/L=City/O=Organization/OU=OrgUnit/CN={{ domain_name }}"
-
     - name: Configure Nginx to serve the frontend
       shell: |
         # Configure Nginx to serve the frontend
@@ -97,21 +78,16 @@
             server {
                 listen 80;
                 server_name {{  domain_name }};
-                return 301 https://\$host\$request_uri;
-            }
-            
-            server {
-                listen {{ frontend_port }} ssl;
-                server_name {{ domain_name }};
-
-                ssl_certificate /etc/nginx/ssl/self-signed.crt;
-                ssl_certificate_key /etc/nginx/ssl/self-signed.key;
 
                 root /var/www/frontend;
                 index index.html;
 
                 location / {
                     try_files \$uri \$uri/ /index.html;
+                }
+
+                location /health {
+                    return 200 "Healthy";
                 }
 
                 location /api {

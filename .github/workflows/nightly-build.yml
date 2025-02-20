@@ -162,7 +162,7 @@ jobs:
 
     - name: Generate inventory.ini from template
       run: |
-        export HOST_DOMAIN=${{ env.HOST_DOMAIN }}
+        export HOST_IP_ADDRESS=${{ env.HOST_IP_ADDRESS }}
         export HOST_USER=${{ env.HOST_USER }}
         envsubst < ansible/inventory.ini.j2 > ansible/inventory.ini
 
@@ -171,7 +171,8 @@ jobs:
         mkdir -p ~/.ssh
         echo "${{ secrets.EC2_PRIVATE_KEY }}" > ~/.ssh/id_rsa
         chmod 600 ~/.ssh/id_rsa
-        ssh-keyscan -H ${{ env.HOST_DOMAIN }} >> ~/.ssh/known_hosts
+        cat ~/.ssh/id_rsa
+        ssh-keyscan -H ${{ env.HOST_IP_ADDRESS }} >> ~/.ssh/known_hosts
 
     - name: Deploy to EC2 using Ansible
       run: |
