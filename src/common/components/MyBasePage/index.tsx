@@ -38,7 +38,7 @@ export function MyBasePage({ title, backURI, backTitle, children }: MyPageProps)
                     }
 
                     {title}
-                    <MyButton onClick={logout} colorScheme="red">
+                    <MyButton onClick={logout} colorScheme="red" id="btnLogout">
                       <FormattedMessage id="text.logout" />
                     </MyButton>
                   </Flex>

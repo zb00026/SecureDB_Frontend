@@ -37,6 +37,7 @@ export function shouldRevalidate() {
 
 export function Component() {
   const auth_providers = import.meta.env.VITE_AUTH_PROVIDER || AUTH_PROVIDER.GOOGLE;
+  console.log(import.meta.env.VITE_AUTH_PROVIDER);
   const myAlertRef = useRef()
   return (
     <MyIntlProvider>
