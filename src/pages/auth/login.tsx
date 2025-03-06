@@ -1,11 +1,11 @@
-import { AUTH_PROVIDER } from "@/constants/enums";
+import { AUTH_PROVIDER, USER_ROLE } from "@/constants/enums";
 import { Flex } from "@chakra-ui/react";
 import KeycloakLogin from "@common/components/MyAuthProvider/KeycloakLogin";
-import { request, setGoogleToken, useMyToast, getGoogleToken, clearGoogleToken, stateActions, MyFullLoading } from "@common/index";
+import { request, setGoogleToken, useMyToast, getGoogleToken, clearGoogleToken, stateActions, MyFullLoading, userHasRole } from "@common/index";
 import { GoogleLogin, googleLogout } from '@react-oauth/google';
 import { useEffect, useState } from "react";
 import { useIntl } from "react-intl";
-import { useSearchParams } from "react-router-dom";
+import { useSearchParams, useNavigate } from "react-router-dom";
 
 export default function Login({ authProviders, children }: { authProviders: string, children: React.ReactNode }) {
   const { showError } = useMyToast();
@@ -19,6 +19,7 @@ export default function Login({ authProviders, children }: { authProviders: stri
   const intl = useIntl();
   const [searchParams] = useSearchParams();
   const inviteCode = searchParams.get('inviteCode');
+  const navigate = useNavigate();
 
 
   const isAuthProviderAvailable = (provider: string) => {
@@ -77,6 +78,7 @@ export default function Login({ authProviders, children }: { authProviders: stri
             setGoogleToken(token);
           }
         }
+        handleLoginSuccess(res.user);
       } else {
         setIsValidToken(false);
         handleAuthFailure(authProvider);
@@ -127,6 +129,27 @@ export default function Login({ authProviders, children }: { authProviders: stri
   const handleGoogleSuccess = (credentialResponse: any) => {
     const token = credentialResponse.credential;
     verifyUserToken(token, AUTH_PROVIDER.GOOGLE);
+  };
+
+  const showAuditLogStorageNotConfigured = () => {
+    showError({ 
+      description: intl.formatMessage({ id: 'text.audit_log_storage_not_configured' })
+    });
+    navigate('/admin/settings');
+  }
+  const handleLoginSuccess = async (user: any) => {
+    // Check if user is admin
+    if (userHasRole(user, USER_ROLE.ADMIN)) {
+      request('/api/admin/settings/get-current-audit-log-storage', {
+        method: 'GET',
+      }).then((res: any) => {
+        if (res.bucketName === '') {
+          showAuditLogStorageNotConfigured();
+        }
+      }).catch((e: any) => {
+        showAuditLogStorageNotConfigured();
+      });
+    }
   };
 
   // Show children if authenticated with either method

@@ -6,7 +6,7 @@ export const useListPage = ({ baseUri, defaultParams }: any) => {
   const [getData, setData] = useState<any>({});
   const { showRes } = useMyToast();
   const getList = (data: any, url = "") => {
-    request(url || baseUri, { data: data })
+    request(url || baseUri, data)
       .then((res) => {
         setParams(data);
         setData(res);

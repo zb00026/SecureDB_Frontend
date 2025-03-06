@@ -53,7 +53,6 @@ export default function KeycloakLogin({
     }
   }, [keycloak?.authenticated, keycloak?.token, inviteCode]);
   useEffect(() => {
-    console.log('authenticating', authenticating);
   }, [authenticating]);
   return (
     <Box mb="5">

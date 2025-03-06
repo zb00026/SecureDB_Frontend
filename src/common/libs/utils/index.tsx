@@ -31,5 +31,20 @@ export function isAuthorizedPath(path: string, user?: User): boolean {
 
 
   return hasRole;
+}
 
+export function userHasRole(user?: User, roleName?: string): boolean {
+  if (!user?.roles.length) return false;
+  let hasRole: boolean = false;
+  if (!roleName) return false;
+
+  user.roles.forEach((role: Role) => {
+    const userRole = role.name;
+    if (!userRole) return;
+    if (userRole == roleName) {
+      hasRole = true;
+    }
+  });
+
+  return hasRole;
 }

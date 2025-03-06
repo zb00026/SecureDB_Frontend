@@ -12,6 +12,7 @@
           - python3-pip
           - openssl
         state: latest
+
     - name: Install boto3 and botocore Python libraries
       pip:
         name:
@@ -19,29 +20,18 @@
           - botocore
         state: latest
 
-    - name: Start and enable Nginx service
-      systemd:
-        name: nginx
-        state: started
-        enabled: yes
-
-    - name: Ensure the frontend directory exists
+    - name: Ensure the frontend directories exist
       file:
-        path: "/var/www"
+        path: "{{ item }}"
         state: directory
         mode: '0770'
         owner: 'nginx'
         group: 'nginx'
+      loop:
+        - "/var/www"
+        - "/var/www/frontend"
 
-    - name: Ensure the frontend directory exists
-      file:
-        path: "/var/www/frontend"
-        state: directory
-        mode: '0770'
-        owner: 'nginx'
-        group: 'nginx'
-
-    - name: Debug Frontend Artificat
+    - name: Debug Frontend Artifact
       debug:
         msg: "Frontend Artifact: {{ frontend_artifact }}"
 
@@ -59,55 +49,34 @@
         dest: "/var/www/frontend"
         remote_src: yes
 
-    - name: Configure Nginx to serve the frontend
-      shell: |
-        # Configure Nginx to serve the frontend
-        echo "user nginx;
-        worker_processes auto;
-        error_log /var/log/nginx/error.log;
-        pid /run/nginx.pid;
-
-        events {
-            worker_connections 1024;
-        }
-
-        http {
-            include             /etc/nginx/mime.types;
-            default_type        application/octet-stream;
-            
-            server {
-                listen 80;
-                server_name {{  domain_name }};
-
-                root /var/www/frontend;
-                index index.html;
-
-                location / {
-                    try_files \$uri \$uri/ /index.html;
-                }
-
-                location /health {
-                    return 200 "Healthy";
-                }
-
-                location /api {
-                    proxy_pass http://127.0.0.1:8080;
-                    proxy_set_header Host \$host;
-                    proxy_set_header X-Real-IP \$remote_addr;
-                    proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
-                    proxy_set_header X-Forwarded-Proto \$scheme;
-                }
-            }
-        }" | sudo tee /etc/nginx/nginx.conf > /dev/null
-
-        # Reload Nginx configuration
-        sudo systemctl reload nginx
-
-    - name: Restart Nginx service
+    - name: Stop Nginx service
       systemd:
         name: nginx
-        state: restarted
+        state: stopped
+      ignore_errors: yes
+
+    - name: Remove existing Nginx configuration
+      file:
+        path: "/etc/nginx/nginx.conf"
+        state: absent
+      ignore_errors: yes
+
+    - name: Copy Nginx configuration file with sudo
+      command: sudo cp /tmp/nginx.conf /etc/nginx/nginx.conf
+
+    - name: Set ownership and permissions for nginx.conf
+      command: sudo chown nginx:nginx /etc/nginx/nginx.conf
+
+    - name: Set file permissions for nginx.conf
+      command: sudo chmod 640 /etc/nginx/nginx.conf
+    
+    - name: Reload Nginx service
+      systemd:
+        name: nginx
+        state: reloaded
+
+    - name: Start Nginx service
+      systemd:
+        name: nginx
+        state: started
         enabled: yes
-
-
-

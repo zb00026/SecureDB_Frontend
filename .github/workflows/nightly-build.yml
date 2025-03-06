@@ -165,6 +165,11 @@ jobs:
         export HOST_IP_ADDRESS=${{ env.HOST_IP_ADDRESS }}
         export HOST_USER=${{ env.HOST_USER }}
         envsubst < ansible/inventory.ini.j2 > ansible/inventory.ini
+    
+    - name: Generate nginx.conf from template
+      run: |
+        export domain_name=${{ env.HOST_DOMAIN }}
+        envsubst '${domain_name}' < ansible/nginx.conf.j2 > ansible/nginx.conf
 
     - name: Set up SSH for EC2
       run: |
@@ -173,6 +178,10 @@ jobs:
         chmod 600 ~/.ssh/id_rsa
         cat ~/.ssh/id_rsa
         ssh-keyscan -H ${{ env.HOST_IP_ADDRESS }} >> ~/.ssh/known_hosts
+
+    - name: Upload nginx.conf to EC2
+      run: |
+        scp -i ~/.ssh/id_rsa ansible/nginx.conf ${{ env.HOST_USER }}@${{ env.HOST_IP_ADDRESS }}:/tmp/nginx.conf
 
     - name: Deploy to EC2 using Ansible
       run: |

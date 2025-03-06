@@ -17,12 +17,18 @@ export function Component() {
       <TextBody>
         This is Admin Page
       </TextBody>
-      <Flex mt={6} />
-      <Link to="/admin/users" >
-        <PrimaryButton>
-          <FormattedMessage id="text.users" />
-        </PrimaryButton>
-      </Link>
+      <Flex mt={6} gap={2} >
+        <Link to="/admin/users" >
+          <PrimaryButton>
+            <FormattedMessage id="text.users" />
+          </PrimaryButton>
+        </Link>
+        <Link to="/admin/settings" >
+          <PrimaryButton>
+            <FormattedMessage id="text.settings" />
+          </PrimaryButton>
+        </Link>
+      </Flex>
     </MyBasePage>
   );
 }

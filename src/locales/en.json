@@ -42,5 +42,13 @@
   "text.first_name": "First Name",
   "text.last_name": "Last Name",
   "text.invite_email": "Send Invitation Email",
-  "text.clear": "Clear"
+  "text.clear": "Clear",
+  "text.settings": "Settings",
+  "text.audit_log_storage": "Audit Log Storage",
+  "text.s3_bucket_name": "S3 Bucket Name",
+  "text.apply": "Apply",
+  "text.s3_bucket_name_error": "Make sure the instance profile on this system has write permission to this S3 bucket and no read or delete permissions. Make sure S3 bucket has file versioning enabled",
+  "text.audit_log_storage_not_configured": "Audit log storage is not configured",
+  "text.s3_bucket_name_success": "The S3 Bucket has been successfully set up.",
+  "text.SUCCESS": "Success"
 }

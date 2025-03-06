@@ -1,29 +1,20 @@
-import axios, { AxiosRequestConfig } from 'axios';
 import { state, stateActions } from '../../state';
 import keycloak from '@common/keycloak/keycloak';
 import { useNavigate } from 'react-router';
 
-export const request = axios.create({
-  baseURL: import.meta.env.VITE_REQUEST_BASE_URL,
-  timeout: 60000,
-  headers: { 'Content-Type': 'application/json' },
-});
-
 // Initialize googleToken from localStorage
 let googleToken: string | null = localStorage.getItem('googleToken');
 
-// Function to set the Google token
+// Token management functions
 export const setGoogleToken = (token: string) => {
   googleToken = token;
   localStorage.setItem('googleToken', token);
 };
 
-// Function to get the Google token
 export const getGoogleToken = () => {
   return googleToken || localStorage.getItem('googleToken');
 };
 
-// Function to clear the Google token
 export const clearGoogleToken = () => {
   googleToken = null;
   localStorage.removeItem('googleToken');
@@ -38,38 +29,84 @@ export const logout = () => {
   navigate('/');
 }
 
-request.interceptors.request.use((config) => {
+// Main request function
+export const request = async (url: string, options: RequestInit & { data?: any } = {}) => {
+  const baseURL = import.meta.env.VITE_REQUEST_BASE_URL;
+  const timeout = 30000;
+
+  // Prepare headers
+  const headers = new Headers({
+    'Content-Type': 'application/json',
+    ...options.headers,
+  });
+
+  // Add authorization header
   const storedToken = localStorage.getItem('googleToken');
   if (storedToken) {
-    config.headers['Authorization'] = `Bearer ${storedToken}`;
-  } else if(keycloak.token) {
-    config.headers['Authorization'] = `Bearer ${keycloak.token}`;
+    headers.set('Authorization', `Bearer ${storedToken}`);
+  } else if (keycloak.token) {
+    headers.set('Authorization', `Bearer ${keycloak.token}`);
   }
-  return config;
-});
 
-request.interceptors.response.use(
-  (response) => {
+  // Prepare fetch options
+  const fetchOptions: RequestInit = {
+    ...options,
+    headers,
+  };
+
+  // Only add body for non-GET requests
+  if (options.method !== 'GET' && options.data) {
+    fetchOptions.body = JSON.stringify(options.data);
+  }
+
+  try {
+    // Create abort controller for timeout
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), timeout);
+    fetchOptions.signal = controller.signal;
+
+    const response = await fetch(`${baseURL}${url}`, fetchOptions);
+    clearTimeout(timeoutId);
+
+    const data = await response.json();
+
+    // Handle response
     stateActions.subLoading();
-    const data = response.data;
-    // console.log("response:", response);
+    
     if (![200, 201].includes(response.status)) {
-      return Promise.reject(response.data);
+      // Create Error object with response data
+      const error = new Error(data.message || 'Request failed');
+      error.name = 'ApiError';
+      // Attach additional data to the error object
+      Object.assign(error, { 
+        status: response.status,
+        data: data 
+      });
+      return Promise.reject(error);
     }
+
     if (data.error) {
       console.log(window.location.href);
-      // if (location.pathname !== '/') location.href = '/';
-      return Promise.reject(response.data);
+      // Create Error object for data.error
+      const error = new Error(data.error.message || data.error);
+      error.name = 'ApiError';
+      Object.assign(error, { data });
+      return Promise.reject(error);
     }
-    return Promise.resolve(data);
 
-  },
-  (error) => {
+    return data;
+  } catch (error: any) {
     stateActions.subLoading();
-    console.log('err:', error, error.response); // for debug
-    if (error.response && error.response.status) {
+    
+    if (error.name === 'AbortError') {
+      throw new Error('Request timeout');
     }
-    // throw new Error(error);
-    return Promise.reject(error);
-  },
-);
+    
+    // If error is not already an Error instance, wrap it
+    if (!(error instanceof Error)) {
+      throw new Error(error.message || 'Unknown error occurred');
+    }
+    
+    throw error;
+  }
+};

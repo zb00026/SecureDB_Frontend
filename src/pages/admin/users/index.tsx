@@ -96,7 +96,7 @@ export function Component() {
     stateActions.addLoading();
     request(`/api/admin/users/${selectedUser.id}`, {
       method: 'PUT',
-      data: { name, email, roles: selectedRoles }
+      data: { firstName, lastName, email, roles: selectedRoles }
     }).then(() => {
       getList({});
       showSuccess({
