@@ -50,5 +50,7 @@
   "text.s3_bucket_name_error": "Make sure the instance profile on this system has write permission to this S3 bucket and no read or delete permissions. Make sure S3 bucket has file versioning enabled",
   "text.audit_log_storage_not_configured": "Audit log storage is not configured",
   "text.s3_bucket_name_success": "The S3 Bucket has been successfully set up.",
-  "text.SUCCESS": "Success"
+  "text.SUCCESS": "Success",
+  "text.audit_retention_days": "Audit Retention Days",
+  "text.audit_retention_days_success": "Audit retention days is updated"
 }

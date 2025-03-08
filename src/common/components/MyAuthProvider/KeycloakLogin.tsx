@@ -63,6 +63,7 @@ export default function KeycloakLogin({
         color="white"
         backgroundColor={colors.blue[60]}
         width="158"
+        id="btnLogin"
         borderRadius="10"
       >
         Login with Keycloak
