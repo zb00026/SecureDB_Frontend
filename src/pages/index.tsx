@@ -1,6 +1,7 @@
+import { USER_ROLE } from "@/constants/enums";
 import { Flex } from "@chakra-ui/react";
 import { MyBasePage } from "@common/components/MyBasePage";
-import { PrimaryButton, useMyState } from "@common/index";
+import { PrimaryButton, useMyState, userHasRole } from "@common/index";
 import { Role } from "@models/Role";
 import { FormattedMessage, useIntl } from "react-intl";
 import { Link, useNavigate } from 'react-router-dom';
@@ -32,6 +33,15 @@ export function Component() {
               </PrimaryButton>
             </Link>
           ))
+        }
+        {
+          (userHasRole(user, USER_ROLE.AUDITOR) || userHasRole(user, USER_ROLE.ADMIN)) && (
+            <Link to="/audit/audit-trail">
+              <PrimaryButton>
+                <FormattedMessage id={"text.audit_trail"} />
+              </PrimaryButton>
+            </Link>
+          )
         }
       </Flex>
     </MyBasePage>

@@ -41,14 +41,14 @@ export function Component() {
   const cancelRef = useRef(null);
   const defauleDark = useColorModeValue("ant", "antdark");
 
-  const { getData, getList } = useListPage({
+  const { getData, getList } = useListPage<User>({
     baseUri: "/api/admin/users",
     defaultParams: {
       method: 'GET'
     }
   });
   useEffect(() => {
-    setUsers(getData);
+    setUsers(getData.content);
   }, [getData]);
   useEffect(() => {
     stateActions.addLoading();
