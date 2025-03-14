@@ -4,25 +4,27 @@ import { useIntl } from "react-intl";
 export function useMyToast() {
   const toast = useToast();
   const intl = useIntl();
-  const showSuccess = ({ title = intl.formatMessage({id: 'text.SUCCESS'}), description }: any) => {
+  const showSuccess = ({ id, title = intl.formatMessage({id: 'text.SUCCESS'}), description }: { id?: string, title?: string, description: string }) => {
     toast({
-      title: title,
-      status: "success",
+      id: id ?? 'toastSuccess',
+      title,
+      description,
+      status: 'success',
       position: "top",
       duration: 5000,
       isClosable: true,
-      description: description,
     });
   };
 
-  const showError = ({ description, onCloseComplete }: any) => {
+  const showError = ({ id, title, description, onCloseComplete }: { id?: string, title?: string, description: string, onCloseComplete?: () => void }) => {
     toast({
-      // title: "Error",
-      status: "error",
+      id: id ?? 'toastError',
+      title,
+      description,
+      status: 'error',
       position: "top",
       duration: 5000,
       isClosable: true,
-      description: description,
       onCloseComplete
     });
   };

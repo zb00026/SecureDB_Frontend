@@ -67,7 +67,7 @@ export function Component() {
     }).catch((e) => {
       setRoleOptions([]);
       setRoles([]);
-      showError({ description: e?.response?.data?.error ?? intl.formatMessage({ id: 'text.failed_getting_roles' }) });
+      showError({ id: 'toastError', description: e?.response?.data?.error ?? intl.formatMessage({ id: 'text.failed_getting_roles' }) });
     });
   }, []);
 
@@ -100,12 +100,13 @@ export function Component() {
     }).then(() => {
       getList({});
       showSuccess({
+        id: 'toastSuccess', 
         title: intl.formatMessage({ id: 'text.user_updated' }),
         description: intl.formatMessage({ id: 'text.user_update_success' })
       });
       clearForm();
     }).catch((e) => {
-      showError({ description: e?.response?.data?.error ?? intl.formatMessage({ id: 'text.user_update_failed' }) });
+      showError({ id: 'toastError', description: e?.response?.data?.error ?? intl.formatMessage({ id: 'text.user_update_failed' }) });
     });
   };
   const handleCreate = async () => {
@@ -114,6 +115,7 @@ export function Component() {
     stateActions.addLoading();
     let postUri = `/api/admin/users`;
     let postData: any = { firstName, lastName, email, password, roles: selectedRoles };
+    
     if (chkInvitation) {
       postUri = `/api/admin/users/createUserAndSendInvite`;
       postData = {
@@ -121,19 +123,20 @@ export function Component() {
         authProvider: auth_provider.toUpperCase()
       };
     }
+
     request(postUri, {
       method: 'POST',
       data: postData
     }).then(() => {
       getList({});
       showSuccess({
+        id: 'toastSuccess', 
         title: intl.formatMessage({ id: 'text.user_created' }),
         description: intl.formatMessage({ id: 'text.user_create_success' })
       });
       clearForm();
-
     }).catch((e) => {
-      showError({ description: e?.response?.data?.error ?? intl.formatMessage({ id: 'text.user_create_failed' }) });
+      showError({ id: 'toastError', description: e?.response?.data?.error ?? intl.formatMessage({ id: 'text.user_create_failed' }) });
     });
   };
 
@@ -165,12 +168,13 @@ export function Component() {
       }
       setDeleteUserId(null);
       showSuccess({
+        id: 'toastSuccess', 
         title: intl.formatMessage({ id: 'text.user_deleted' }),
         description: intl.formatMessage({ id: 'text.user_delete_success' })
       });
     }).catch((e) => {
       setIsDelDlgOpen(false);
-      showError({ description: e?.response?.data?.error ?? intl.formatMessage({ id: 'text.user_delete_failed' }) });
+      showError({ id: 'toastError', description: e?.response?.data?.error ?? intl.formatMessage({ id: 'text.user_delete_failed' }) });
     });
   };
   const askDelete = (id: number) => {
@@ -191,10 +195,11 @@ export function Component() {
                 <FormattedMessage id="text.home" />
               </MyButton>
             </Link>
-            <Flex direction={'column'} w='full' pr={4}>
+            <Flex id="flexUserForm" direction={'column'} w='full' pr={4}>
               <Flex gap={4}>
                 <Flex w='full'>
                   <Input
+                    id="inputFirstName"
                     value={firstName}
                     onChange={(e) => setFirstName(e.target.value)}
                     placeholder={intl.formatMessage({ id: 'text.first_name' })}
@@ -202,6 +207,7 @@ export function Component() {
                 </Flex>
                 <Flex w='full'>
                   <Input
+                    id="inputLastName"
                     value={lastName}
                     onChange={(e) => setLastName(e.target.value)}
                     placeholder={intl.formatMessage({ id: 'text.last_name' })}
@@ -212,6 +218,7 @@ export function Component() {
               <Flex gap={4} mt={4}>
                 <Flex w='full'>
                   <Input
+                    id="inputEmail"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     placeholder={intl.formatMessage({ id: 'text.email' })}
@@ -221,6 +228,7 @@ export function Component() {
                 <Flex w={'full'}>
                   <Box w="100%" minW="100%">
                     <Select
+                      id="selectRoles"
                       isMulti
                       value={selectedRoles.map(role => ({ label: role.name, value: role.id.toString() }))}
                       options={roleOptions}
@@ -245,6 +253,7 @@ export function Component() {
                     disabled={isEdit}
                     type="password"
                     value={password}
+                    id="inputPassword"
                     onChange={(e) => setPassword(e.target.value)}
                     placeholder={intl.formatMessage({ id: 'text.password' })}
                   />
@@ -254,6 +263,7 @@ export function Component() {
                   <Checkbox
                     disabled={isEdit}
                     checked={chkInvitation}
+                    id="chkInvitation"
                     onChange={(e) => { setChkInvitation(e.target.checked) }}
                   >
                     <FormattedMessage id="text.invite_email" />
@@ -264,9 +274,16 @@ export function Component() {
             </Flex>
             <Flex direction={'column'} gap={4} alignItems={'center'} w='110px'>
               <Button
+                id="btnSaveUser"
                 colorScheme={isEdit ? "green" : "blue"}
                 w='full'
-                onClick={isEdit ? handleUpdate : handleCreate} disabled={!firstName || !lastName || !email} pr="30px" pl="30px" borderRadius="5px">
+                onClick={isEdit ? handleUpdate : handleCreate}
+                disabled={!firstName || !lastName || !email}
+                pr="30px"
+                pl="30px"
+                borderRadius="5px"
+                data-testid="submit-button"
+              >
                 {isEdit ? intl.formatMessage({ id: 'text.update' }) : intl.formatMessage({ id: 'text.create' })}
               </Button>
               {isEdit && (
@@ -284,7 +301,7 @@ export function Component() {
           <Flex pt={5} flexDir="column" w="100%">
             <MyCard mt="4">
               <MyCardBody>
-                <TextCardHeader>
+                <TextCardHeader id="txtUsersTitle">
                   <FormattedMessage id="text.users" />
                 </TextCardHeader>
                 <Flex flexDir="column" w="full" px={6}>
@@ -342,6 +359,7 @@ export function Component() {
         isOpen={isDelDlgOpen}
         leastDestructiveRef={cancelRef}
         onClose={closeAskDialog}
+        id="delete-confirmation-dialog"
       >
         <AlertDialogOverlay>
           <AlertDialogContent>
@@ -355,7 +373,13 @@ export function Component() {
               <Button ref={cancelRef} onClick={closeAskDialog}>
                 <FormattedMessage id='text.cancel' />
               </Button>
-              <Button colorScheme="red" onClick={handleDelete} ml={3}>
+              <Button 
+                id="btnConfirmDeleteUser"
+                colorScheme="red" 
+                onClick={handleDelete} 
+                ml={3}
+                data-testid="confirm-delete-button"
+              >
                 <FormattedMessage id='text.delete' />
               </Button>
             </AlertDialogFooter>

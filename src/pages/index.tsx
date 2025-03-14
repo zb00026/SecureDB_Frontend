@@ -36,7 +36,7 @@ export function Component() {
         }
         {
           (userHasRole(user, USER_ROLE.AUDITOR) || userHasRole(user, USER_ROLE.ADMIN)) && (
-            <Link to="/audit/audit-trail">
+            <Link to="/auditor/audit-trail">
               <PrimaryButton>
                 <FormattedMessage id={"text.audit_trail"} />
               </PrimaryButton>

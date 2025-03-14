@@ -1,8 +1,9 @@
 import { Text } from "@chakra-ui/react";
 
-export function TextCardHeader({ children, ...rest }: any) {
+export function TextCardHeader({ children, id, ...rest }: any) {
   return (
     <Text
+      id={id}
       sx={{
         fontSize: "20px",
         fontWeight: "var(--cds-fontWeights-medium)",

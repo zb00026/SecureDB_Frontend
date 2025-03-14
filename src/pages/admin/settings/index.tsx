@@ -32,14 +32,12 @@ export function Component() {
       showSuccess({
         description: intl.formatMessage({ id: 'text.s3_bucket_name_success' }),
       });
-      if (res.ok) {
-        setS3BucketName('');
-      }
     }).catch((e: any) => {
       stateActions.subLoading();
       showError({
         description: intl.formatMessage({ id: 'text.s3_bucket_name_error' }),
       });
+      setS3BucketName('');
     });
   }
   return (
@@ -53,7 +51,7 @@ export function Component() {
       <MyContent w="98%">
         <MyCard mt="4" pb="4">
           <MyCardBody>
-            <TextCardHeader w="full" pb={0} textAlign={'center'}>
+            <TextCardHeader id="lblAuditLogStorage" w="full" pb={0} textAlign={'center'}>
               <FormattedMessage id="text.audit_log_storage" />
             </TextCardHeader>
 
@@ -64,12 +62,14 @@ export function Component() {
                   <FormattedMessage id="text.s3_bucket_name" />
                 </Text>
                 <Input
+                  id="inputAuditLogStorage"
                   flex={1}
                   value={s3BucketName}
                   onChange={(e) => setS3BucketName(e.target.value)}
                   placeholder={intl.formatMessage({ id: 'text.s3_bucket_name' })}
                 />
                 <PrimaryButton
+                  id="btnApplyAuditLogStorage"
                   onClick={setS3BucketInfo}>
                   <FormattedMessage id="text.apply" />
                 </PrimaryButton>

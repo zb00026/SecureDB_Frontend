@@ -257,13 +257,14 @@ export function Component() {
             >
               <FormattedMessage id="text.reset" />
             </PrimaryButton>
-            <PrimaryButton onClick={handleSearch}>
+            <PrimaryButton onClick={handleSearch} id="btnSearchAuditTrail">
               <FormattedMessage id="text.search" />
             </PrimaryButton>
           </Flex>
         </Box>
 
         <MyTable
+          id="tableAuditTrail"
           columns={columns}
           dataSource={getData.content || []}
           pagination={pagination}
