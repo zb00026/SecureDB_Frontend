@@ -28,6 +28,11 @@ export function Component() {
             <FormattedMessage id="text.settings" />
           </PrimaryButton>
         </Link>
+        <Link to="/admin/assets" >
+          <PrimaryButton>
+            <FormattedMessage id="text.assets" />
+          </PrimaryButton>
+        </Link>
       </Flex>
     </MyBasePage>
   );

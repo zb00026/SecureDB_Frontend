@@ -1,8 +1,9 @@
 import {
-  AlertDialog, AlertDialogBody, AlertDialogContent, AlertDialogFooter, AlertDialogHeader, AlertDialogOverlay,
   Box, Button, Checkbox, Flex, Input, Table, TableContainer, Tbody, Td, Th, Thead, Tr, useColorModeValue
 } from "@chakra-ui/react";
 import { MyButton, MyCard, MyCardBody, MyCardDivider, MyContent, PrimaryButton, request, stateActions, TextCardHeader, useListPage, useMyToast } from "@common/index";
+import { MyAlertDialog } from "@common/components/MyAlert/MyAlertDialog";
+import { useApiRequest } from "@common/hooks/useApiRequest";
 import { Role } from "@models/Role";
 import { User } from "@models/User";
 import { ConfigProvider } from "antd";
@@ -47,8 +48,10 @@ export function Component() {
       method: 'GET'
     }
   });
+  const { handleRequest } = useApiRequest();
+
   useEffect(() => {
-    setUsers(getData.content);
+    setUsers(Array.isArray(getData) ? getData : getData.content);
   }, [getData]);
   useEffect(() => {
     stateActions.addLoading();
@@ -93,50 +96,38 @@ export function Component() {
   };
   const handleUpdate = async () => {
     if (!selectedUser) return;
-    stateActions.addLoading();
-    request(`/api/admin/users/${selectedUser.id}`, {
-      method: 'PUT',
-      data: { firstName, lastName, email, roles: selectedRoles }
-    }).then(() => {
-      getList({});
-      showSuccess({
-        id: 'toastSuccess', 
-        title: intl.formatMessage({ id: 'text.user_updated' }),
-        description: intl.formatMessage({ id: 'text.user_update_success' })
-      });
-      clearForm();
-    }).catch((e) => {
-      showError({ id: 'toastError', description: e?.response?.data?.error ?? intl.formatMessage({ id: 'text.user_update_failed' }) });
-    });
+
+    handleRequest(`/api/admin/users/${selectedUser.id}`, 'PUT', 
+      { firstName, lastName, email, roles: selectedRoles },
+      {
+        onSuccess: () => {
+          getList({});
+          clearForm();
+        },
+        successTitleId: 'text.user_updated',
+        successDescriptionId: 'text.user_update_success',
+        errorDescriptionId: 'text.user_update_failed'
+      }
+    );
   };
   const handleCreate = async () => {
     if (selectedUser) return;
     const auth_provider = import.meta.env.VITE_AUTH_PROVIDER || AUTH_PROVIDER.GOOGLE;
-    stateActions.addLoading();
-    let postUri = `/api/admin/users`;
-    let postData: any = { firstName, lastName, email, password, roles: selectedRoles };
     
-    if (chkInvitation) {
-      postUri = `/api/admin/users/createUserAndSendInvite`;
-      postData = {
-        user: { firstName, lastName, email, password, roles: selectedRoles },
-        authProvider: auth_provider.toUpperCase()
-      };
-    }
+    const postUri = chkInvitation ? '/api/admin/users/createUserAndSendInvite' : '/api/admin/users';
+    const postData = chkInvitation ? {
+      user: { firstName, lastName, email, password, roles: selectedRoles },
+      authProvider: auth_provider.toUpperCase()
+    } : { firstName, lastName, email, password, roles: selectedRoles };
 
-    request(postUri, {
-      method: 'POST',
-      data: postData
-    }).then(() => {
-      getList({});
-      showSuccess({
-        id: 'toastSuccess', 
-        title: intl.formatMessage({ id: 'text.user_created' }),
-        description: intl.formatMessage({ id: 'text.user_create_success' })
-      });
-      clearForm();
-    }).catch((e) => {
-      showError({ id: 'toastError', description: e?.response?.data?.error ?? intl.formatMessage({ id: 'text.user_create_failed' }) });
+    handleRequest(postUri, 'POST', postData, {
+      onSuccess: () => {
+        getList({});
+        clearForm();
+      },
+      successTitleId: 'text.user_created',
+      successDescriptionId: 'text.user_create_success',
+      errorDescriptionId: 'text.user_create_failed'
     });
   };
 
@@ -155,26 +146,20 @@ export function Component() {
 
   const handleDelete = () => {
     if (!deleteUserId) return;
-    stateActions.addLoading();
-    request(`/api/admin/users/${deleteUserId}`, {
-      method: 'DELETE',
-      data: {}
-    }).then(() => {
-      getList({});
-      setIsDelDlgOpen(false);
-      if (deleteUserId == selectedUser?.id) {
-        setIsEdit(false);
-        clearForm();
-      }
-      setDeleteUserId(null);
-      showSuccess({
-        id: 'toastSuccess', 
-        title: intl.formatMessage({ id: 'text.user_deleted' }),
-        description: intl.formatMessage({ id: 'text.user_delete_success' })
-      });
-    }).catch((e) => {
-      setIsDelDlgOpen(false);
-      showError({ id: 'toastError', description: e?.response?.data?.error ?? intl.formatMessage({ id: 'text.user_delete_failed' }) });
+    
+    handleRequest(`/api/admin/users/${deleteUserId}`, 'DELETE', {}, {
+      onSuccess: () => {
+        getList({});
+        if (deleteUserId === selectedUser?.id) {
+          setIsEdit(false);
+          clearForm();
+        }
+        setDeleteUserId(null);
+        closeAskDialog();
+      },
+      successTitleId: 'text.user_deleted',
+      successDescriptionId: 'text.user_delete_success',
+      errorDescriptionId: 'text.user_delete_failed'
     });
   };
   const askDelete = (id: number) => {
@@ -355,37 +340,14 @@ export function Component() {
         </Flex>
       </Flex>
 
-      <AlertDialog
+      <MyAlertDialog
         isOpen={isDelDlgOpen}
-        leastDestructiveRef={cancelRef}
         onClose={closeAskDialog}
-        id="delete-confirmation-dialog"
-      >
-        <AlertDialogOverlay>
-          <AlertDialogContent>
-            <AlertDialogHeader fontSize="lg" fontWeight="bold">
-              <FormattedMessage id='text.delete_user' />
-            </AlertDialogHeader>
-            <AlertDialogBody>
-              <FormattedMessage id='text.are_you_sure_del_user' />
-            </AlertDialogBody>
-            <AlertDialogFooter>
-              <Button ref={cancelRef} onClick={closeAskDialog}>
-                <FormattedMessage id='text.cancel' />
-              </Button>
-              <Button 
-                id="btnConfirmDeleteUser"
-                colorScheme="red" 
-                onClick={handleDelete} 
-                ml={3}
-                data-testid="confirm-delete-button"
-              >
-                <FormattedMessage id='text.delete' />
-              </Button>
-            </AlertDialogFooter>
-          </AlertDialogContent>
-        </AlertDialogOverlay>
-      </AlertDialog>
+        onConfirm={handleDelete}
+        title="text.delete_user"
+        message="text.are_you_sure_del_user"
+        confirmButtonId="btnConfirmDeleteUser"
+      />
     </MyContent>
   );
 }

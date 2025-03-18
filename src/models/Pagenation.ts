@@ -20,7 +20,7 @@ export interface SpringBootPage<T> {
 
 export interface PaginationResponse<T> {
   data: T[];
-  pagination: {
+  pagination?: {
     current: number;
     pageSize: number;
     total: number;

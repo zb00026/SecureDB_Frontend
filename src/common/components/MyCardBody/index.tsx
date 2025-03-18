@@ -1,6 +1,6 @@
 import { VStack } from "@chakra-ui/react";
 
-export function MyCardBody({ children }: any) {
+export function MyCardBody({ children, ...rest }: any) {
   return (
     <VStack
       sx={{
@@ -11,6 +11,7 @@ export function MyCardBody({ children }: any) {
       }}
       gap="0"
       spacing="0"
+      {...rest}
     >
       {children}
     </VStack>

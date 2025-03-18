@@ -20,19 +20,35 @@ const getUrl = (baseUri: string, queryString: string): string => {
   return `${baseUri}?${queryString}`;
 };
 
-export function useListPage<T>({ baseUri, defaultParams = {} }: {
+function isSpringBootPage<T>(data: SpringBootPage<T> | T[]): data is SpringBootPage<T> {
+  return !Array.isArray(data) && 'totalElements' in data;
+}
+
+export function useListPage<T>({ 
+  baseUri, 
+  defaultParams = {}, 
+  usePagination = true 
+}: {
   baseUri: string;
   defaultParams?: Record<string, any>;
+  usePagination?: boolean;
 }) {
-  const [params, setParams] = useState<any>({});
-  const [getData, setData] = useState<any>({});
+  const [params, setParams] = useState<Record<string, any>>({});
+  const [data, setData] = useState<SpringBootPage<T> | T[]>(usePagination ? {} as SpringBootPage<T> : []);
   const { showRes } = useMyToast();
-  const getList = async (params: Record<string, any> = {}) => {
-    const queryString = createQueryString({
-      ...defaultParams,
-      ...params
-    });
 
+  const getList = async (params: Record<string, any> = {}) => {
+    // Only include pagination params if usePagination is true
+    const queryParams = {
+      ...defaultParams,
+      ...params,
+      ...(usePagination ? {
+        page: params.page || 1,
+        perPage: params.perPage || 10
+      } : {})
+    };
+
+    const queryString = createQueryString(queryParams);
     const url = getUrl(baseUri, queryString);
 
     request(url, {})
@@ -47,42 +63,43 @@ export function useListPage<T>({ baseUri, defaultParams = {} }: {
     if (defaultParams) {
       getList({
         ...defaultParams,
-        ...{ page: 1, perPage: 10 }
+        ...(usePagination ? { page: 1, perPage: 10 } : {})
       });
     } else {
-      getList({ page: 1, perPage: 10 });
+      getList(usePagination ? { page: 1, perPage: 10 } : {});
     }
-
   }, []);
 
-  const pagination = {
+  const pagination = usePagination ? {
     meta: {
-      total: getData?.totalElements ?? 0,
-      current_page: (getData?.number ?? 0) + 1,
-      per_page: getData?.size ?? 10
+      total: isSpringBootPage(data) ? data.totalElements : 0,
+      current_page: isSpringBootPage(data) ? data.number + 1 : 1,
+      per_page: isSpringBootPage(data) ? data.size : 10
     },
     onChange: (page: number, pageSize: number) => {
       let t = {
         ...defaultParams,
         ...params,
-        ...{ page: page, perPage: pageSize },
+        page,
+        perPage: pageSize,
       };
       getList(t);
     },
-  };
+  } : undefined;
+
   const transformResponse = (response: SpringBootPage<T>): PaginationResponse<T> => {
     return {
       data: response?.content ?? [],
-      pagination: {
+      pagination: usePagination ? {
         current: 1,
         pageSize: 10,
         total: 0
-      }
+      } : undefined
     };
   };
 
   return {
-    getData,
+    getData: data,
     getList,
     pagination,
     transformResponse

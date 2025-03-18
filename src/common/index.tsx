@@ -14,6 +14,7 @@ export * from "./components/MyCard";
 export * from "./components/MyCardBody";
 export * from "./components/MyCardDivider";
 export * from "./components/MyContent";
+export * from "./components/MyTable";
 export * from "./components/MyText/TextBody";
 export * from "./components/MyText/TextBody1";
 export * from "./components/MyText/TextCardHeader";

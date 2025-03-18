@@ -107,7 +107,7 @@ export const MyTable = ({
   };
 
   return (
-    <Box>
+    <Box width='100%'>
       <TableContainer>
         <Table variant="simple" {...rest}>
           <Thead>

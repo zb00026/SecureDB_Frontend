@@ -266,7 +266,7 @@ export function Component() {
         <MyTable
           id="tableAuditTrail"
           columns={columns}
-          dataSource={getData.content || []}
+          dataSource={(Array.isArray(getData) ? getData : getData?.content) || []}
           pagination={pagination}
           rowKey="id"
         />

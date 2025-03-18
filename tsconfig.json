@@ -74,6 +74,9 @@
       ],
       "~error/*": [
         "src/pages/error/*"
+      ],
+      "~main/*": [
+        "src/main/*"
       ]
     }
   },
