@@ -1,6 +1,6 @@
 import { Box, Flex, Input, Select, Grid, GridItem, useColorMode } from "@chakra-ui/react";
 import { Global, css } from "@emotion/react";
-import { MyBasePage } from "@common/components/MyBasePage";
+import { DamBasePage } from "@common/components/DamBasePage";
 import { useListPage } from "@common/hooks/useListPage";
 
 import { useState } from "react";
@@ -10,7 +10,7 @@ import { DatePicker } from "antd";
 import dayjs from "dayjs";
 const { RangePicker } = DatePicker;
 import { PrimaryButton } from "@common/index";
-import { MyTable } from "@common/components/MyTable";
+import { DamTable } from "@common/components/DamTable";
 
 export const isSearchable = true;
 export const displayName = 'Audit Trail';
@@ -159,7 +159,7 @@ export function Component() {
   
 
   return (
-    <MyBasePage
+    <DamBasePage
       title={intl.formatMessage({ id: 'text.audit_trail' })}
       backTitle={intl.formatMessage({ id: 'text.dashboard' })}
       backURI="/">
@@ -263,7 +263,7 @@ export function Component() {
           </Flex>
         </Box>
 
-        <MyTable
+        <DamTable
           id="tableAuditTrail"
           columns={columns}
           dataSource={(Array.isArray(getData) ? getData : getData?.content) || []}
@@ -271,6 +271,6 @@ export function Component() {
           rowKey="id"
         />
       </Box>
-    </MyBasePage>
+    </DamBasePage>
   );
 } 

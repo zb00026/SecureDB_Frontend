@@ -3,14 +3,14 @@ import {
   Checkbox,
   IconButton
 } from "@chakra-ui/react";
-import { MyBasePage } from "@common/components/MyBasePage";
-import { MyCard, MyCardBody, MyCardDivider, MyContent, request, stateActions, TextCardHeader, useListPage, useMyToast } from "@common/index";
+import { DamBasePage } from "@common/components/DamBasePage";
+import { DamCard, DamCardBody, DamCardDivider, DamContent, request, stateActions, TextCardHeader, useListPage, useDamToast } from "@common/index";
 import { Asset } from "@models/Asset";
 import { User } from "@models/User";
 import { useEffect, useState } from "react";
 import { FormattedMessage, useIntl } from "react-intl";
 import { AssetType, DatabaseType, USER_ROLE } from "@/constants/enums";
-import { MyAlertDialog } from "@common/components/MyAlert/MyAlertDialog";
+import { DamAlertDialog } from "@common/components/DamAlert/DamAlertDialog";
 import { useApiRequest } from "@common/hooks/useApiRequest";
 import { CloseIcon, SearchIcon } from "@chakra-ui/icons";
 
@@ -18,7 +18,7 @@ export const isSearchable = true;
 export const displayName = 'Assets Management Page';
 export function Component() {
   const intl = useIntl();
-  const { showSuccess, showError } = useMyToast();
+  const { showSuccess, showError } = useDamToast();
   const [assets, setAssets] = useState<Array<Asset>>([]);
   const [selectedAsset, setSelectedAsset] = useState<Asset | null>(null);
   const [isEdit, setIsEdit] = useState(false);
@@ -204,15 +204,15 @@ export function Component() {
   }
 
   return (
-    <MyContent w="98%">
-      <MyBasePage
+    <DamContent w="98%">
+      <DamBasePage
         title={intl.formatMessage({ id: 'text.asset_management' })}
         backTitle={intl.formatMessage({ id: 'text.dashboard' })}
         backURI="/"
       >
         <Flex flexDir="column" w="full" px={0} pt={3}>
-          <MyCard>
-            <MyCardBody pb={4}>
+          <DamCard>
+            <DamCardBody pb={4}>
               <Flex alignItems={'center'} w='full' justifyContent={'space-between'}>
                 <TextCardHeader mb={0}>
                   <FormattedMessage id="text.asset_setting" />
@@ -225,7 +225,7 @@ export function Component() {
                   <FormattedMessage id={isFormShow ? "text.cancel_creation" : "text.create"} />
                 </Button>
               </Flex>
-              <MyCardDivider />
+              <DamCardDivider />
 
               {isFormShow &&
                 <Flex gap={4} mt={4} ml={4} alignItems="center">
@@ -291,18 +291,18 @@ export function Component() {
                   </Flex>
                 </Flex>
               )}
-            </MyCardBody>
-          </MyCard>
+            </DamCardBody>
+          </DamCard>
           <Flex flexDirection={'row'}
             gap={'2%'}
             flexWrap="wrap">
             <Flex w={{ base: "full", sm: "full", md: "49%", lg: "59%" }}>
-              <MyCard mt={4}>
-                <MyCardBody>
+              <DamCard mt={4}>
+                <DamCardBody>
                   <TextCardHeader mb={0}>
                     <FormattedMessage id="text.assets" />
                   </TextCardHeader>
-                  <MyCardDivider />
+                  <DamCardDivider />
 
                   <TableContainer width='100%'>
                     <Table variant='simple'>
@@ -353,12 +353,12 @@ export function Component() {
                       </Tbody>
                     </Table>
                   </TableContainer>
-                </MyCardBody>
-              </MyCard>
+                </DamCardBody>
+              </DamCard>
             </Flex>
             <Flex w={{ base: "full", sm: "full", md: "49%", lg: "39%" }}>
-              <MyCard mt={4} flex={1}>
-                <MyCardBody>
+              <DamCard mt={4} flex={1}>
+                <DamCardBody>
                   <Flex justifyContent={'space-between'} alignItems={'center'} w='full'>
                     {!isSearchShow && <TextCardHeader mb={0}>
                       <FormattedMessage id="text.resource_owner_users" />
@@ -381,7 +381,7 @@ export function Component() {
                     />
                   </Flex>
 
-                  <MyCardDivider />
+                  <DamCardDivider />
 
                   <TableContainer width='100%'>
                     <Table variant='simple'>
@@ -424,14 +424,14 @@ export function Component() {
                       </Tbody>
                     </Table>
                   </TableContainer>
-                </MyCardBody>
-              </MyCard>
+                </DamCardBody>
+              </DamCard>
             </Flex>
           </Flex>
         </Flex>
-      </MyBasePage>
+      </DamBasePage>
 
-      <MyAlertDialog
+      <DamAlertDialog
         isOpen={isDelDlgOpen}
         onClose={closeAskDialog}
         onConfirm={handleDelete}
@@ -439,6 +439,6 @@ export function Component() {
         message="text.are_you_sure_del_user"
         confirmButtonId="btnConfirmDeleteUser"
       />
-    </MyContent>
+    </DamContent>
   );
 } 

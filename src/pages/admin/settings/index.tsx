@@ -1,6 +1,6 @@
 import { Flex, Input, Text } from "@chakra-ui/react";
-import { MyBasePage } from "@common/components/MyBasePage";
-import { MyCard, MyCardBody, MyCardDivider, MyContent, PrimaryButton, request, TextCardHeader, useMyToast } from "@common/index";
+import { DamBasePage } from "@common/components/DamBasePage";
+import { DamCard, DamCardBody, DamCardDivider, DamContent, PrimaryButton, request, TextCardHeader, useDamToast } from "@common/index";
 import { S3BucketSettings } from "@models/S3BucketSettings";
 import { useEffect, useState } from "react";
 import { FormattedMessage, useIntl } from "react-intl";
@@ -10,7 +10,7 @@ export const displayName = 'Settings Page';
 
 export function Component() {
   const intl = useIntl();
-  const { showError, showSuccess } = useMyToast();
+  const { showError, showSuccess } = useDamToast();
   const [s3BucketName, setS3BucketName] = useState<string>('');
 
   useEffect(() => {
@@ -42,21 +42,21 @@ export function Component() {
   }
   return (
     <>
-      <MyBasePage
+      <DamBasePage
         title={intl.formatMessage({ id: 'text.settings' })}
         backTitle={intl.formatMessage({ id: 'text.dashboard' })}
         backURI="/"
         hasBody={false}>
-      </MyBasePage>
-      <MyContent w="98%">
-        <MyCard mt="4" pb="4">
-          <MyCardBody>
+      </DamBasePage>
+      <DamContent w="98%">
+        <DamCard mt="4" pb="4">
+          <DamCardBody>
             <TextCardHeader id="lblAuditLogStorage" w="full" pb={0} textAlign={'center'}>
               <FormattedMessage id="text.audit_log_storage" />
             </TextCardHeader>
 
             <Flex flexDir="column" w="full" px={6}>
-              <MyCardDivider></MyCardDivider>
+              <DamCardDivider></DamCardDivider>
               <Flex w='full' textAlign={'center'} mt={2} alignItems={'center'} gap={2}>
                 <Text mb={0}>
                   <FormattedMessage id="text.s3_bucket_name" />
@@ -75,9 +75,9 @@ export function Component() {
                 </PrimaryButton>
               </Flex>
             </Flex>
-          </MyCardBody>
-        </MyCard>
-      </MyContent>
+          </DamCardBody>
+        </DamCard>
+      </DamContent>
 
     </>
   );

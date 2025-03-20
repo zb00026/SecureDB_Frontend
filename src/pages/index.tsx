@@ -1,6 +1,6 @@
 import { USER_ROLE } from "@/constants/enums";
 import { Flex } from "@chakra-ui/react";
-import { MyBasePage } from "@common/components/MyBasePage";
+import { DamBasePage } from "@common/components/DamBasePage";
 import { PrimaryButton, useMyState, userHasRole } from "@common/index";
 import { Role } from "@models/Role";
 import { FormattedMessage, useIntl } from "react-intl";
@@ -22,7 +22,7 @@ export function Component() {
   }
 
   return (
-    <MyBasePage
+    <DamBasePage
       title={intl.formatMessage({ id: 'text.dashboard' })}>
       <Flex mt={6} flexDirection="row" gap={4} >
         {
@@ -44,6 +44,6 @@ export function Component() {
           )
         }
       </Flex>
-    </MyBasePage>
+    </DamBasePage>
   );
 }

@@ -1,5 +1,5 @@
 import { Flex } from "@chakra-ui/react";
-import { MyBasePage } from "@common/components/MyBasePage";
+import { DamBasePage } from "@common/components/DamBasePage";
 import { TextBody } from "@common/index";
 import { useIntl } from "react-intl";
 
@@ -9,7 +9,7 @@ export const displayName = 'Approver Page';
 export function Component() {
   const intl = useIntl();
   return (
-    <MyBasePage
+    <DamBasePage
       title={intl.formatMessage({ id: 'text.approver' })}
       backTitle={intl.formatMessage({ id: 'text.dashboard' })}
       backURI="/">
@@ -17,6 +17,6 @@ export function Component() {
         This is Approver Page
       </TextBody>
       <Flex mt={6} />
-    </MyBasePage>
+    </DamBasePage>
   );
 }

@@ -90,6 +90,13 @@
   "text.resource_owner_update_success": "Updated Resource Owners Successfully",
   "text.resource_owner_update_failed": "Failed to update resource owners",
   "text.ok": "OK",
+  "text.new_asset_is_assigned": "New asset is assigned, you need to configure credential",
   "text.cancel_creation": "Cancel Creation",
-  "text.save": "Save"
+  "text.save": "Save",
+  "text.error_occurred_get_asset_credentials": "An error occurred while fetching Asset Credentials",
+  "text.no_asset_credentials": "No Asset Credentials",
+  "text.save_credential": "Save Credential",
+  "text.set_credential": "Set Credential",
+  "text.credentials_set_success": "Credentials has been successfully updated",
+  "text.error_occurred_setting_credentials": "An error occurred while updating credential information"
 }

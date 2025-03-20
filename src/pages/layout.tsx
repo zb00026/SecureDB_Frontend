@@ -1,17 +1,17 @@
 import React, { useRef } from 'react'
 import {
-  MyAlert,
-  MyAuthProvider,
-  MyChakraProvider,
-  MyInitialState,
-  MyIntlProvider,
-  MyLoading,
-  MyPageSearch,
+  DamAlert,
+  DamAuthProvider,
+  DamChakraProvider,
+  DamInitialState,
+  DamIntlProvider,
+  DamLoading,
+  DamPageSearch,
 } from '@/common';
 import Login from "@pages/auth/login";
 import { AUTH_PROVIDER } from '@/constants/enums';
 
-export const MyAlertRootContext = React.createContext({})
+export const DamAlertRootContext = React.createContext({})
 
 export const id = '/'
 
@@ -40,20 +40,20 @@ export function Component() {
   console.log(import.meta.env.VITE_AUTH_PROVIDER);
   const myAlertRef = useRef()
   return (
-    <MyIntlProvider>
-      <MyChakraProvider>
-        <MyAuthProvider authProviders={auth_providers}>
+    <DamIntlProvider>
+      <DamChakraProvider>
+        <DamAuthProvider authProviders={auth_providers}>
             <Login authProviders={auth_providers}>
-              <MyPageSearch>
-                <MyAlertRootContext.Provider value={myAlertRef}>
-                  <MyAlert ref={myAlertRef} />
-                  <MyLoading />
-                  <MyInitialState />
-                </MyAlertRootContext.Provider>
-              </MyPageSearch>
+              <DamPageSearch>
+                <DamAlertRootContext.Provider value={myAlertRef}>
+                  <DamAlert ref={myAlertRef} />
+                  <DamLoading />
+                  <DamInitialState />
+                </DamAlertRootContext.Provider>
+              </DamPageSearch>
             </Login>
-          </MyAuthProvider>
-      </MyChakraProvider>
-    </MyIntlProvider>
+          </DamAuthProvider>
+      </DamChakraProvider>
+    </DamIntlProvider>
   )
 }

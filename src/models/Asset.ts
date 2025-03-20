@@ -1,5 +1,5 @@
 import { AssetType, DatabaseType } from "@/constants/enums";
-import { AssetCredentials } from "./AssetCredentials";
+import { AssetCredential } from "./AssetCredential";
 import { User } from "./User";
 
 export interface Asset {
@@ -12,5 +12,5 @@ export interface Asset {
     createdAt?: Date;
     updatedAt?: Date;
     owners?: Array<User>;
-    credentials?: Array<AssetCredentials>;
+    credentials?: Array<AssetCredential>;
 }

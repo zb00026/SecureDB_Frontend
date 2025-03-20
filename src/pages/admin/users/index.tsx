@@ -1,8 +1,8 @@
 import {
   Box, Button, Checkbox, Flex, Input, Table, TableContainer, Tbody, Td, Th, Thead, Tr, useColorModeValue
 } from "@chakra-ui/react";
-import { MyButton, MyCard, MyCardBody, MyCardDivider, MyContent, PrimaryButton, request, stateActions, TextCardHeader, useListPage, useMyToast } from "@common/index";
-import { MyAlertDialog } from "@common/components/MyAlert/MyAlertDialog";
+import { DamButton, DamCard, DamCardBody, DamCardDivider, DamContent, PrimaryButton, request, stateActions, TextCardHeader, useListPage, useDamToast } from "@common/index";
+import { DamAlertDialog } from "@common/components/DamAlert/DamAlertDialog";
 import { useApiRequest } from "@common/hooks/useApiRequest";
 import { Role } from "@models/Role";
 import { User } from "@models/User";
@@ -23,7 +23,7 @@ export const isSearchable = true;
 export const displayName = 'User Management Page';
 
 export function Component() {
-  const { showSuccess, showError } = useMyToast();
+  const { showError } = useDamToast();
   const [users, setUsers] = useState<Array<User>>([]);
   const intl = useIntl();
 
@@ -171,14 +171,14 @@ export function Component() {
     setIsDelDlgOpen(false);
   };
   return (
-    <MyContent w="98%">
+    <DamContent w="98%">
       <Flex flexDir="column">
         <Flex w="100%">
           <Flex pt={5} w="100%">
             <Link to="/admin">
-              <MyButton colorScheme="green" mr={4}>
+              <DamButton colorScheme="green" mr={4}>
                 <FormattedMessage id="text.home" />
-              </MyButton>
+              </DamButton>
             </Link>
             <Flex id="flexUserForm" direction={'column'} w='full' pr={4}>
               <Flex gap={4}>
@@ -284,13 +284,13 @@ export function Component() {
         </Flex>
         <Flex flexWrap="wrap" w="100%">
           <Flex pt={5} flexDir="column" w="100%">
-            <MyCard mt="4">
-              <MyCardBody>
+            <DamCard mt="4">
+              <DamCardBody>
                 <TextCardHeader id="txtUsersTitle">
                   <FormattedMessage id="text.users" />
                 </TextCardHeader>
                 <Flex flexDir="column" w="full" px={6}>
-                  <MyCardDivider></MyCardDivider>
+                  <DamCardDivider></DamCardDivider>
                   <ConfigProvider prefixCls={defauleDark}>
                     <TableContainer w='100%' sx={{ overflowX: 'scroll' }}>
                       <Table variant='simple' size='md' w='100%'>
@@ -334,13 +334,13 @@ export function Component() {
                     </TableContainer>
                   </ConfigProvider>
                 </Flex>
-              </MyCardBody>
-            </MyCard>
+              </DamCardBody>
+            </DamCard>
           </Flex>
         </Flex>
       </Flex>
 
-      <MyAlertDialog
+      <DamAlertDialog
         isOpen={isDelDlgOpen}
         onClose={closeAskDialog}
         onConfirm={handleDelete}
@@ -348,6 +348,6 @@ export function Component() {
         message="text.are_you_sure_del_user"
         confirmButtonId="btnConfirmDeleteUser"
       />
-    </MyContent>
+    </DamContent>
   );
 }

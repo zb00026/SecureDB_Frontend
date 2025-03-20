@@ -1,14 +1,15 @@
 import { AUTH_PROVIDER, USER_ROLE } from "@/constants/enums";
 import { Flex } from "@chakra-ui/react";
-import KeycloakLogin from "@common/components/MyAuthProvider/KeycloakLogin";
-import { request, setGoogleToken, useMyToast, getGoogleToken, clearGoogleToken, stateActions, MyFullLoading, userHasRole } from "@common/index";
+import KeycloakLogin from "@common/components/DamAuthProvider/KeycloakLogin";
+import { request, setGoogleToken, useDamToast, getGoogleToken, clearGoogleToken, stateActions, DamFullLoading, userHasRole } from "@common/index";
+import { User } from "@models/User";
 import { GoogleLogin, googleLogout } from '@react-oauth/google';
 import { useEffect, useState } from "react";
 import { useIntl } from "react-intl";
 import { useSearchParams, useNavigate } from "react-router-dom";
 
 export default function Login({ authProviders, children }: { authProviders: string, children: React.ReactNode }) {
-  const { showError } = useMyToast();
+  const { showError } = useDamToast();
   const [authenticating, setAuthenticating] = useState<boolean>(false);
   const [isValidToken, setIsValidToken] = useState<boolean>(false);
   const [isCheckingLocalToken, setIsCheckingLocalToken] = useState<boolean>(false);
@@ -137,7 +138,25 @@ export default function Login({ authProviders, children }: { authProviders: stri
     });
     navigate('/admin/settings');
   }
-  const handleLoginSuccess = async (user: any) => {
+
+  const checkAssetCredential = (user: User) => {
+    if (userHasRole(user, USER_ROLE.RESOURCE_OWNER) || userHasRole(user, USER_ROLE.ADMIN)) {
+      request('/api/resource_owner/assets/new-credentials', {})
+      .then((res) => {
+        if(res.length > 0) {
+          showError({
+            description: intl.formatMessage({ id: 'text.new_asset_is_assigned' }),
+          });
+          navigate('/resource_owner');
+        }
+      })
+      .catch((e) => {
+        console.log(e);
+      })
+    }
+  }
+
+  const handleLoginSuccess = async (user: User) => {
     // Check if user is admin
     if (userHasRole(user, USER_ROLE.ADMIN)) {
       request('/api/admin/settings/get-current-audit-log-storage', {
@@ -145,11 +164,17 @@ export default function Login({ authProviders, children }: { authProviders: stri
       }).then((res: any) => {
         if (res.bucketName === '') {
           showAuditLogStorageNotConfigured();
+        } else {
+          checkAssetCredential(user);
         }
       }).catch((e: any) => {
         showAuditLogStorageNotConfigured();
       });
     }
+    if (userHasRole(user, USER_ROLE.RESOURCE_OWNER)) {
+      checkAssetCredential(user);
+    }
+
   };
 
   // Show children if authenticated with either method
@@ -166,7 +191,7 @@ export default function Login({ authProviders, children }: { authProviders: stri
   // Show loading state or login buttons
   return (
     <Flex direction="column" align="center" justify="center" height="100vh">
-      {isLoading && <MyFullLoading showBackground />}
+      {isLoading && <DamFullLoading showBackground />}
       {
         isAuthProviderAvailable(AUTH_PROVIDER.KEYCLOAK) &&
 

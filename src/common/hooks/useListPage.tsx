@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { useMyToast, request } from "../";
+import { useDamToast, request } from "../";
 import { SpringBootPage, PaginationResponse } from "@models/Pagenation";
 
 
@@ -35,7 +35,7 @@ export function useListPage<T>({
 }) {
   const [params, setParams] = useState<Record<string, any>>({});
   const [data, setData] = useState<SpringBootPage<T> | T[]>(usePagination ? {} as SpringBootPage<T> : []);
-  const { showRes } = useMyToast();
+  const { showRes } = useDamToast();
 
   const getList = async (params: Record<string, any> = {}) => {
     // Only include pagination params if usePagination is true

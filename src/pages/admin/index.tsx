@@ -1,5 +1,5 @@
 import { Flex } from "@chakra-ui/react";
-import { MyBasePage } from "@common/components/MyBasePage";
+import { DamBasePage } from "@common/components/DamBasePage";
 import { PrimaryButton, TextBody, } from "@common/index";
 import { FormattedMessage, useIntl } from "react-intl";
 import { Link } from "react-router-dom";
@@ -10,7 +10,7 @@ export const displayName = 'Admin Main Page';
 export function Component() {
   const intl = useIntl();
   return (
-    <MyBasePage
+    <DamBasePage
       title={intl.formatMessage({ id: 'text.admin' })}
       backTitle={intl.formatMessage({ id: 'text.dashboard' })}
       backURI="/">
@@ -34,6 +34,6 @@ export function Component() {
           </PrimaryButton>
         </Link>
       </Flex>
-    </MyBasePage>
+    </DamBasePage>
   );
 }

@@ -1,5 +1,5 @@
 import { useIntl } from "react-intl";
-import { request, stateActions, useMyToast } from "@common/index";
+import { request, stateActions, useDamToast } from "@common/index";
 
 interface ApiRequestOptions {
   onSuccess?: () => void;
@@ -10,7 +10,7 @@ interface ApiRequestOptions {
 
 export function useApiRequest() {
   const intl = useIntl();
-  const { showSuccess, showError } = useMyToast();
+  const { showSuccess, showError } = useDamToast();
 
   const handleRequest = async (
     url: string,

@@ -1,11 +1,11 @@
 import { Flex, Text } from "@chakra-ui/react";
-import { MyBasePage } from "@common/components/MyBasePage";
+import { DamBasePage } from "@common/components/DamBasePage";
 import { useIntl } from "react-intl";
 
 export function ForbiddenPage() {
     const intl = useIntl();
     return (
-        <MyBasePage
+        <DamBasePage
             title="Permission Error"
             backTitle={intl.formatMessage({ id: 'text.dashboard' })}
             backURI="/">
@@ -21,6 +21,6 @@ export function ForbiddenPage() {
             </Flex>
 
             <Flex mt={6} />
-        </MyBasePage>
+        </DamBasePage>
     );
 }
