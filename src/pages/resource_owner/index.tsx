@@ -1,10 +1,11 @@
 import { Button, Flex, Tr, Tbody, Table, TableContainer, Td, Th, Thead, Text } from "@chakra-ui/react";
 import { DamBasePage } from "@common/components/DamBasePage";
-import { DamCardBody, DamCard, request, useDamToast, TextCardHeader, DamCardDivider } from "@common/index";
+import { DamCardBody, DamCard, request, useDamToast, TextCardHeader, DamCardDivider, stateActions } from "@common/index";
 import { AssetCredential } from "@models/AssetCredential";
 import { useEffect, useState } from "react";
 import { FormattedMessage, useIntl } from "react-intl";
 import { SetCredentialDialog } from "@common/components/SetCredentialDialog";
+import { DamAlertDialog } from "@common/components/DamAlert/DamAlertDialog";
 
 export const isSearchable = true;
 export const displayName = 'Resource Owner Main Page';
@@ -14,8 +15,10 @@ export function Component() {
   const [credentials, setCredentials] = useState<AssetCredential[]>([]);
   const [selectedCredential, setSelectedCredential] = useState<AssetCredential | null>(null);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [isDelDlgOpen, setIsDelDlgOpen] = useState(false);
 
   const fetchAssignedCredentials = () => {
+    stateActions.addLoading();
     request('/api/resource_owner/assets/credentials', {})
       .then((res) => {
         if (res.length > 0) {
@@ -35,6 +38,7 @@ export function Component() {
 
   const handleSetCredential = (username: string, password: string) => {
     if (!selectedCredential) return;
+    stateActions.addLoading();
     request(`/api/resource_owner/assets/credentials/${selectedCredential.id}`, {
       method: 'POST',
       data: { username, password }
@@ -48,6 +52,26 @@ export function Component() {
       .catch((e) => {
         showError({
           description: e.data?.error ? e.data?.error : intl.formatMessage({ id: 'text.error_occurred_setting_credentials' }),
+        });
+      });
+  };
+
+  const handleRelinquish = () => {
+    if (!selectedCredential) return;
+    setIsDelDlgOpen(false);
+    stateActions.addLoading();
+    request(`/api/resource_owner/assets/credentials/${selectedCredential.id}`, {
+      method: 'DELETE'
+    })
+      .then(() => {
+        showSuccess({
+          description: intl.formatMessage({ id: 'text.credentials_relinquished_success' }),
+        });
+        fetchAssignedCredentials();
+      })
+      .catch((e) => {
+        showError({
+          description: e.data?.error ? e.data?.error : intl.formatMessage({ id: 'text.error_occurred_relinquishing_credentials' }),
         });
       });
   };
@@ -94,16 +118,31 @@ export function Component() {
                               <Button
                                 size="sm"
                                 colorScheme="green"
-                                onClick={() => setIsDialogOpen(true)}
+                                onClick={() => {
+                                  setIsDialogOpen(true);
+                                }}
                               >
                                 <FormattedMessage id="text.set_credential" />
                               </Button>
                             </Flex>) :
-                            (<Text
-                              fontSize={'18px'}
-                              fontStyle={'bold'}
-                              color={'green.500'}
-                              mb={0}>✓</Text>)}
+                            (<Flex flexDirection={'row'} gap={2} justifyContent={'center'} w='full'>
+                              <Button
+                                size="sm"
+                                colorScheme="yellow"
+                                onClick={() => {
+                                  setIsDialogOpen(true);
+                                }}
+                              >
+                                <FormattedMessage id="text.update_credential" />
+                              </Button>
+                              <Button
+                                size="sm"
+                                colorScheme="red"
+                                onClick={() => setIsDelDlgOpen(true)}
+                              >
+                                <FormattedMessage id="text.relinquish_credential" />
+                              </Button>
+                            </Flex>)}
                         </Td>
                       </Tr>
                     ))}
@@ -127,6 +166,15 @@ export function Component() {
         isOpen={isDialogOpen}
         onClose={() => setIsDialogOpen(false)}
         onSubmit={handleSetCredential}
+      />
+
+      <DamAlertDialog
+        isOpen={isDelDlgOpen}
+        onClose={() => setIsDelDlgOpen(false)}
+        onConfirm={handleRelinquish}
+        title="text.relinquish_credential"
+        message="text.are_you_sure_relinquish_credential"
+        confirmButtonId="btnConfirmRelinquish"
       />
     </DamBasePage>
   );

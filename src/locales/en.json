@@ -98,5 +98,10 @@
   "text.save_credential": "Save Credential",
   "text.set_credential": "Set Credential",
   "text.credentials_set_success": "Credentials has been successfully updated",
-  "text.error_occurred_setting_credentials": "An error occurred while updating credential information"
+  "text.error_occurred_setting_credentials": "An error occurred while updating credential information",
+  "text.update_credential": "Update Credential",
+  "text.relinquish_credential": "Relinquish",
+  "text.are_you_sure_relinquish_credential": "Are you sure? You can't undo this action afterwards.",
+  "text.credentials_relinquished_success": "Relinquished credential successfully",
+  "text.error_occurred_relinquishing_credentials": "Failed to relinquish credential"
 }
