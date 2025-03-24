@@ -101,6 +101,7 @@
   "text.error_occurred_setting_credentials": "An error occurred while updating credential information",
   "text.update_credential": "Update Credential",
   "text.relinquish_credential": "Relinquish",
+  "text.are_you_sure_del_asset": "Are you sure to delete this asset? You can't undo this action afterwards.",
   "text.are_you_sure_relinquish_credential": "Are you sure? You can't undo this action afterwards.",
   "text.credentials_relinquished_success": "Relinquished credential successfully",
   "text.error_occurred_relinquishing_credentials": "Failed to relinquish credential"

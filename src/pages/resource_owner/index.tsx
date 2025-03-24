@@ -83,13 +83,13 @@ export function Component() {
       backURI="/">
       <DamCard mt={4}>
         <DamCardBody>
-          <TextCardHeader mb={0}>
+          <TextCardHeader mb={0} id="lblAssetSetting">
             <FormattedMessage id="text.assets" />
           </TextCardHeader>
           <DamCardDivider />
 
           <TableContainer width='100%'>
-            <Table variant='simple'>
+            <Table variant='simple' id="tblAssetCredentials">
               <Thead>
                 <Tr>
                   <Th><FormattedMessage id='text.name' /></Th>
@@ -117,6 +117,7 @@ export function Component() {
                             (<Flex gap={2} justifyContent={'center'} w='full'>
                               <Button
                                 size="sm"
+                                className="btn-set-credential"
                                 colorScheme="green"
                                 onClick={() => {
                                   setIsDialogOpen(true);
@@ -128,6 +129,7 @@ export function Component() {
                             (<Flex flexDirection={'row'} gap={2} justifyContent={'center'} w='full'>
                               <Button
                                 size="sm"
+                                className="btn-update-credential"
                                 colorScheme="yellow"
                                 onClick={() => {
                                   setIsDialogOpen(true);
@@ -137,6 +139,7 @@ export function Component() {
                               </Button>
                               <Button
                                 size="sm"
+                                className="btn-relinquish-credential"
                                 colorScheme="red"
                                 onClick={() => setIsDelDlgOpen(true)}
                               >

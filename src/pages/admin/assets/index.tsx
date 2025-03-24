@@ -214,10 +214,10 @@ export function Component() {
           <DamCard>
             <DamCardBody pb={4}>
               <Flex alignItems={'center'} w='full' justifyContent={'space-between'}>
-                <TextCardHeader mb={0}>
+                <TextCardHeader id="lblAssetSetting" mb={0}>
                   <FormattedMessage id="text.asset_setting" />
                 </TextCardHeader>
-                <Button mr={2} colorScheme={isFormShow ? "red" : "green"} onClick={() => {
+                <Button id="btnCreateAsset" mr={2} colorScheme={isFormShow ? "red" : "green"} onClick={() => {
                   setIsFormShow(!isFormShow);
                   clearForm();
                   setAssetType(AssetType.DATABASE);
@@ -228,7 +228,7 @@ export function Component() {
               <DamCardDivider />
 
               {isFormShow &&
-                <Flex gap={4} mt={4} ml={4} alignItems="center">
+                <Flex gap={4} mt={4} ml={4} alignItems="center" id="flexAssetTypeForm">
                   <Text mb={0}>
                     <FormattedMessage id="text.asset_type" />
                   </Text>
@@ -246,11 +246,12 @@ export function Component() {
 
                       <Select
                         value={databaseType}
+                        id="selectDBType"
                         onChange={(e) => setDatabaseType(e.target.value as DatabaseType)}
                         placeholder={intl.formatMessage({ id: 'text.select_db_type' })}
                       >
                         {Object.values(DatabaseType).map((type: DatabaseType) => (
-                          <option key={type} value={type}>{type}</option>
+                          <option className="dropdown-db-option" key={type} value={type}>{type}</option>
                         ))}
                       </Select>
                     </Box>
@@ -259,24 +260,28 @@ export function Component() {
                 </Flex>
               }
               {isFormShow && assetType != '' && databaseType != '' && (
-                <Flex mt={4} ml={4} flexDirection={'row'} gap={4}>
+                <Flex mt={4} ml={4} flexDirection={'row'} gap={4} id="flexAssetDetailForm">
                   <Input
                     value={name}
                     onChange={(e) => setName(e.target.value)}
+                    id="inputAssetName"
                     placeholder={intl.formatMessage({ id: 'text.asset_name' })}
                   />
                   <Input
                     value={hostAddress}
                     onChange={(e) => setHostAddress(e.target.value)}
+                    id="inputHostAddress"
                     placeholder={intl.formatMessage({ id: 'text.host_address' })}
                   />
                   <Input
                     value={description}
                     onChange={(e) => setDescription(e.target.value)}
+                    id="inputDescription"
                     placeholder={intl.formatMessage({ id: 'text.description' })}
                   />
                   <Flex justify="flex-end" gap={4}>
                     <Button
+                      id="btnSaveAsset"
                       colorScheme={isEdit ? "green" : "blue"}
                       onClick={isEdit ? handleUpdate : handleCreate}
                       disabled={!name}
@@ -284,7 +289,7 @@ export function Component() {
                       {intl.formatMessage({ id: 'text.save' })}
                     </Button>
                     {isEdit && (
-                      <Button onClick={clearForm}>
+                      <Button id="btnClearAsset" onClick={clearForm}>
                         <FormattedMessage id='text.clear' />
                       </Button>
                     )}
@@ -305,7 +310,7 @@ export function Component() {
                   <DamCardDivider />
 
                   <TableContainer width='100%'>
-                    <Table variant='simple'>
+                    <Table variant='simple' id="tblAssets">
                       <Thead>
                         <Tr>
                           <Th><FormattedMessage id='text.name' /></Th>
@@ -384,7 +389,7 @@ export function Component() {
                   <DamCardDivider />
 
                   <TableContainer width='100%'>
-                    <Table variant='simple'>
+                    <Table variant='simple' id="tblAssetOwners">
                       <Thead>
                         <Tr>
                           <Th><FormattedMessage id='text.status' /></Th>
@@ -436,8 +441,8 @@ export function Component() {
         onClose={closeAskDialog}
         onConfirm={handleDelete}
         title="text.delete_asset"
-        message="text.are_you_sure_del_user"
-        confirmButtonId="btnConfirmDeleteUser"
+        message="text.are_you_sure_del_asset"
+        confirmButtonId="btnConfirmDeleteAsset"
       />
     </DamContent>
   );

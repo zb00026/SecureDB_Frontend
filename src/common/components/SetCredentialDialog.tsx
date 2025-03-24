@@ -45,9 +45,10 @@ export function SetCredentialDialog({ isOpen, onClose, onSubmit }: SetCredential
           <AlertDialogHeader fontSize="lg" fontWeight="bold">
             <FormattedMessage id="text.set_credential" />
           </AlertDialogHeader>
-          <AlertDialogBody>
+          <AlertDialogBody id='credentialDialogBody'>
             <Input
               placeholder="Username"
+              id="inputCredentialUsername"
               value={username}
               onChange={(e) => setUsername(e.target.value)}
               mb={3}
@@ -55,6 +56,7 @@ export function SetCredentialDialog({ isOpen, onClose, onSubmit }: SetCredential
             <Input
               placeholder="Password"
               type="password"
+              id="inputCredentialPassword"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
             />
@@ -63,7 +65,7 @@ export function SetCredentialDialog({ isOpen, onClose, onSubmit }: SetCredential
             <Button onClick={onClose}>
               <FormattedMessage id='text.cancel' />
             </Button>
-            <Button colorScheme="blue" onClick={handleSubmit} ml={3}>
+            <Button id="btnSaveCredential" colorScheme="blue" onClick={handleSubmit} ml={3}>
               <FormattedMessage id='text.save' />
             </Button>
           </AlertDialogFooter>

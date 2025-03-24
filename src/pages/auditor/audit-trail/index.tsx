@@ -55,6 +55,12 @@ export function Component() {
       dataIndex: 'ipAddress',
       key: 'ipAddress',
     },
+
+    {
+      title: 'Instance',
+      dataIndex: 'instanceId',
+      key: 'instanceId',
+    },
     {
       title: 'Previous Value',
       dataIndex: 'previousValue',

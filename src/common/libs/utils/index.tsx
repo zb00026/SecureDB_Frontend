@@ -33,6 +33,11 @@ export function isAuthorizedPath(path: string, user?: User): boolean {
         (userRole === USER_ROLE.ADMIN || userRole === USER_ROLE.AUDITOR)) {
       hasRole = true;
     }
+
+    if (path.startsWith('/resource_owner') && 
+        (userRole === USER_ROLE.ADMIN || userRole === USER_ROLE.RESOURCE_OWNER)) {
+      hasRole = true;
+    }
   })
 
 
