@@ -104,5 +104,10 @@
   "text.are_you_sure_del_asset": "Are you sure to delete this asset? You can't undo this action afterwards.",
   "text.are_you_sure_relinquish_credential": "Are you sure? You can't undo this action afterwards.",
   "text.credentials_relinquished_success": "Relinquished credential successfully",
-  "text.error_occurred_relinquishing_credentials": "Failed to relinquish credential"
+  "text.error_occurred_relinquishing_credentials": "Failed to relinquish credential",
+  "text.approver_users": "Approvers",
+  "text.no_approver_users": "No Approver Users",
+  "text.approver_updated": "Approver Updated",
+  "text.approver_update_success": "Updated Approvers Successfully",
+  "text.approver_update_failed": "Failed to update approvers"
 }

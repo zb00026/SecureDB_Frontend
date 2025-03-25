@@ -1,7 +1,10 @@
 import {
   Box, Button, Flex, Input, Text, Select, Table, TableContainer, Tbody, Td, Th, Thead, Tr,
-  Checkbox,
-  IconButton
+  Tabs,
+  Tab,
+  TabList,
+  TabPanel,
+  TabPanels
 } from "@chakra-ui/react";
 import { DamBasePage } from "@common/components/DamBasePage";
 import { DamCard, DamCardBody, DamCardDivider, DamContent, request, stateActions, TextCardHeader, useListPage, useDamToast } from "@common/index";
@@ -12,7 +15,7 @@ import { FormattedMessage, useIntl } from "react-intl";
 import { AssetType, DatabaseType, USER_ROLE } from "@/constants/enums";
 import { DamAlertDialog } from "@common/components/DamAlert/DamAlertDialog";
 import { useApiRequest } from "@common/hooks/useApiRequest";
-import { CloseIcon, SearchIcon } from "@chakra-ui/icons";
+import { FilteredUsers } from "./components/filtered_users";
 
 export const isSearchable = true;
 export const displayName = 'Assets Management Page';
@@ -24,9 +27,7 @@ export function Component() {
   const [isEdit, setIsEdit] = useState(false);
   const [isFormShow, setIsFormShow] = useState(false);
   const [isDelDlgOpen, setIsDelDlgOpen] = useState(false);
-  const [isSearchShow, setIsSearchShow] = useState(false);
   const [deleteAssetId, setDeleteAssetId] = useState<number | null>(null);
-  const [userSearchCriteria, setUserSearchCriteria] = useState('');
 
   // Form states
   const [name, setName] = useState('');
@@ -34,6 +35,17 @@ export function Component() {
   const [databaseType, setDatabaseType] = useState<DatabaseType | ''>('');
   const [description, setDescription] = useState('');
   const [hostAddress, setHostAddress] = useState('');
+
+  const UsersTabs = [
+    {
+      title: intl.formatMessage({ id: 'text.resource_owner_users' }),
+      key: 'owners'
+    },
+    {
+      title: intl.formatMessage({ id: 'text.approver_users' }),
+      key: 'approvers'
+    }
+  ]
 
   const { getData, getList: getAssetsList } = useListPage<Asset>({
     baseUri: "/api/admin/assets",
@@ -46,6 +58,15 @@ export function Component() {
     baseUri: '/api/admin/users',
     defaultParams: {
       roles: [USER_ROLE.RESOURCE_OWNER, USER_ROLE.ADMIN]
+    },
+    usePagination: false
+  });
+
+  // Use useListPage for resource owners
+  const { getData: getApprovers, getList: getApproversList } = useListPage<User>({
+    baseUri: '/api/admin/users',
+    defaultParams: {
+      roles: [USER_ROLE.APPROVER]
     },
     usePagination: false
   });
@@ -87,26 +108,49 @@ export function Component() {
     return selectedAsset.owners?.some(owner => owner.id === user.id);
   };
 
-  const refreshOwners = (user: User, isOwner: boolean, isSuccess: boolean) => {
-    getResourceOwnersList({ roles: [USER_ROLE.RESOURCE_OWNER, USER_ROLE.ADMIN] });
+  const checkApprover = (user: User) => {
+    if (!selectedAsset) return false;
+    return selectedAsset.approvers?.some(approver => approver.id === user.id);
+  };
+
+  const updateUserList = (userRoleKey: string) => {
+    const roleMap = {
+      'owners': { roles: [USER_ROLE.RESOURCE_OWNER, USER_ROLE.ADMIN], getter: getResourceOwnersList },
+      'approvers': { roles: [USER_ROLE.APPROVER], getter: getApproversList }
+    };
+
+    const config = roleMap[userRoleKey as keyof typeof roleMap];
+    if (config) {
+      config.getter({ roles: config.roles });
+    }
+  };
+
+  const updateAssetUsers = (userRoleKey: string, user: User, isOwner: boolean, isSuccess: boolean) => {
+    if (!selectedAsset || !isSuccess) return;
+
+    const userListKey = userRoleKey === 'owners' ? 'owners' : 'approvers';
+    const userList = selectedAsset[userListKey];
+
+    if (!userList) return;
+
+    if (isOwner) {
+      userList.push(user);
+    } else {
+      selectedAsset[userListKey] = userList.filter(u => u.id !== user.id);
+    }
+  };
+
+  const refreshOwners = (user: User, isOwner: boolean, isSuccess: boolean, userRoleKey: string) => {
+    updateUserList(userRoleKey);
     getAssetsList({});
     if (isSuccess) {
-      let tmpAsset = selectedAsset;
-      if (selectedAsset?.owners) {
-        if (isOwner) {
-          selectedAsset.owners.push(user);
-        } else {
-          selectedAsset.owners = selectedAsset.owners.filter(owner => owner.id !== user.id);
-        }
-      }
-      setSelectedAsset(tmpAsset);
+      updateAssetUsers(userRoleKey, user, isOwner, isSuccess);
     }
-
   }
-  const updateResourceOwner = (user: User, isOwner: boolean) => {
+  const updateAssetUser = (user: User, isOwner: boolean, userRoleKey: string) => {
     if (!selectedAsset) return;
     stateActions.addLoading();
-    request(`/api/admin/assets/${selectedAsset.id}/owners`, {
+    request(`/api/admin/assets/${selectedAsset.id}/${userRoleKey}`, {
       method: 'POST',
       data: {
         userIds: [user.id],
@@ -114,18 +158,18 @@ export function Component() {
       }
     })
       .then(() => {
-        refreshOwners(user, isOwner, true);
+        refreshOwners(user, isOwner, true, userRoleKey);
         showSuccess({
           id: 'toastSuccess',
-          title: intl.formatMessage({ id: 'text.resource_owner_updated' }),
-          description: intl.formatMessage({ id: 'text.resource_owner_update_success' })
+          title: intl.formatMessage({ id: userRoleKey == 'owners' ? 'text.resource_owner_updated' : 'text.approver_updated' }),
+          description: intl.formatMessage({ id: userRoleKey == 'owners' ? 'text.resource_owner_update_success' : 'text.approver_update_success' })
         });
       })
       .catch((e) => {
-        refreshOwners(user, isOwner, false);
+        refreshOwners(user, isOwner, false, userRoleKey);
         showError({
           id: 'toastError',
-          description: e?.response?.data?.error ?? intl.formatMessage({ id: 'text.resource_owner_update_failed' })
+          description: e?.response?.data?.error ?? intl.formatMessage({ id: userRoleKey == 'owners' ? 'text.resource_owner_update_failed' : 'text.approver_update_failed' })
         });
       });
   }
@@ -195,12 +239,32 @@ export function Component() {
   };
 
   const resourceOwners = Array.isArray(getResourceOwners) ? getResourceOwners : getResourceOwners.content;
+  const approvers = Array.isArray(getApprovers) ? getApprovers : getApprovers.content;
 
-  const checkUserCriteria = (user: User) => {
-    if (!userSearchCriteria) return true;
-    return user.firstName.toLowerCase().indexOf(userSearchCriteria.toLowerCase()) != -1 ||
-      user.lastName.toLowerCase().indexOf(userSearchCriteria.toLowerCase()) != -1 ||
-      user.email.toLowerCase().indexOf(userSearchCriteria.toLowerCase()) != -1;
+  const getTabContent = (key: string) => {
+    if (key == 'owners') {
+      return (<FilteredUsers
+        users={resourceOwners}
+        selectedAsset={selectedAsset}
+        isFormShow={isFormShow}
+        filterKey={key}
+        checkAvailability={checkResourceOwner}
+        updateAvailability={updateAssetUser}
+        titleMessageId="text.resource_owner_users"
+        noDataMessageId="text.no_resource_owners"
+      />);
+    } else if (key == 'approvers') {
+      return (<FilteredUsers
+        users={approvers}
+        selectedAsset={selectedAsset}
+        isFormShow={isFormShow}
+        filterKey={key}
+        checkAvailability={checkApprover}
+        updateAvailability={updateAssetUser}
+        titleMessageId="text.approver_users"
+        noDataMessageId="text.no_approver_users"
+      />);
+    }
   }
 
   return (
@@ -362,75 +426,24 @@ export function Component() {
               </DamCard>
             </Flex>
             <Flex w={{ base: "full", sm: "full", md: "49%", lg: "39%" }}>
-              <DamCard mt={4} flex={1}>
-                <DamCardBody>
-                  <Flex justifyContent={'space-between'} alignItems={'center'} w='full'>
-                    {!isSearchShow && <TextCardHeader mb={0}>
-                      <FormattedMessage id="text.resource_owner_users" />
-                    </TextCardHeader>}
-                    {isSearchShow && <Input
-                      m={1}
-                      flex={1}
-                      onChange={(e) => setUserSearchCriteria(e.target.value)}
-                      placeholder="Search User..."
-                    />}
-                    <IconButton
-                      aria-label="First page"
-                      icon={isSearchShow ? <CloseIcon /> : <SearchIcon />}
-                      onClick={() => {
-                        setUserSearchCriteria('');
-                        setIsSearchShow(!isSearchShow);
-                      }}
-                      size="sm"
-                      mr={2}
-                    />
-                  </Flex>
 
-                  <DamCardDivider />
 
-                  <TableContainer width='100%'>
-                    <Table variant='simple' id="tblAssetOwners">
-                      <Thead>
-                        <Tr>
-                          <Th><FormattedMessage id='text.status' /></Th>
-                          <Th><FormattedMessage id='text.first_name' /></Th>
-                          <Th><FormattedMessage id='text.last_name' /></Th>
-                          <Th><FormattedMessage id='text.email' /></Th>
-                        </Tr>
-                      </Thead>
-                      <Tbody maxHeight={500}>
-                        {resourceOwners.length > 0 ? (
-                          <>
-                            {resourceOwners.map((user: User) => (
-                              checkUserCriteria(user) && <Tr key={user.id}>
-                                <Td>
-                                  <Flex gap={2}>
-                                    <Checkbox
-                                      disabled={selectedAsset == null || !isFormShow}
-                                      isChecked={checkResourceOwner(user)}
-                                      onChange={(e) => { updateResourceOwner(user, e.target.checked) }}
-                                    />
-                                  </Flex>
-                                </Td>
-                                <Td>{user.firstName}</Td>
-                                <Td>{user.lastName}</Td>
-                                <Td>{user.email}</Td>
-                              </Tr>
-                            ))}
-                          </>
-                        ) : (
-                          <Tr>
-                            <Td colSpan={6} textAlign={'center'}>
-                              <FormattedMessage id="text.no_resource_owners" />
-                            </Td>
-                          </Tr>
-                        )}
-
-                      </Tbody>
-                    </Table>
-                  </TableContainer>
-                </DamCardBody>
-              </DamCard>
+              <Tabs w='full'>
+                <TabList>
+                  {UsersTabs.map((tab) => (
+                    <Tab key={tab.key}>
+                      {tab.title}
+                    </Tab>
+                  ))}
+                </TabList>
+                <TabPanels>
+                  {UsersTabs.map((tab) => (
+                    <TabPanel key={tab.key} p={0}>
+                      {getTabContent(tab.key)}
+                    </TabPanel>
+                  ))}
+                </TabPanels>
+              </Tabs>
             </Flex>
           </Flex>
         </Flex>

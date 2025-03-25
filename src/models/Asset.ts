@@ -13,4 +13,5 @@ export interface Asset {
     updatedAt?: Date;
     owners?: Array<User>;
     credentials?: Array<AssetCredential>;
+    approvers?: Array<User>;
 }
