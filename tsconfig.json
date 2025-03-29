@@ -60,8 +60,8 @@
       "~admin/*": [
         "src/pages/admin/*"
       ],
-      "~resource_owner/*": [
-        "src/pages/resource_owner/*"
+      "~asset_owner/*": [
+        "src/pages/asset_owner/*"
       ],
       "~approver/*": [
         "src/pages/approver/*"

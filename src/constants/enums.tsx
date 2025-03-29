@@ -1,7 +1,7 @@
 export const USER_ROLE = {
   ADMIN: 'Admin',
   DEVELOPER: 'Developer',
-  RESOURCE_OWNER: 'Resource Owner',
+  ASSET_OWNER: 'Asset Owner',
   APPROVER: 'Approver',
   AUDITOR: 'Auditor',
 }

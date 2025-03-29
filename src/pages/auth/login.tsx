@@ -140,14 +140,14 @@ export default function Login({ authProviders, children }: { authProviders: stri
   }
 
   const checkAssetCredential = (user: User) => {
-    if (userHasRole(user, USER_ROLE.RESOURCE_OWNER) || userHasRole(user, USER_ROLE.ADMIN)) {
-      request('/api/resource_owner/assets/new-credentials', {})
+    if (userHasRole(user, USER_ROLE.ASSET_OWNER) || userHasRole(user, USER_ROLE.ADMIN)) {
+      request('/api/asset_owner/assets/new-credentials', {})
       .then((res) => {
         if(res.length > 0) {
           showError({
             description: intl.formatMessage({ id: 'text.new_asset_is_assigned' }),
           });
-          navigate('/resource_owner');
+          navigate('/asset_owner');
         }
       })
       .catch((e) => {
@@ -171,7 +171,7 @@ export default function Login({ authProviders, children }: { authProviders: stri
         showAuditLogStorageNotConfigured();
       });
     }
-    if (userHasRole(user, USER_ROLE.RESOURCE_OWNER)) {
+    if (userHasRole(user, USER_ROLE.ASSET_OWNER)) {
       checkAssetCredential(user);
     }
 

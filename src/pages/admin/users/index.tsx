@@ -1,7 +1,8 @@
 import {
-  Box, Button, Checkbox, Flex, Input, Table, TableContainer, Tbody, Td, Th, Thead, Tr, useColorModeValue
+  Box, Button, Checkbox, Text, Flex, Input, Table, TableContainer, Tbody, Td, Th, Thead, Tr, useColorModeValue,
+  IconButton
 } from "@chakra-ui/react";
-import { DamButton, DamCard, DamCardBody, DamCardDivider, DamContent, PrimaryButton, request, stateActions, TextCardHeader, useListPage, useDamToast } from "@common/index";
+import { DamButton, DamCard, DamCardBody, DamCardDivider, DamContent, PrimaryButton, request, stateActions, TextCardHeader, useListPage, useDamToast, userHasRole } from "@common/index";
 import { DamAlertDialog } from "@common/components/DamAlert/DamAlertDialog";
 import { useApiRequest } from "@common/hooks/useApiRequest";
 import { Role } from "@models/Role";
@@ -11,8 +12,9 @@ import { useEffect, useRef, useState } from "react";
 import { FormattedMessage, useIntl } from "react-intl";
 import { Link } from "react-router-dom";
 import { MultiValue, Select } from 'chakra-react-select';
-import { AUTH_PROVIDER } from "@/constants/enums";
-
+import { AUTH_PROVIDER, USER_ROLE } from "@/constants/enums";
+import { CloseIcon } from "@chakra-ui/icons";
+import { UserApproversDlg } from "./components/user_approvers_dlg";
 type Option = {
   label: string;  // The display name of the role
   value: string;  // The ID of the role
@@ -39,8 +41,10 @@ export function Component() {
   const [chkInvitation, setChkInvitation] = useState<boolean>(false);
   const [deleteUserId, setDeleteUserId] = useState<number | null>(null);
   const [roleOptions, setRoleOptions] = useState<Array<Option>>([]);
-  const cancelRef = useRef(null);
   const defauleDark = useColorModeValue("ant", "antdark");
+  const [approvers, setApprovers] = useState<Array<User>>([]);
+  const [isApproversDlgOpen, setIsApproversDlgOpen] = useState<boolean>(false);
+  const [isUnsetApproverDlgOpen, setIsUnsetApproverDlgOpen] = useState<boolean>(false);
 
   const { getData, getList } = useListPage<User>({
     baseUri: "/api/admin/users",
@@ -51,7 +55,11 @@ export function Component() {
   const { handleRequest } = useApiRequest();
 
   useEffect(() => {
-    setUsers(Array.isArray(getData) ? getData : getData.content);
+    const tmpUsers = Array.isArray(getData) ? getData : getData.content;
+    if (tmpUsers) {
+      setUsers(tmpUsers);
+      setApprovers(tmpUsers.filter(user => userHasRole(user, USER_ROLE.APPROVER)));
+    }
   }, [getData]);
   useEffect(() => {
     stateActions.addLoading();
@@ -97,7 +105,7 @@ export function Component() {
   const handleUpdate = async () => {
     if (!selectedUser) return;
 
-    handleRequest(`/api/admin/users/${selectedUser.id}`, 'PUT', 
+    handleRequest(`/api/admin/users/${selectedUser.id}`, 'PUT',
       { firstName, lastName, email, roles: selectedRoles },
       {
         onSuccess: () => {
@@ -113,7 +121,7 @@ export function Component() {
   const handleCreate = async () => {
     if (selectedUser) return;
     const auth_provider = import.meta.env.VITE_AUTH_PROVIDER || AUTH_PROVIDER.GOOGLE;
-    
+
     const postUri = chkInvitation ? '/api/admin/users/createUserAndSendInvite' : '/api/admin/users';
     const postData = chkInvitation ? {
       user: { firstName, lastName, email, password, roles: selectedRoles },
@@ -146,7 +154,7 @@ export function Component() {
 
   const handleDelete = () => {
     if (!deleteUserId) return;
-    
+
     handleRequest(`/api/admin/users/${deleteUserId}`, 'DELETE', {}, {
       onSuccess: () => {
         getList({});
@@ -170,6 +178,43 @@ export function Component() {
     setDeleteUserId(null);
     setIsDelDlgOpen(false);
   };
+
+  const onSaveApprover = (approver: User | null) => {
+    setIsApproversDlgOpen(false);
+    if (approver == null || selectedUser == null) return;
+
+    handleRequest(`/api/admin/users/setApprover/${selectedUser?.id}/${approver.id}`, 'PUT', {}, {
+      onSuccess: () => {
+        getList({});
+      },
+      successTitleId: 'text.approver_set_success',
+      successDescriptionId: 'text.approver_has_been_set',
+      errorDescriptionId: 'text.approver_set_failed'
+    });
+  }
+
+  const closeUnsetApproverDialog = () => {
+    setIsUnsetApproverDlgOpen(false);
+  }
+
+  const handleUnsetApprover = () => {
+    closeUnsetApproverDialog();
+    if (!selectedUser) return;
+
+    handleRequest(`/api/admin/users/unsetApprover/${selectedUser.id}`, 'PUT', {}, {
+      onSuccess: () => {
+        getList({});
+      },
+      successTitleId: 'text.approver_unset_success',
+      successDescriptionId: 'text.approver_has_been_unset',
+      errorDescriptionId: 'text.approver_unset_failed'
+    });
+  }
+
+  const canSetApprover = (user: User) => {
+    return !(approvers.length == 1 && approvers[0].id === user.id);
+  }
+
   return (
     <DamContent w="98%">
       <Flex flexDir="column">
@@ -300,6 +345,7 @@ export function Component() {
                             <Th><FormattedMessage id='text.first_name' /></Th>
                             <Th><FormattedMessage id='text.last_name' /></Th>
                             <Th><FormattedMessage id='text.email' /></Th>
+                            <Th><FormattedMessage id='text.approver' /></Th>
                             <Th><FormattedMessage id='text.role' /></Th>
                             <Th></Th>
                           </Tr>
@@ -307,12 +353,46 @@ export function Component() {
                         <Tbody>
                           {users && users.length > 0 ? (
                             users.map((user) => (
-                              <Tr key={user.id}>
-                                <Td onClick={() => handleSelectUser(user)}>{user.id}</Td>
-                                <Td onClick={() => handleSelectUser(user)}>{user.firstName}</Td>
-                                <Td onClick={() => handleSelectUser(user)}>{user.lastName}</Td>
-                                <Td onClick={() => handleSelectUser(user)}>{user.email}</Td>
-                                <Td onClick={() => handleSelectUser(user)}>
+                              <Tr key={user.id}
+                                onClick={() => handleSelectUser(user)}
+                                cursor={'pointer'}
+                                backgroundColor={user.id === selectedUser?.id ? 'gray.80' : 'transparent'}>
+                                <Td>{user.id}</Td>
+                                <Td>{user.firstName}</Td>
+                                <Td>{user.lastName}</Td>
+                                <Td>{user.email}</Td>
+                                <Td>
+                                  {user.approver ?
+                                    <Flex
+                                      alignItems={'center'}
+                                      gap={2}
+                                    >
+                                      <Text
+                                        textDecoration={'underline'}
+                                        mb={0}
+                                        onClick={() => setIsApproversDlgOpen(true)}>
+                                        {user.approver.email}
+                                      </Text>
+                                      <IconButton
+                                        colorScheme="red"
+                                        aria-label="unset"
+                                        size="sm"
+                                        icon={<CloseIcon />}
+                                        onClick={() => {
+                                          setIsUnsetApproverDlgOpen(true);
+                                        }}
+                                      />
+                                    </Flex>
+                                    :
+                                    <Button
+                                      disabled={!canSetApprover(user)}
+                                      colorScheme="green"
+                                      onClick={() => setIsApproversDlgOpen(true)}>
+                                      <FormattedMessage id='text.set_approver' />
+                                    </Button>
+                                  }
+                                </Td>
+                                <Td>
                                   {user.roles?.map(role => role.name).join(', ') || '-'}
                                 </Td>
                                 <Td>
@@ -347,6 +427,21 @@ export function Component() {
         title="text.delete_user"
         message="text.are_you_sure_del_user"
         confirmButtonId="btnConfirmDeleteUser"
+      />
+      <DamAlertDialog
+        isOpen={isUnsetApproverDlgOpen}
+        onClose={closeUnsetApproverDialog}
+        onConfirm={handleUnsetApprover}
+        title="text.unset_approver"
+        message="text.are_you_sure_unset_approver"
+        confirmButtonId="btnConfirmUnsetApprover"
+      />
+      <UserApproversDlg
+        approvers={approvers}
+        selectedUser={selectedUser}
+        isOpen={isApproversDlgOpen}
+        onSaveApprover={onSaveApprover}
+        confirmButtonId="btnConfirmSaveApprover"
       />
     </DamContent>
   );

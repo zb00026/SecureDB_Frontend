@@ -18,7 +18,7 @@ export function isAuthorizedPath(path: string, user?: User): boolean {
     if (path.startsWith('/developer') && userRole == USER_ROLE.DEVELOPER) {
       hasRole = true;
     }
-    if (path.startsWith('/resource_owner') && userRole == USER_ROLE.RESOURCE_OWNER) {
+    if (path.startsWith('/asset_owner') && userRole == USER_ROLE.ASSET_OWNER) {
       hasRole = true;
     }
     if (path.startsWith('/approver') && userRole == USER_ROLE.APPROVER) {
@@ -34,8 +34,8 @@ export function isAuthorizedPath(path: string, user?: User): boolean {
       hasRole = true;
     }
 
-    if (path.startsWith('/resource_owner') && 
-        (userRole === USER_ROLE.ADMIN || userRole === USER_ROLE.RESOURCE_OWNER)) {
+    if (path.startsWith('/asset_owner') && 
+        (userRole === USER_ROLE.ADMIN || userRole === USER_ROLE.ASSET_OWNER)) {
       hasRole = true;
     }
   })
@@ -45,6 +45,9 @@ export function isAuthorizedPath(path: string, user?: User): boolean {
 }
 
 export function userHasRole(user?: User, roleName?: string): boolean {
+  if (!user?.roles) {
+    return false;
+  }
   if (!user?.roles.length) return false;
   let hasRole: boolean = false;
   if (!roleName) return false;

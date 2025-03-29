@@ -38,7 +38,7 @@ export function Component() {
 
   const UsersTabs = [
     {
-      title: intl.formatMessage({ id: 'text.resource_owner_users' }),
+      title: intl.formatMessage({ id: 'text.asset_owner_users' }),
       key: 'owners'
     },
     {
@@ -53,16 +53,16 @@ export function Component() {
     usePagination: false
   });
 
-  // Use useListPage for resource owners
-  const { getData: getResourceOwners, getList: getResourceOwnersList } = useListPage<User>({
+  // Use useListPage for asset owners
+  const { getData: getAssetOwners, getList: getAssetOwnersList } = useListPage<User>({
     baseUri: '/api/admin/users',
     defaultParams: {
-      roles: [USER_ROLE.RESOURCE_OWNER, USER_ROLE.ADMIN]
+      roles: [USER_ROLE.ASSET_OWNER, USER_ROLE.ADMIN]
     },
     usePagination: false
   });
 
-  // Use useListPage for resource owners
+  // Use useListPage for asset owners
   const { getData: getApprovers, getList: getApproversList } = useListPage<User>({
     baseUri: '/api/admin/users',
     defaultParams: {
@@ -103,7 +103,7 @@ export function Component() {
     setIsDelDlgOpen(true);
   }
 
-  const checkResourceOwner = (user: User) => {
+  const checkAssetOwner = (user: User) => {
     if (!selectedAsset) return false;
     return selectedAsset.owners?.some(owner => owner.id === user.id);
   };
@@ -115,7 +115,7 @@ export function Component() {
 
   const updateUserList = (userRoleKey: string) => {
     const roleMap = {
-      'owners': { roles: [USER_ROLE.RESOURCE_OWNER, USER_ROLE.ADMIN], getter: getResourceOwnersList },
+      'owners': { roles: [USER_ROLE.ASSET_OWNER, USER_ROLE.ADMIN], getter: getAssetOwnersList },
       'approvers': { roles: [USER_ROLE.APPROVER], getter: getApproversList }
     };
 
@@ -161,15 +161,15 @@ export function Component() {
         refreshOwners(user, isOwner, true, userRoleKey);
         showSuccess({
           id: 'toastSuccess',
-          title: intl.formatMessage({ id: userRoleKey == 'owners' ? 'text.resource_owner_updated' : 'text.approver_updated' }),
-          description: intl.formatMessage({ id: userRoleKey == 'owners' ? 'text.resource_owner_update_success' : 'text.approver_update_success' })
+          title: intl.formatMessage({ id: userRoleKey == 'owners' ? 'text.asset_owner_updated' : 'text.approver_updated' }),
+          description: intl.formatMessage({ id: userRoleKey == 'owners' ? 'text.asset_owner_update_success' : 'text.approver_update_success' })
         });
       })
       .catch((e) => {
         refreshOwners(user, isOwner, false, userRoleKey);
         showError({
           id: 'toastError',
-          description: e?.response?.data?.error ?? intl.formatMessage({ id: userRoleKey == 'owners' ? 'text.resource_owner_update_failed' : 'text.approver_update_failed' })
+          description: e?.response?.data?.error ?? intl.formatMessage({ id: userRoleKey == 'owners' ? 'text.asset_owner_update_failed' : 'text.approver_update_failed' })
         });
       });
   }
@@ -238,20 +238,20 @@ export function Component() {
     });
   };
 
-  const resourceOwners = Array.isArray(getResourceOwners) ? getResourceOwners : getResourceOwners.content;
+  const assetOwners = Array.isArray(getAssetOwners) ? getAssetOwners : getAssetOwners.content;
   const approvers = Array.isArray(getApprovers) ? getApprovers : getApprovers.content;
 
   const getTabContent = (key: string) => {
     if (key == 'owners') {
       return (<FilteredUsers
-        users={resourceOwners}
+        users={assetOwners}
         selectedAsset={selectedAsset}
         isFormShow={isFormShow}
         filterKey={key}
-        checkAvailability={checkResourceOwner}
+        checkAvailability={checkAssetOwner}
         updateAvailability={updateAssetUser}
-        titleMessageId="text.resource_owner_users"
-        noDataMessageId="text.no_resource_owners"
+        titleMessageId="text.asset_owner_users"
+        noDataMessageId="text.no_asset_owners"
       />);
     } else if (key == 'approvers') {
       return (<FilteredUsers
@@ -267,6 +267,13 @@ export function Component() {
     }
   }
 
+  const getButtonMessageId = (isFormShow: boolean, isEdit: boolean): string => {
+    if (isFormShow) {
+      return isEdit ? "text.cancel_update" : "text.cancel_creation";
+    }
+    return isEdit ? "text.update" : "text.create";
+  };
+
   return (
     <DamContent w="98%">
       <DamBasePage
@@ -281,12 +288,16 @@ export function Component() {
                 <TextCardHeader id="lblAssetSetting" mb={0}>
                   <FormattedMessage id="text.asset_setting" />
                 </TextCardHeader>
-                <Button id="btnCreateAsset" mr={2} colorScheme={isFormShow ? "red" : "green"} onClick={() => {
-                  setIsFormShow(!isFormShow);
-                  clearForm();
-                  setAssetType(AssetType.DATABASE);
-                }}>
-                  <FormattedMessage id={isFormShow ? "text.cancel_creation" : "text.create"} />
+                <Button id="btnCreateAsset" mr={2} colorScheme={isFormShow ? "red" : "green"}
+                  onClick={() => {
+                    setIsFormShow(!isFormShow);
+                    if (!isEdit) {
+                      clearForm();
+                    }
+                    setAssetType(AssetType.DATABASE);
+                  }}>
+                  <FormattedMessage
+                    id={getButtonMessageId(isFormShow, isEdit)} />
                 </Button>
               </Flex>
               <DamCardDivider />

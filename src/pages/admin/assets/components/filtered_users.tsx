@@ -64,7 +64,7 @@ export function FilteredUsers({
             placeholder="Search User..."
           />}
           <IconButton
-            aria-label="First page"
+            aria-label="Search"
             icon={isSearchShow ? <CloseIcon /> : <SearchIcon />}
             onClick={() => {
               setUserSearchCriteria('');

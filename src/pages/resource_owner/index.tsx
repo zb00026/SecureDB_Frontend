@@ -8,7 +8,7 @@ import { SetCredentialDialog } from "@common/components/SetCredentialDialog";
 import { DamAlertDialog } from "@common/components/DamAlert/DamAlertDialog";
 
 export const isSearchable = true;
-export const displayName = 'Resource Owner Main Page';
+export const displayName = 'Asset Owner Main Page';
 
 export function Component() {
   const { showError, showSuccess } = useDamToast();
@@ -19,7 +19,7 @@ export function Component() {
 
   const fetchAssignedCredentials = () => {
     stateActions.addLoading();
-    request('/api/resource_owner/assets/credentials', {})
+    request('/api/asset_owner/assets/credentials', {})
       .then((res) => {
         if (res.length > 0) {
           setCredentials(res);
@@ -39,7 +39,7 @@ export function Component() {
   const handleSetCredential = (username: string, password: string) => {
     if (!selectedCredential) return;
     stateActions.addLoading();
-    request(`/api/resource_owner/assets/credentials/${selectedCredential.id}`, {
+    request(`/api/asset_owner/assets/credentials/${selectedCredential.id}`, {
       method: 'POST',
       data: { username, password }
     })
@@ -60,7 +60,7 @@ export function Component() {
     if (!selectedCredential) return;
     setIsDelDlgOpen(false);
     stateActions.addLoading();
-    request(`/api/resource_owner/assets/credentials/${selectedCredential.id}`, {
+    request(`/api/asset_owner/assets/credentials/${selectedCredential.id}`, {
       method: 'DELETE'
     })
       .then(() => {
@@ -78,7 +78,7 @@ export function Component() {
 
   return (
     <DamBasePage
-      title={intl.formatMessage({ id: 'text.resource_owner' })}
+      title={intl.formatMessage({ id: 'text.asset_owner' })}
       backTitle={intl.formatMessage({ id: 'text.dashboard' })}
       backURI="/">
       <DamCard mt={4}>
