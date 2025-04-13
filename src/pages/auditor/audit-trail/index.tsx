@@ -196,8 +196,8 @@ export function Component() {
                   onChange={(dates) => {
                     setFilters({
                       ...filters,
-                      startDate: dates?.[0]?.format('YYYY-MM-DD') || '',
-                      endDate: dates?.[1]?.format('YYYY-MM-DD') || ''
+                      startDate: dates?.[0]?.format('YYYY-MM-DD') ?? '',
+                      endDate: dates?.[1]?.format('YYYY-MM-DD') ?? ''
                     });
                   }}
                   className={colorMode === 'dark' ? 'dark-theme-picker' : ''}

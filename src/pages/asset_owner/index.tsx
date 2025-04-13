@@ -1,7 +1,7 @@
-import { Button, Flex, Tr, Tbody, Table, TableContainer, Td, Th, Thead, Text } from "@chakra-ui/react";
+import { Button, Flex, Tr, Tbody, Table, TableContainer, Td, Th, Thead } from "@chakra-ui/react";
 import { DamBasePage } from "@common/components/DamBasePage";
 import { DamCardBody, DamCard, request, useDamToast, TextCardHeader, DamCardDivider, stateActions } from "@common/index";
-import { AssetCredential } from "@models/AssetCredential";
+import { AssetCredential } from "@models/assets/AssetCredential";
 import { useEffect, useState } from "react";
 import { FormattedMessage, useIntl } from "react-intl";
 import { SetCredentialDialog } from "@common/components/SetCredentialDialog";
@@ -51,7 +51,7 @@ export function Component() {
       })
       .catch((e) => {
         showError({
-          description: e.data?.error ? e.data?.error : intl.formatMessage({ id: 'text.error_occurred_setting_credentials' }),
+          description: e.data?.error ?? intl.formatMessage({ id: 'text.error_occurred_setting_credentials' }),
         });
       });
   };
@@ -71,7 +71,7 @@ export function Component() {
       })
       .catch((e) => {
         showError({
-          description: e.data?.error ? e.data?.error : intl.formatMessage({ id: 'text.error_occurred_relinquishing_credentials' }),
+          description: e.data?.error ?? intl.formatMessage({ id: 'text.error_occurred_relinquishing_credentials' }),
         });
       });
   };
@@ -109,7 +109,7 @@ export function Component() {
                         onClick={() => setSelectedCredential(credential)}>
                         <Td>{credential.asset?.name}</Td>
                         <Td>{credential.asset?.type}</Td>
-                        <Td>{credential.asset?.databaseType || '-'}</Td>
+                        <Td>{credential.asset?.databaseType ?? '-'}</Td>
                         <Td>{credential.asset?.hostAddress}</Td>
                         <Td>{credential.asset?.description}</Td>
                         <Td textAlign={'center'}>

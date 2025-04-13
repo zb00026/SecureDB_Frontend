@@ -8,7 +8,7 @@ import {
 } from "@chakra-ui/react";
 import { DamBasePage } from "@common/components/DamBasePage";
 import { DamCard, DamCardBody, DamCardDivider, DamContent, request, stateActions, TextCardHeader, useListPage, useDamToast } from "@common/index";
-import { Asset } from "@models/Asset";
+import { Asset } from "@models/assets/Asset";
 import { User } from "@models/User";
 import { useEffect, useState } from "react";
 import { FormattedMessage, useIntl } from "react-intl";
@@ -16,6 +16,7 @@ import { AssetType, DatabaseType, USER_ROLE } from "@/constants/enums";
 import { DamAlertDialog } from "@common/components/DamAlert/DamAlertDialog";
 import { useApiRequest } from "@common/hooks/useApiRequest";
 import { FilteredUsers } from "./components/filtered_users";
+import { AssetsTable } from "./components/assets_table";
 
 export const isSearchable = true;
 export const displayName = 'Assets Management Page';
@@ -74,7 +75,7 @@ export function Component() {
   const { handleRequest } = useApiRequest();
 
   useEffect(() => {
-    setAssets(Array.isArray(getData) ? getData : getData.content || []);
+    setAssets(Array.isArray(getData) ? getData : getData.content ?? []);
   }, [getData]);
 
 
@@ -377,64 +378,12 @@ export function Component() {
             gap={'2%'}
             flexWrap="wrap">
             <Flex w={{ base: "full", sm: "full", md: "49%", lg: "59%" }}>
-              <DamCard mt={4}>
-                <DamCardBody>
-                  <TextCardHeader mb={0}>
-                    <FormattedMessage id="text.assets" />
-                  </TextCardHeader>
-                  <DamCardDivider />
-
-                  <TableContainer width='100%'>
-                    <Table variant='simple' id="tblAssets">
-                      <Thead>
-                        <Tr>
-                          <Th><FormattedMessage id='text.name' /></Th>
-                          <Th><FormattedMessage id='text.type' /></Th>
-                          <Th><FormattedMessage id='text.database_type' /></Th>
-                          <Th><FormattedMessage id='text.host_address' /></Th>
-                          <Th><FormattedMessage id='text.description' /></Th>
-                          <Th><FormattedMessage id='text.actions' /></Th>
-                        </Tr>
-                      </Thead>
-                      <Tbody maxHeight={500}>
-                        {assets.length > 0 ? (
-                          <>
-                            {assets.map((asset) => (
-                              <Tr key={asset.id}
-                                backgroundColor={asset.id === selectedAsset?.id ? 'gray.80' : 'transparent'}
-                                onClick={() => handleSelectAsset(asset)}>
-                                <Td>{asset.name}</Td>
-                                <Td>{asset.type}</Td>
-                                <Td>{asset.databaseType || '-'}</Td>
-                                <Td>{asset.hostAddress}</Td>
-                                <Td>{asset.description}</Td>
-                                <Td>
-                                  <Flex gap={2}>
-                                    <Button
-                                      size="sm"
-                                      colorScheme="red"
-                                      onClick={() => deleteAsset(asset)}
-                                    >
-                                      <FormattedMessage id="text.delete" />
-                                    </Button>
-                                  </Flex>
-                                </Td>
-                              </Tr>
-                            ))}
-                          </>
-                        ) : (
-                          <Tr>
-                            <Td colSpan={6} textAlign={'center'}>
-                              <FormattedMessage id="text.no_assets" />
-                            </Td>
-                          </Tr>
-                        )}
-
-                      </Tbody>
-                    </Table>
-                  </TableContainer>
-                </DamCardBody>
-              </DamCard>
+              <AssetsTable
+                assets={assets}
+                selectedAsset={selectedAsset}
+                onSelectAsset={handleSelectAsset}
+                onDeleteAsset={deleteAsset}
+              />
             </Flex>
             <Flex w={{ base: "full", sm: "full", md: "49%", lg: "39%" }}>
 

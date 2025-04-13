@@ -2,7 +2,7 @@ import { useIntl } from "react-intl";
 import { request, stateActions, useDamToast } from "@common/index";
 
 interface ApiRequestOptions {
-  onSuccess?: () => void;
+  onSuccess?: (data: any) => void;
   successTitleId?: string;
   successDescriptionId?: string;
   errorDescriptionId?: string;
@@ -20,7 +20,7 @@ export function useApiRequest() {
   ) => {
     stateActions.addLoading();
     try {
-      await request(url, {
+      const response = await request(url, {
         method,
         data
       });
@@ -33,7 +33,7 @@ export function useApiRequest() {
         });
       }
       
-      options.onSuccess?.();
+      options.onSuccess?.(response);
     } catch (e: any) {
       showError({
         id: 'toastError',

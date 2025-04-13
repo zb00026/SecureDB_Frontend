@@ -1,7 +1,8 @@
 import { Flex } from "@chakra-ui/react";
 import { DamBasePage } from "@common/components/DamBasePage";
-import { TextBody } from "@common/index";
-import { useIntl } from "react-intl";
+import { PrimaryButton } from "@common/index";
+import { FormattedMessage, useIntl } from "react-intl";
+import { Link } from "react-router-dom";
 
 export const isSearchable = true;
 export const displayName = 'Developer Page';
@@ -13,10 +14,15 @@ export function Component() {
       title={intl.formatMessage({ id: 'text.developer' })}
       backTitle={intl.formatMessage({ id: 'text.dashboard' })}
       backURI="/">
-      <TextBody>
-        This is Developer Page
-      </TextBody>
-      <Flex mt={6} />
+      <Flex flexDir="column" w="full" px={6}>
+        <Flex mt={6} gap={2} >
+          <Link to="/developer/assets" >
+            <PrimaryButton>
+              <FormattedMessage id="text.show_assets" />
+            </PrimaryButton>
+          </Link>
+        </Flex>
+      </Flex>
     </DamBasePage>
   );
 }

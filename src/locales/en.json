@@ -124,5 +124,19 @@
   "text.approver_unset_success": "User Approver Unset",
   "text.approver_has_been_unset": "User Approver has been unset successfully",
   "text.approver_unset_failed": "Failed to unset User Approver",
-  "text.cancel_update": "Cancel Update"
+  "text.cancel_update": "Cancel Update",
+  "text.show_assets": "Show Assets",
+  "text.fetch_template": "Fetch Template",
+  "text.request_access": "Request Access",
+  "text.asset_description": "Asset Description",
+  "text.asset_has_no_owners": "If you do not see an object you were expecting, please request the Asset owner to login once to sync the asset objects",
+  "text.no_permissions": "No Permissions Found",
+  "text.request_reason": "Request Reason",
+  "text.failed_to_fetch_asset_info": "Failed to fetch asset info",
+  "text.failed_to_fetch_asset_objects": "Failed to fetch asset objects",
+  "text.failed_to_request_access": "Failed to request access",
+  "text.access_request_sent": "Successfully sent access request",
+  "text.back": "Back",
+  "text.update_request": "Update Request",
+  "text.failed_to_fetch_access_level_objects": "Failed to fetch access level objects"
 }

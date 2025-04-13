@@ -14,7 +14,7 @@ import {
 import { CloseIcon, SearchIcon } from "@chakra-ui/icons";
 import { FormattedMessage } from "react-intl";
 import { User } from "@models/User";
-import { Asset } from "@models/Asset";
+import { Asset } from "@models/assets/Asset";
 import { DamCard, DamCardBody, DamCardDivider, TextCardHeader } from "@common/index";
 import { useState } from "react";
 
