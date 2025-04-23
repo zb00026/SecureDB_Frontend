@@ -18,6 +18,9 @@ export default ({ mode }) => {
           // rewrite: (path) => path.replace(/^\/api/, ""),
         },
       },
+      headers: {
+        'Service-Worker-Allowed': '/'
+      }
     },
     plugins: [
       react(),

@@ -78,7 +78,9 @@ export function Component() {
     }).catch((e) => {
       setRoleOptions([]);
       setRoles([]);
-      showError({ id: 'toastError', description: e?.response?.data?.error ?? intl.formatMessage({ id: 'text.failed_getting_roles' }) });
+      showError({
+        description: e?.response?.data?.error ?? intl.formatMessage({ id: 'text.failed_getting_roles' })
+      });
     });
   }, []);
 

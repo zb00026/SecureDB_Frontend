@@ -77,6 +77,12 @@
       ],
       "~main/*": [
         "src/main/*"
+      ],
+      "~config/*": [
+        "src/config/*"
+      ],
+      "~services/*": [
+        "src/services/*"
       ]
     }
   },

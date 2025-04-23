@@ -31,6 +31,10 @@ jobs:
       id: timestamp
       run: echo "timestamp=$(date +'%Y-%m-%d-%H-%M')" >> $GITHUB_ENV
     
+    - name: Write Firebase config to file
+      run: |
+        echo "VITE_FIREBASE_API_KEY=${{ secrets.FIREBASE_API_KEY }}" >> .env.production
+
     - name: Load .env.production variables
       run: |
         # Load the .env.production file

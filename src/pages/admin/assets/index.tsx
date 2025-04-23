@@ -161,7 +161,6 @@ export function Component() {
       .then(() => {
         refreshOwners(user, isOwner, true, userRoleKey);
         showSuccess({
-          id: 'toastSuccess',
           title: intl.formatMessage({ id: userRoleKey == 'owners' ? 'text.asset_owner_updated' : 'text.approver_updated' }),
           description: intl.formatMessage({ id: userRoleKey == 'owners' ? 'text.asset_owner_update_success' : 'text.approver_update_success' })
         });
@@ -169,7 +168,6 @@ export function Component() {
       .catch((e) => {
         refreshOwners(user, isOwner, false, userRoleKey);
         showError({
-          id: 'toastError',
           description: e?.response?.data?.error ?? intl.formatMessage({ id: userRoleKey == 'owners' ? 'text.asset_owner_update_failed' : 'text.approver_update_failed' })
         });
       });

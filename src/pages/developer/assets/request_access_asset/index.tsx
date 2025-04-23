@@ -40,7 +40,7 @@ export function Component() {
             };
           });
         },
-        successTitleId: 'text.success',
+        successTitleId: 'text.SUCCESS',
         successDescriptionId: 'text.access_request_sent',
         errorDescriptionId: 'text.failed_to_request_access'
       }
