@@ -6,6 +6,7 @@ import { useEffect, useState } from "react";
 import { FormattedMessage, useIntl } from "react-intl";
 import { SetCredentialDialog } from "@common/components/SetCredentialDialog";
 import { DamAlertDialog } from "@common/components/DamAlert/DamAlertDialog";
+import { AssetRequestApprovals } from "./components/asset_request_approvals";
 
 export const isSearchable = true;
 export const displayName = 'Asset Owner Main Page';
@@ -163,6 +164,7 @@ export function Component() {
           </TableContainer>
         </DamCardBody>
       </DamCard>
+      <AssetRequestApprovals />
       <Flex mt={6} />
 
       <SetCredentialDialog

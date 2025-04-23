@@ -8,7 +8,7 @@ import { onForegroundMessage, requestNotificationPermission, subscribeToTopic } 
 export function DamInitialState() {
   const { snap } = useMyState()
   const { colorMode, toggleColorMode } = useColorMode();
-  const { showSuccess } = useDamToast();
+  const { showSuccess, showError } = useDamToast();
 
   const location = useLocation();
   const user = snap.session.user;
@@ -53,11 +53,18 @@ export function DamInitialState() {
       // Example: Show notification using your app's notification system
       if (payload.notification &&
         payload.data?.receiverId == user?.id) {
+        if (payload.data?.messageType == '1') {
+          showSuccess({
+            title: payload.notification.title,
+            description: payload.notification.body
+          });
+        } else {
+          showError({
+            title: payload.notification.title,
+            description: payload.notification.body
+          });
+        }
 
-        showSuccess({
-          title: payload.notification.title,
-          description: payload.notification.body
-        });
 
       }
     });

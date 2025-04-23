@@ -11,6 +11,7 @@ import { AssetObject } from "@models/assets/AssetObject";
 import { AccessLevelObject } from "@models/assets/AccessLevelObject";
 import { AccessRequest } from "@models/assets/AccessRequest";
 import { useApiRequest } from "@common/hooks/useApiRequest";
+import { AssetDetailsSection } from "@pages/developer/components/asset_detail_section";
 
 export function Component() {
   const intl = useIntl();
@@ -115,27 +116,9 @@ export function Component() {
       backTitle={intl.formatMessage({ id: 'text.back' })}
       backURI="/developer/assets">
       <Flex flexDir="column" w="full" px={6}>
-        <Flex w="full" flexDirection={'column'} gap={3} pt={3} pb={6}>
-          <Flex >
-            <Text fontSize="lg" fontWeight="bold">
-              <FormattedMessage id="text.asset_name" />
-            </Text>
-            :
-            <Text fontSize="lg">
-              {currentAsset?.name}
-            </Text>
-          </Flex>
-
-          <Flex>
-            <Text fontSize="lg" fontWeight="bold">
-              <FormattedMessage id="text.asset_description" />
-            </Text>
-            :
-            <Text fontSize="lg">
-              {currentAsset?.description}
-            </Text>
-          </Flex>
-        </Flex>
+        <AssetDetailsSection
+          asset={currentAsset}
+        />
         <Flex>
           <AccessLevelManager
             initialData={assetObjects}

@@ -23,6 +23,7 @@ interface PermissionTableProps {
   readonly savedPermissions?: Record<string, string[]>; // Format: { "objectName": ["permission1", "permission2"] }
   readonly onAddPermission?: (objectName: string, permission: AccessLevel) => void;
   readonly onRemovePermission?: (objectName: string, permission: AccessLevel) => void;
+  readonly editable: boolean;
 }
 
 export function PermissionTable({
@@ -32,7 +33,8 @@ export function PermissionTable({
   accessLevelObjects,
   savedPermissions = {},
   onAddPermission,
-  onRemovePermission
+  onRemovePermission,
+  editable
 }: PermissionTableProps) {
   // State to track checkbox status
   const [permissions, setPermissions] = useState<Record<string, Set<string>>>({});
@@ -104,7 +106,7 @@ export function PermissionTable({
                     <Checkbox
                       isChecked={permissions[objectName]?.has(grant.templates ?? '') || alreadyHaveAccess(grant, objectName)}
                       onChange={(e) => handleCheckboxChange(objectName, grant, e.target.checked)}
-                      isDisabled={grant.object == 'DATABASE' && grant.templates == 'FETCH ACCESS'}
+                      isDisabled={(grant.object == 'DATABASE' && grant.templates == 'FETCH ACCESS') || !editable}
                     />
                   </Td>
                 ))}

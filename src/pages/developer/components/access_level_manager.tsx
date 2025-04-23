@@ -15,13 +15,15 @@ interface AccessLevelManagerProps {
     objectName: string,
     permission: AccessLevel
   ) => void;
+  readonly editable?: boolean;
 }
 
 export function AccessLevelManager({ 
   initialData,
   accessLevelObjects,
   onAddPermission,
-  onRemovePermission
+  onRemovePermission,
+  editable
 }: AccessLevelManagerProps) {
   const [permissions] = useState<Record<string, Record<string, string[]>>>({});
 
@@ -40,6 +42,7 @@ export function AccessLevelManager({
             savedPermissions={permissions[assetObject.name]}
             onAddPermission={onAddPermission}
             onRemovePermission={onRemovePermission}
+            editable={editable ?? true}
           />
         </Box>
       ))}

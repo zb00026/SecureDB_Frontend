@@ -138,5 +138,22 @@
   "text.access_request_sent": "Successfully sent access request",
   "text.back": "Back",
   "text.update_request": "Update Request",
-  "text.failed_to_fetch_access_level_objects": "Failed to fetch access level objects"
+  "text.failed_to_fetch_access_level_objects": "Failed to fetch access level objects",
+  "text.asset_request_approvals": "Asset Request Approvals",
+  "text.requestor": "Requestor",
+  "text.request_time": "Request Time",
+  "text.approve": "Approve",
+  "text.reject": "Reject",
+  "text.request_approved_successfully": "Request approved successfully",
+  "text.request_rejected_successfully": "Request rejected successfully",
+  "text.error_approving_request": "Error occurred while approving request",
+  "text.error_rejecting_request": "Error occurred while rejecting request",
+  "text.request_access_details": "Request Access Details",
+  "text.approve_access_request": "Approve",
+  "text.reject_access_request": "Reject",
+  "text.access_request_rejected": "Request access is rejected",
+  "text.access_request_approved": "Approved request access successfully",
+  "text.failed_to_approve_access_request": "Failed to approve request access",
+  "text.are_you_sure_reject_access_request": "Are you sure to reject this request? You can't undo this action afterwards.",
+  "text.failed_to_reject_access_request": "Failed to reject request access"
 }
