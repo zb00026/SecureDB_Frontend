@@ -33,7 +33,19 @@ jobs:
     
     - name: Write Firebase config to file
       run: |
-        echo "VITE_FIREBASE_API_KEY=${{ secrets.FIREBASE_API_KEY }}" >> .env.production
+        # First, ensure the file ends with a newline
+        echo "" >> .env.production
+        
+        if [ -z "${{ secrets.FIREBASE_API_KEY }}" ]; then
+          echo "Using hardcoded Firebase API key"
+          echo -e "VITE_FIREBASE_API_KEY=AIzaSyC8_BbePSsR3tcRetXw5ldMAymrPf7uvxY" >> .env.production
+        else
+          echo "Using secret Firebase API key"
+          echo -e "VITE_FIREBASE_API_KEY=${{ secrets.FIREBASE_API_KEY }}" >> .env.production
+        fi
+
+    - name: Show .env.production content
+      run: cat .env.production
 
     - name: Load .env.production variables
       run: |

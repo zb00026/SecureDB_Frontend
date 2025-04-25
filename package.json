@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "start": "vite --mode start --host",
+    "start": "vite --mode production --host",
     "build": "tsc && NODE_OPTIONS=--max_old_space_size=1024000 vite build",
     "preview": "vite preview"
   },

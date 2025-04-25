@@ -3,9 +3,23 @@ import { getMessaging, getToken, onMessage } from 'firebase/messaging';
 import { getFirebaseConfig } from '../config/firebase';
 import { request } from '../common/libs/request';
 
+console.log(getApps().length);
 // Initialize Firebase
 const firebaseApp = getApps().length === 0 ? initializeApp(getFirebaseConfig()) : getApps()[0];
 const messaging = getMessaging(firebaseApp);
+
+// Listen for service worker requests for Firebase config
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.addEventListener('message', (event) => {
+    if (event.data && event.data.type === 'REQUEST_FIREBASE_CONFIG') {
+      // Send the config to the service worker
+      event.source?.postMessage({
+        type: 'FIREBASE_CONFIG',
+        config: getFirebaseConfig()
+      });
+    }
+  });
+}
 
 // Request permission for notifications
 export const requestNotificationPermission = async () => {
@@ -31,6 +45,14 @@ export const getFCMToken = async () => {
     if ('serviceWorker' in navigator) {
       const registration = await navigator.serviceWorker.register('/firebase-messaging-sw.js');
       console.log('Service Worker registered with scope:', registration.scope);
+      
+      // Send Firebase config to the service worker immediately
+      if (registration.active) {
+        registration.active.postMessage({
+          type: 'FIREBASE_CONFIG',
+          config: getFirebaseConfig()
+        });
+      }
     }
 
     const token = await getToken(messaging, {
