@@ -9,7 +9,7 @@ import { useIntl } from "react-intl";
 import { useSearchParams, useNavigate } from "react-router-dom";
 
 export default function Login({ authProviders, children }: { authProviders: string, children: React.ReactNode }) {
-  const { showError } = useDamToast();
+  const { showError, showSuccess } = useDamToast();
   const [authenticating, setAuthenticating] = useState<boolean>(false);
   const [isValidToken, setIsValidToken] = useState<boolean>(false);
   const [isCheckingLocalToken, setIsCheckingLocalToken] = useState<boolean>(false);
@@ -173,6 +173,18 @@ export default function Login({ authProviders, children }: { authProviders: stri
     }
     if (userHasRole(user, USER_ROLE.ASSET_OWNER)) {
       checkAssetCredential(user);
+    }
+    if (userHasRole(user, USER_ROLE.DEVELOPER)) {
+      request('/api/developer/assets/get_newly_approved_requests', {
+        method: 'GET',
+      }).then((res: any) => {
+        if (res.length > 0) {
+          showSuccess({
+            description: intl.formatMessage({ id: 'text.access_request_approved_to_update_psd' }),
+          });
+          navigate('/developer/assets');
+        }
+      })
     }
 
   };

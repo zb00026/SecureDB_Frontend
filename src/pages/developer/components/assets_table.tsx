@@ -2,22 +2,41 @@ import { Button, Text } from "@chakra-ui/react";
 import { Asset } from "@models/assets/Asset";
 import { FormattedMessage } from "react-intl";
 import { BaseAssetsTable } from "../../admin/assets/components/base_assets_table";
+import { AccessRequest } from "@models/assets/AccessRequest";
 
 interface AssetsTableProps {
   readonly assets: Asset[];
   readonly selectedAsset: Asset | null;
   readonly onSelectAsset: (asset: Asset) => void;
   readonly onRequestAccess: (asset: Asset) => void;
+  readonly onUpdatePassword: (asset: AccessRequest | null) => void;
 }
 
 export function AssetsTable({
   assets,
   selectedAsset,
   onSelectAsset,
-  onRequestAccess
+  onRequestAccess,
+  onUpdatePassword
 }: AssetsTableProps) {
-  const renderActions = (asset: Asset) => (
-    asset.accessRequest ? (
+  const renderAccessRequestAction = (asset: Asset) => {
+    if (asset.accessRequest?.isTempPassword) {
+      return (
+        <Text
+          textDecor={'underline'}
+          mb={0}
+          cursor='pointer'
+          onClick={(e) => {
+            e.stopPropagation();
+            onUpdatePassword(asset.accessRequest ?? null);
+          }}
+        >
+          <FormattedMessage id="text.update_password" />
+        </Text>
+      );
+    }
+    
+    return (
       <Text
         textDecor={'underline'}
         mb={0}
@@ -29,6 +48,12 @@ export function AssetsTable({
       >
         <FormattedMessage id="text.update_request" />
       </Text>
+    );
+  };
+
+  const renderActions = (asset: Asset) => (
+    asset.accessRequest ? (
+      renderAccessRequestAction(asset)
     ) : (
       <Button
         size="sm"

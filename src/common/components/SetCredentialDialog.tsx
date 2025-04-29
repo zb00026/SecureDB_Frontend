@@ -15,9 +15,10 @@ interface SetCredentialDialogProps {
   readonly isOpen: boolean;
   readonly onClose: () => void;
   readonly onSubmit: (username: string, password: string) => void;
+  readonly isTemporaryPassword?: boolean;
 }
 
-export function SetCredentialDialog({ isOpen, onClose, onSubmit }: SetCredentialDialogProps) {
+export function SetCredentialDialog({ isOpen, onClose, onSubmit, isTemporaryPassword = false }: SetCredentialDialogProps) {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const cancelRef = useRef(null);
@@ -46,13 +47,14 @@ export function SetCredentialDialog({ isOpen, onClose, onSubmit }: SetCredential
             <FormattedMessage id="text.set_credential" />
           </AlertDialogHeader>
           <AlertDialogBody id='credentialDialogBody'>
-            <Input
-              placeholder="Username"
-              id="inputCredentialUsername"
-              value={username}
-              onChange={(e) => setUsername(e.target.value)}
-              mb={3}
-            />
+            {!isTemporaryPassword && (
+              <Input
+                placeholder="Username"
+                id="inputCredentialUsername"
+                value={username}
+                onChange={(e) => setUsername(e.target.value)}
+                mb={3}
+              />)}
             <Input
               placeholder="Password"
               type="password"

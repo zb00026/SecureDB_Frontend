@@ -16,4 +16,5 @@ export interface AccessRequest {
   requestReason: string;
   developerApproverStatus: ApprovalStatus;
   assetApproverStatus: ApprovalStatus;
+  isTempPassword?: boolean;
 } 
