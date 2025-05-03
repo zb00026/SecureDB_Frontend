@@ -13,6 +13,7 @@ import { AccessLevelManager } from "@pages/developer/components/access_level_man
 import { AccessRequestDTO } from "@models/assets/AccessRequestDTO";
 import { DamAlertDialog } from "@common/components/DamAlert/DamAlertDialog";
 import { AssetDetailsSection } from "@pages/developer/components/asset_detail_section";
+import { ExpirationInput } from "@common/components/DamExpirationInput";
 export function Component() {
   const intl = useIntl();
   const [searchParams] = useSearchParams();
@@ -26,9 +27,14 @@ export function Component() {
   const accessRequestId = searchParams.get('accessRequestId');
   const { handleRequest } = useApiRequest();
   const [isAccessRejectDlgOpen, setIsAccessRejectDlgOpen] = useState(false);
+  const [expirationDays, setExpirationDays] = useState<number>(180);
+  const [expirationHours, setExpirationHours] = useState<number>(0);
 
   const approveRequestAccess = () => {
-    handleRequest(`/api/asset_owner/assets/request/${accessRequestId}/approve`, 'POST', {},
+    const expHrs = expirationHours + (expirationDays * 24);
+    handleRequest(`/api/asset_owner/assets/request/${accessRequestId}/approve`, 'POST', {
+      expirationHours: expHrs
+    },
       {
         onSuccess: () => {
           showSuccess({
@@ -78,6 +84,8 @@ export function Component() {
         onSuccess: (data: AccessRequestDTO) => {
           setAccessLevelObjects(data.accessLevelObjects);
           setAccessRequest(data.accessRequest);
+          setExpirationDays(Math.floor(data.accessRequest.expiryHours / 24));
+          setExpirationHours(data.accessRequest.expiryHours % 24);
           setRequestReason(data.accessRequest.requestReason);
         },
         errorDescriptionId: 'text.failed_to_fetch_access_level_objects'
@@ -132,6 +140,18 @@ export function Component() {
           </Text>
           <Textarea value={requestReason}
             readOnly={true}
+          />
+        </Flex>
+
+        <Flex flexDirection={'column'} mt={3} mb={4}>
+          <Text fontSize="lg" fontWeight="bold">
+            <FormattedMessage id="text.access_expiration" />
+          </Text>
+          <ExpirationInput
+            days={expirationDays}
+            hours={expirationHours}
+            onDaysChange={setExpirationDays}
+            onHoursChange={setExpirationHours}
           />
         </Flex>
         <DamCardDivider />

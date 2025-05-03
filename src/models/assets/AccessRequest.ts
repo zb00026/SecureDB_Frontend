@@ -17,4 +17,5 @@ export interface AccessRequest {
   developerApproverStatus: ApprovalStatus;
   assetApproverStatus: ApprovalStatus;
   isTempPassword?: boolean;
+  expiryHours: number;
 } 

@@ -12,6 +12,7 @@ import { AccessLevelObject } from "@models/assets/AccessLevelObject";
 import { AccessRequest } from "@models/assets/AccessRequest";
 import { useApiRequest } from "@common/hooks/useApiRequest";
 import { AssetDetailsSection } from "@pages/developer/components/asset_detail_section";
+import { ExpirationInput } from "@common/components/DamExpirationInput";
 
 export function Component() {
   const intl = useIntl();
@@ -20,16 +21,20 @@ export function Component() {
   const [currentAsset, setCurrentAsset] = useState<Asset | null>(null);
   const [assetObjects, setAssetObjects] = useState<Array<AssetObject> | null>(null);
   const [requestReason, setRequestReason] = useState<string>('');
+  const [expirationDays, setExpirationDays] = useState<number>(180);
+  const [expirationHours, setExpirationHours] = useState<number>(0);
   const [accessLevelObjects, setAccessLevelObjects] = useState<Array<AccessLevelObject>>([]);
   const assetId = searchParams.get('assetId');
   const { handleRequest } = useApiRequest();
 
   const handleRequestAccess = () => {
+    const expHrs = expirationHours + (expirationDays * 24);
     handleRequest(`/api/developer/assets/request`, 'POST', {
       requestId: currentAsset?.accessRequest?.id,
       assetId,
       accessLevelObjects,
-      requestReason
+      requestReason,
+      expirationHours: expHrs
     },
       {
         onSuccess: (accessRequest: AccessRequest) => {
@@ -133,6 +138,17 @@ export function Component() {
           </Text>
           <Textarea value={requestReason}
             onChange={(e) => setRequestReason(e.target.value)}
+          />
+        </Flex>
+        <Flex flexDirection={'column'} mt={3} mb={4}>
+          <Text fontSize="lg" fontWeight="bold">
+            <FormattedMessage id="text.access_expiration" />
+          </Text>
+          <ExpirationInput
+            days={expirationDays}
+            hours={expirationHours}
+            onDaysChange={setExpirationDays}
+            onHoursChange={setExpirationHours}
           />
         </Flex>
         <DamCardDivider />

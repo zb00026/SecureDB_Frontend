@@ -160,5 +160,8 @@
   "text.update_password": "Update Password",
   "text.password_updated": "Password Updated",
   "text.password_update_success": "Password has been updated successfully",
-  "text.password_update_failed": "Failed to update password"
+  "text.password_update_failed": "Failed to update password",
+  "text.access_expiration": "Access Expiration",
+  "text.days": "Days",
+  "text.hours": "Hours"
 }

@@ -7,5 +7,6 @@ export interface AccessRequestDTO {
   accessLevelObjects: AccessLevelObject[];
   requestId: number;
   assetId: number;
+  expiryHours: number;
   requestReason: string;
 } 
