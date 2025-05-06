@@ -24,6 +24,8 @@ export function Component() {
       .then((res) => {
         if (res.length > 0) {
           setCredentials(res);
+        } else {
+          setCredentials([]);
         }
       })
       .catch((e) => {
@@ -97,6 +99,8 @@ export function Component() {
                   <Th><FormattedMessage id='text.type' /></Th>
                   <Th><FormattedMessage id='text.database_type' /></Th>
                   <Th><FormattedMessage id='text.host_address' /></Th>
+                  <Th><FormattedMessage id='text.port_number' /></Th>
+                  <Th><FormattedMessage id='text.database_name' /></Th>
                   <Th><FormattedMessage id='text.description' /></Th>
                   <Th textAlign={'center'}><FormattedMessage id='text.status' /></Th>
                 </Tr>
@@ -112,6 +116,8 @@ export function Component() {
                         <Td>{credential.asset?.type}</Td>
                         <Td>{credential.asset?.databaseType ?? '-'}</Td>
                         <Td>{credential.asset?.hostAddress}</Td>
+                        <Td>{credential.asset?.portNumber}</Td>
+                        <Td>{credential.asset?.databaseName}</Td>
                         <Td>{credential.asset?.description}</Td>
                         <Td textAlign={'center'}>
                           {credential.username == null && credential.password == null ?

@@ -24,6 +24,7 @@ type StorageType = {
   token: string;
   locale: string;
   isLogin: boolean;
+  hotKey: string;
   pageRoutes: Array<PageRoute>;
 };
 
@@ -32,6 +33,7 @@ type DefaultStorageType = {
   email: string;
   locale: string;
   isLogin: boolean;
+  hotKey: string;
   pageRoutes: Array<PageRoute>;
 };
 
@@ -41,6 +43,7 @@ const storage: StorageType = proxyWithPersistant(
     email: "",
     locale: "en",
     isLogin: false,
+    hotKey: "Ctrl+J",
     pageRoutes: [],
   },
   {
@@ -54,6 +57,8 @@ type SessionType = {
   user: any; // wechat
   global: any; // global
   isLogin: boolean;
+  hotKey: string;
+
 };
 const session: SessionType = proxy({
   ready: true,
@@ -61,6 +66,7 @@ const session: SessionType = proxy({
   user: undefined,
   global: {},
   isLogin: false,
+  hotKey: "Ctrl+J",
 });
 
 export type StateType = {

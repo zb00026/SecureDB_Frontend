@@ -5,6 +5,7 @@ import { S3BucketSettings } from "@models/S3BucketSettings";
 import { useEffect, useState } from "react";
 import { FormattedMessage, useIntl } from "react-intl";
 import { stateActions } from "@common/state";
+import { ShortKey } from "./components/shortkey";
 export const isSearchable = true;
 export const displayName = 'Settings Page';
 
@@ -58,7 +59,7 @@ export function Component() {
             <Flex flexDir="column" w="full" px={6}>
               <DamCardDivider></DamCardDivider>
               <Flex w='full' textAlign={'center'} mt={2} alignItems={'center'} gap={2}>
-                <Text mb={0}>
+                <Text mb={0} minW='150px' textAlign={'right'}>
                   <FormattedMessage id="text.s3_bucket_name" />
                 </Text>
                 <Input
@@ -73,6 +74,20 @@ export function Component() {
                   onClick={setS3BucketInfo}>
                   <FormattedMessage id="text.apply" />
                 </PrimaryButton>
+              </Flex>
+            </Flex>
+          </DamCardBody>
+        </DamCard>
+        <DamCard mt="4" pb="4">
+          <DamCardBody>
+            <TextCardHeader id="lblAuditLogStorage" w="full" pb={0} textAlign={'center'}>
+              <FormattedMessage id="text.shortkey_search" />
+            </TextCardHeader>
+
+            <Flex flexDir="column" w="full" px={6}>
+              <DamCardDivider></DamCardDivider>
+              <Flex w='full' textAlign={'center'} mt={2} alignItems={'center'} gap={2}>
+                <ShortKey />
               </Flex>
             </Flex>
           </DamCardBody>

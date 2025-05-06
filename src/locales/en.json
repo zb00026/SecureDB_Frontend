@@ -163,5 +163,9 @@
   "text.password_update_failed": "Failed to update password",
   "text.access_expiration": "Access Expiration",
   "text.days": "Days",
-  "text.hours": "Hours"
+  "text.hours": "Hours",
+  "text.shortkey_search": "Search Short Key Settings",
+  "text.settings_shortcut_key": "ShortKey",
+  "text.port_number": "Port Number",
+  "text.database_name": "Database Name"
 }

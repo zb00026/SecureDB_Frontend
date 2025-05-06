@@ -25,6 +25,9 @@ export const stateActions = {
   },
   setPageRoutes(routes: Array<PageRoute>) {
     state.storage.pageRoutes = routes;
+  },
+  setHotKey(hotKey: string) {
+    state.storage.hotKey = hotKey;
   }
 };
 

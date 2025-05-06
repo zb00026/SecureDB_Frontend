@@ -34,6 +34,8 @@ export function BaseAssetsTable({
                 <Th><FormattedMessage id='text.type' /></Th>
                 <Th><FormattedMessage id='text.database_type' /></Th>
                 <Th><FormattedMessage id='text.host_address' /></Th>
+                <Th><FormattedMessage id='text.port_number' /></Th>
+                <Th><FormattedMessage id='text.database_name' /></Th>
                 <Th><FormattedMessage id='text.description' /></Th>
                 {showFetchTemplate && (
                   <Th><FormattedMessage id='text.fetch_template' /></Th>
@@ -52,6 +54,8 @@ export function BaseAssetsTable({
                       <Td>{asset.type}</Td>
                       <Td>{asset.databaseType ?? '-'}</Td>
                       <Td>{asset.hostAddress}</Td>
+                      <Td>{asset.portNumber}</Td>
+                      <Td>{asset.databaseName}</Td>
                       <Td>{asset.description}</Td>
                       {showFetchTemplate && (
                         <Td>{asset.fetchTemplate ?? '-'}</Td>

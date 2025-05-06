@@ -43,8 +43,8 @@ export function useListPage<T>({
       ...defaultParams,
       ...params,
       ...(usePagination ? {
-        page: params.page || 1,
-        perPage: params.perPage || 10
+        page: params.page ?? 1,
+        perPage: params.perPage ?? 20
       } : {})
     };
 
@@ -63,10 +63,10 @@ export function useListPage<T>({
     if (defaultParams) {
       getList({
         ...defaultParams,
-        ...(usePagination ? { page: 1, perPage: 10 } : {})
+        ...(usePagination ? { page: 1, perPage: 20 } : {})
       });
     } else {
-      getList(usePagination ? { page: 1, perPage: 10 } : {});
+      getList(usePagination ? { page: 1, perPage: 20 } : {});
     }
   }, []);
 
@@ -74,7 +74,7 @@ export function useListPage<T>({
     meta: {
       total: isSpringBootPage(data) ? data.totalElements : 0,
       current_page: isSpringBootPage(data) ? data.number + 1 : 1,
-      per_page: isSpringBootPage(data) ? data.size : 10
+      per_page: isSpringBootPage(data) ? data.size : 20
     },
     onChange: (page: number, pageSize: number) => {
       let t = {
@@ -92,7 +92,7 @@ export function useListPage<T>({
       data: response?.content ?? [],
       pagination: usePagination ? {
         current: 1,
-        pageSize: 10,
+        pageSize: 20,
         total: 0
       } : undefined
     };

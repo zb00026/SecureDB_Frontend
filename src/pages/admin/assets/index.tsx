@@ -31,11 +31,15 @@ export function Component() {
   const [deleteAssetId, setDeleteAssetId] = useState<number | null>(null);
 
   // Form states
-  const [name, setName] = useState('');
-  const [assetType, setAssetType] = useState<AssetType | ''>('');
-  const [databaseType, setDatabaseType] = useState<DatabaseType | ''>('');
-  const [description, setDescription] = useState('');
-  const [hostAddress, setHostAddress] = useState('');
+  const [formState, setFormState] = useState({
+    name: '',
+    type: '' as AssetType | '',
+    databaseType: '' as DatabaseType | '',
+    description: '',
+    hostAddress: '',
+    portNumber: '',
+    databaseName: ''
+  });
 
   const UsersTabs = [
     {
@@ -80,27 +84,37 @@ export function Component() {
 
 
   const clearForm = () => {
-    setName('');
-    setAssetType('');
-    setDatabaseType('');
-    setDescription('');
-    setHostAddress('');
+    setFormState({
+      name: '',
+      type: AssetType.DATABASE,
+      databaseType: '',
+      description: '',
+      hostAddress: '',
+      portNumber: '',
+      databaseName: ''
+    });
     setSelectedAsset(null);
     setIsEdit(false);
+    setIsFormShow(false);
   };
 
   const handleSelectAsset = (asset: Asset) => {
     setSelectedAsset(asset);
-    setName(asset.name);
-    setAssetType(asset.type);
-    setDatabaseType(asset.databaseType ?? '');
-    setDescription(asset.description);
-    setHostAddress(asset.hostAddress);
+    setFormState({
+      name: asset.name,
+      type: asset.type,
+      databaseType: asset.databaseType ?? '',
+      description: asset.description,
+      hostAddress: asset.hostAddress,
+      portNumber: asset.portNumber,
+      databaseName: asset.databaseName
+    });
     setIsEdit(true);
+    setIsFormShow(true);
   };
 
   const deleteAsset = (asset: Asset) => {
-    setDeleteAssetId(asset.id);
+    setDeleteAssetId(asset.id ?? null);
     setIsDelDlgOpen(true);
   }
 
@@ -196,18 +210,12 @@ export function Component() {
   const handleCreate = async () => {
     if (selectedAsset) return;
 
-    const assetData = {
-      name,
-      type: assetType,
-      databaseType: assetType === AssetType.DATABASE ? databaseType : undefined,
-      description,
-      hostAddress
-    };
 
-    handleRequest('/api/admin/assets', 'POST', assetData, {
+    handleRequest('/api/admin/assets', 'POST', formState, {
       onSuccess: () => {
         getAssetsList({});
         clearForm();
+        setIsFormShow(false);
       },
       successTitleId: 'text.asset_created',
       successDescriptionId: 'text.asset_create_success',
@@ -218,15 +226,7 @@ export function Component() {
   const handleUpdate = async () => {
     if (!selectedAsset) return;
 
-    const assetData = {
-      name,
-      type: assetType,
-      databaseType: assetType === AssetType.DATABASE ? databaseType : undefined,
-      description,
-      hostAddress
-    };
-
-    handleRequest(`/api/admin/assets/${selectedAsset.id}`, 'PUT', assetData, {
+    handleRequest(`/api/admin/assets/${selectedAsset.id}`, 'PUT', formState, {
       onSuccess: () => {
         getAssetsList({});
         clearForm();
@@ -282,46 +282,39 @@ export function Component() {
       >
         <Flex flexDir="column" w="full" px={0} pt={3}>
           <DamCard>
-            <DamCardBody pb={4}>
-              <Flex alignItems={'center'} w='full' justifyContent={'space-between'}>
-                <TextCardHeader id="lblAssetSetting" mb={0}>
-                  <FormattedMessage id="text.asset_setting" />
-                </TextCardHeader>
+            <DamCardBody>
+              {!isEdit && <Flex alignItems={'center'} w='full' justifyContent={'end'} my={3}>
                 <Button id="btnCreateAsset" mr={2} colorScheme={isFormShow ? "red" : "green"}
                   onClick={() => {
                     setIsFormShow(!isFormShow);
-                    if (!isEdit) {
-                      clearForm();
-                    }
-                    setAssetType(AssetType.DATABASE);
+                    setFormState(prev => ({ ...prev, type: AssetType.DATABASE }));
                   }}>
                   <FormattedMessage
                     id={getButtonMessageId(isFormShow, isEdit)} />
                 </Button>
-              </Flex>
-              <DamCardDivider />
+              </Flex>}
+              {(isFormShow && !isEdit) && <DamCardDivider />}
 
               {isFormShow &&
-                <Flex gap={4} mt={4} ml={4} alignItems="center" id="flexAssetTypeForm">
+                <Flex gap={4} my={4} ml={4} alignItems="center" id="flexAssetTypeForm">
                   <Text mb={0}>
                     <FormattedMessage id="text.asset_type" />
                   </Text>
                   <Select
-                    value={assetType}
-                    onChange={(e) => setAssetType(e.target.value as AssetType)}
+                    value={formState.type}
+                    onChange={(e) => setFormState(prev => ({ ...prev, type: e.target.value as AssetType }))}
                     width="200px"
                     placeholder={intl.formatMessage({ id: 'text.select_asset_type' })}
                   >
                     <option value={AssetType.DATABASE}>{AssetType.DATABASE}</option>
                   </Select>
 
-                  {assetType === AssetType.DATABASE && (
+                  {formState.type === AssetType.DATABASE && (
                     <Box>
-
                       <Select
-                        value={databaseType}
+                        value={formState.databaseType}
                         id="selectDBType"
-                        onChange={(e) => setDatabaseType(e.target.value as DatabaseType)}
+                        onChange={(e) => setFormState(prev => ({ ...prev, databaseType: e.target.value as DatabaseType }))}
                         placeholder={intl.formatMessage({ id: 'text.select_db_type' })}
                       >
                         {Object.values(DatabaseType).map((type: DatabaseType) => (
@@ -330,43 +323,64 @@ export function Component() {
                       </Select>
                     </Box>
                   )}
-
                 </Flex>
               }
-              {isFormShow && assetType != '' && databaseType != '' && (
-                <Flex mt={4} ml={4} flexDirection={'row'} gap={4} id="flexAssetDetailForm">
-                  <Input
-                    value={name}
-                    onChange={(e) => setName(e.target.value)}
-                    id="inputAssetName"
-                    placeholder={intl.formatMessage({ id: 'text.asset_name' })}
-                  />
-                  <Input
-                    value={hostAddress}
-                    onChange={(e) => setHostAddress(e.target.value)}
-                    id="inputHostAddress"
-                    placeholder={intl.formatMessage({ id: 'text.host_address' })}
-                  />
-                  <Input
-                    value={description}
-                    onChange={(e) => setDescription(e.target.value)}
-                    id="inputDescription"
-                    placeholder={intl.formatMessage({ id: 'text.description' })}
-                  />
-                  <Flex justify="flex-end" gap={4}>
-                    <Button
-                      id="btnSaveAsset"
-                      colorScheme={isEdit ? "green" : "blue"}
-                      onClick={isEdit ? handleUpdate : handleCreate}
-                      disabled={!name}
-                    >
-                      {intl.formatMessage({ id: 'text.save' })}
-                    </Button>
-                    {isEdit && (
-                      <Button id="btnClearAsset" onClick={clearForm}>
-                        <FormattedMessage id='text.clear' />
+              {isFormShow && formState.type != '' && formState.databaseType != '' && (
+                <Flex
+                  my={4}
+                  px={4}
+                  gap={4}
+                  w='full'
+                  flexDirection={'column'}
+                  id="flexAssetDetailForm">
+                  <Flex flexDirection={'row'} gap={4} w='full'>
+                    <Input
+                      value={formState.name}
+                      onChange={(e) => setFormState(prev => ({ ...prev, name: e.target.value }))}
+                      id="inputAssetName"
+                      placeholder={intl.formatMessage({ id: 'text.asset_name' })}
+                    />
+                    <Input
+                      value={formState.hostAddress}
+                      onChange={(e) => setFormState(prev => ({ ...prev, hostAddress: e.target.value }))}
+                      id="inputHostAddress"
+                      placeholder={intl.formatMessage({ id: 'text.host_address' })}
+                    />
+                    <Input
+                      value={formState.portNumber}
+                      onChange={(e) => setFormState(prev => ({ ...prev, portNumber: e.target.value }))}
+                      id="inputPortNumber"
+                      placeholder={intl.formatMessage({ id: 'text.port_number' })}
+                    />
+                    <Input
+                      value={formState.databaseName}
+                      onChange={(e) => setFormState(prev => ({ ...prev, databaseName: e.target.value }))}
+                      id="inputDatabaseName"
+                      placeholder={intl.formatMessage({ id: 'text.database_name' })}
+                    />
+                  </Flex>
+                  <Flex flexDirection={'row'} gap={4} w='full'>
+                    <Input
+                      value={formState.description}
+                      onChange={(e) => setFormState(prev => ({ ...prev, description: e.target.value }))}
+                      id="inputDescription"
+                      placeholder={intl.formatMessage({ id: 'text.description' })}
+                    />
+                    <Flex justify="flex-end" gap={4}>
+                      <Button
+                        id="btnSaveAsset"
+                        colorScheme={isEdit ? "green" : "blue"}
+                        onClick={isEdit ? handleUpdate : handleCreate}
+                        disabled={!formState.name}
+                      >
+                        {intl.formatMessage({ id: 'text.save' })}
                       </Button>
-                    )}
+                      {isEdit && (
+                        <Button id="btnClearAsset" onClick={clearForm} colorScheme="red">
+                          <FormattedMessage id='text.cancel_update' />
+                        </Button>
+                      )}
+                    </Flex>
                   </Flex>
                 </Flex>
               )}

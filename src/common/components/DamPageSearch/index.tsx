@@ -1,6 +1,6 @@
 import { Box, Flex, Input, List, ListItem, Portal } from "@chakra-ui/react";
-import { isAuthorizedPath } from "@common/index";
-import { useMyState } from "@common/state";
+import { getDisplayedKey, isAuthorizedPath } from "@common/index";
+import { stateActions, useMyState } from "@common/state";
 import { PageRoute } from "@models/PageRoute";
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router";
@@ -16,8 +16,13 @@ export function DamPageSearch({ children }: { children: React.ReactNode }) {
   const inputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
+    if (!snap.storage.hotKey) {
+      stateActions.setHotKey("Ctrl+J");
+    }
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'k' && (e.metaKey || e.ctrlKey)) {
+      const currentCombination = getDisplayedKey(e);
+      if (snap.storage.hotKey == currentCombination) {
+        e.preventDefault();
         setVisible(true);
       }
       if (e.key === 'Escape') {

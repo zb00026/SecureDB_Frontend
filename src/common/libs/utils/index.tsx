@@ -62,3 +62,53 @@ export function userHasRole(user?: User, roleName?: string): boolean {
 
   return hasRole;
 }
+
+// Add type definition for userAgentData
+interface NavigatorWithUserAgentData extends Navigator {
+  userAgentData?: {
+    platform: string;
+  };
+}
+
+export function getMetaKeyName(): string {
+  if (typeof navigator !== "undefined") {
+    const nav = navigator as NavigatorWithUserAgentData;
+    // Check if userAgentData is available (modern browsers)
+    if (nav.userAgentData?.platform) {
+      return nav.userAgentData.platform.toLowerCase().includes('mac') ? "⌘" : "Ctrl";
+    }
+    // Fallback for older browsers
+    return /Mac|iPod|iPhone|iPad/.test(navigator.userAgent) ? "⌘" : "Ctrl";
+  }
+  return "Ctrl";
+}
+
+const specialKeyMap: Record<string, string> = {
+  'BracketLeft': '[',
+  'BracketRight': ']',
+  'Backslash': '\\',
+  'Slash': '/',
+  'Period': '.',
+  'Comma': ',',
+  'Semicolon': ';',
+  'Quote': "'",
+  'Minus': '-',
+  'Equal': '=',
+  'Backquote': '`'
+};
+
+export function getDisplayedKey(e: KeyboardEvent): string {
+  const modifiers = [];
+  if (e.metaKey) modifiers.push(getMetaKeyName());
+  if (e.ctrlKey) modifiers.push("Ctrl");
+  if (e.altKey) modifiers.push("Alt");
+  if (e.shiftKey) modifiers.push("Shift");
+
+  // First check if it's a special key
+  let key = specialKeyMap[e.code];
+  // If not a special key, handle regular keys
+  if (!key) {
+    key = e.code.startsWith("Key") ? e.code.replace("Key", "") : e.key;
+  }
+  return modifiers.length > 0 ? `${modifiers.join("+")}+${key}` : key;
+}

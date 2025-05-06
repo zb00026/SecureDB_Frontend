@@ -4,12 +4,15 @@ import { User } from "../User";
 import { AccessRequest } from "./AccessRequest";
 
 export interface Asset {
-    id: number;
+    id?: number;
     name: string;
     description: string;
-    type: AssetType;
-    databaseType?: DatabaseType;
+    type: AssetType | '';
+    databaseType?: DatabaseType | '';
     hostAddress: string;
+    portNumber: string;
+    databaseName: string;
+    hostUrl?: string;
     fetchTemplate?: string;
     createdAt?: Date;
     updatedAt?: Date;
