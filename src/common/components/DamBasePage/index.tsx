@@ -28,7 +28,7 @@ export function DamBasePage({
 }: DamPageProps) {
   const logout = useLogout();
   return (
-    <DamContent w="98%" py={hasBody ? '24px' : 0}>
+    <DamContent py={hasBody ? '24px' : 0}>
       <Flex flexDir="column">
         <Flex w="100%"></Flex>
         <Flex flexWrap="wrap" w="100%">

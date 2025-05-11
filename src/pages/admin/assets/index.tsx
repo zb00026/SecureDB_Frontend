@@ -13,7 +13,7 @@ import { User } from "@models/User";
 import { useEffect, useState } from "react";
 import { FormattedMessage, useIntl } from "react-intl";
 import { AssetType, DatabaseType, USER_ROLE } from "@/constants/enums";
-import { DamAlertDialog } from "@common/components/DamAlert/DamAlertDialog";
+import { DamAlertDialog } from "@common/components/DamDialog/DamAlertDialog";
 import { useApiRequest } from "@common/hooks/useApiRequest";
 import { FilteredUsers } from "./components/filtered_users";
 import { AssetsTable } from "./components/assets_table";
@@ -274,152 +274,151 @@ export function Component() {
   };
 
   return (
-    <DamContent w="98%">
-      <DamBasePage
-        title={intl.formatMessage({ id: 'text.asset_management' })}
-        backTitle={intl.formatMessage({ id: 'text.dashboard' })}
-        backURI="/"
-      >
-        <Flex flexDir="column" w="full" px={0} pt={3}>
-          <DamCard>
-            <DamCardBody>
-              {!isEdit && <Flex alignItems={'center'} w='full' justifyContent={'end'} my={3}>
-                <Button id="btnCreateAsset" mr={2} colorScheme={isFormShow ? "red" : "green"}
-                  onClick={() => {
-                    setIsFormShow(!isFormShow);
-                    setFormState(prev => ({ ...prev, type: AssetType.DATABASE }));
-                  }}>
-                  <FormattedMessage
-                    id={getButtonMessageId(isFormShow, isEdit)} />
-                </Button>
-              </Flex>}
-              {(isFormShow && !isEdit) && <DamCardDivider />}
+    <DamBasePage
+      title={intl.formatMessage({ id: 'text.asset_management' })}
+      backTitle={intl.formatMessage({ id: 'text.dashboard' })}
+      backURI="/"
+    >
+      <Flex flexDir="column" w="full" px={0} pt={3}>
+        <DamCard>
+          <DamCardBody>
+            {!isEdit && <Flex alignItems={'center'} w='full' justifyContent={'end'} my={3}>
+              <Button id="btnCreateAsset" mr={2} colorScheme={isFormShow ? "red" : "green"}
+                onClick={() => {
+                  setIsFormShow(!isFormShow);
+                  setFormState(prev => ({ ...prev, type: AssetType.DATABASE }));
+                }}>
+                <FormattedMessage
+                  id={getButtonMessageId(isFormShow, isEdit)} />
+              </Button>
+            </Flex>}
+            {(isFormShow && !isEdit) && <DamCardDivider />}
 
-              {isFormShow &&
-                <Flex gap={4} my={4} ml={4} alignItems="center" id="flexAssetTypeForm">
-                  <Text mb={0}>
-                    <FormattedMessage id="text.asset_type" />
-                  </Text>
-                  <Select
-                    value={formState.type}
-                    onChange={(e) => setFormState(prev => ({ ...prev, type: e.target.value as AssetType }))}
-                    width="200px"
-                    placeholder={intl.formatMessage({ id: 'text.select_asset_type' })}
-                  >
-                    <option value={AssetType.DATABASE}>{AssetType.DATABASE}</option>
-                  </Select>
+            {isFormShow &&
+              <Flex gap={4} my={4} ml={4} alignItems="center" id="flexAssetTypeForm">
+                <Text mb={0}>
+                  <FormattedMessage id="text.asset_type" />
+                </Text>
+                <Select
+                  value={formState.type}
+                  onChange={(e) => setFormState(prev => ({ ...prev, type: e.target.value as AssetType }))}
+                  width="200px"
+                  placeholder={intl.formatMessage({ id: 'text.select_asset_type' })}
+                >
+                  <option value={AssetType.DATABASE}>{AssetType.DATABASE}</option>
+                </Select>
 
-                  {formState.type === AssetType.DATABASE && (
-                    <Box>
-                      <Select
-                        value={formState.databaseType}
-                        id="selectDBType"
-                        onChange={(e) => setFormState(prev => ({ ...prev, databaseType: e.target.value as DatabaseType }))}
-                        placeholder={intl.formatMessage({ id: 'text.select_db_type' })}
-                      >
-                        {Object.values(DatabaseType).map((type: DatabaseType) => (
-                          <option className="dropdown-db-option" key={type} value={type}>{type}</option>
-                        ))}
-                      </Select>
-                    </Box>
-                  )}
+                {formState.type === AssetType.DATABASE && (
+                  <Box>
+                    <Select
+                      value={formState.databaseType}
+                      id="selectDBType"
+                      onChange={(e) => setFormState(prev => ({ ...prev, databaseType: e.target.value as DatabaseType }))}
+                      placeholder={intl.formatMessage({ id: 'text.select_db_type' })}
+                    >
+                      {Object.values(DatabaseType).map((type: DatabaseType) => (
+                        <option className="dropdown-db-option" key={type} value={type}>{type}</option>
+                      ))}
+                    </Select>
+                  </Box>
+                )}
+              </Flex>
+            }
+            {isFormShow && formState.type != '' && formState.databaseType != '' && (
+              <Flex
+                my={4}
+                px={4}
+                gap={4}
+                w='full'
+                flexDirection={'column'}
+                id="flexAssetDetailForm">
+                <Flex flexDirection={'row'} gap={4} w='full'>
+                  <Input
+                    value={formState.name}
+                    onChange={(e) => setFormState(prev => ({ ...prev, name: e.target.value }))}
+                    id="inputAssetName"
+                    placeholder={intl.formatMessage({ id: 'text.asset_name' })}
+                  />
+                  <Input
+                    value={formState.hostAddress}
+                    onChange={(e) => setFormState(prev => ({ ...prev, hostAddress: e.target.value }))}
+                    id="inputHostAddress"
+                    placeholder={intl.formatMessage({ id: 'text.host_address' })}
+                  />
+                  <Input
+                    value={formState.portNumber}
+                    onChange={(e) => setFormState(prev => ({ ...prev, portNumber: e.target.value }))}
+                    id="inputPortNumber"
+                    placeholder={intl.formatMessage({ id: 'text.port_number' })}
+                  />
+                  <Input
+                    value={formState.databaseName}
+                    onChange={(e) => setFormState(prev => ({ ...prev, databaseName: e.target.value }))}
+                    id="inputDatabaseName"
+                    placeholder={intl.formatMessage({ id: 'text.database_name' })}
+                  />
                 </Flex>
-              }
-              {isFormShow && formState.type != '' && formState.databaseType != '' && (
-                <Flex
-                  my={4}
-                  px={4}
-                  gap={4}
-                  w='full'
-                  flexDirection={'column'}
-                  id="flexAssetDetailForm">
-                  <Flex flexDirection={'row'} gap={4} w='full'>
-                    <Input
-                      value={formState.name}
-                      onChange={(e) => setFormState(prev => ({ ...prev, name: e.target.value }))}
-                      id="inputAssetName"
-                      placeholder={intl.formatMessage({ id: 'text.asset_name' })}
-                    />
-                    <Input
-                      value={formState.hostAddress}
-                      onChange={(e) => setFormState(prev => ({ ...prev, hostAddress: e.target.value }))}
-                      id="inputHostAddress"
-                      placeholder={intl.formatMessage({ id: 'text.host_address' })}
-                    />
-                    <Input
-                      value={formState.portNumber}
-                      onChange={(e) => setFormState(prev => ({ ...prev, portNumber: e.target.value }))}
-                      id="inputPortNumber"
-                      placeholder={intl.formatMessage({ id: 'text.port_number' })}
-                    />
-                    <Input
-                      value={formState.databaseName}
-                      onChange={(e) => setFormState(prev => ({ ...prev, databaseName: e.target.value }))}
-                      id="inputDatabaseName"
-                      placeholder={intl.formatMessage({ id: 'text.database_name' })}
-                    />
-                  </Flex>
-                  <Flex flexDirection={'row'} gap={4} w='full'>
-                    <Input
-                      value={formState.description}
-                      onChange={(e) => setFormState(prev => ({ ...prev, description: e.target.value }))}
-                      id="inputDescription"
-                      placeholder={intl.formatMessage({ id: 'text.description' })}
-                    />
-                    <Flex justify="flex-end" gap={4}>
-                      <Button
-                        id="btnSaveAsset"
-                        colorScheme={isEdit ? "green" : "blue"}
-                        onClick={isEdit ? handleUpdate : handleCreate}
-                        disabled={!formState.name}
-                      >
-                        {intl.formatMessage({ id: 'text.save' })}
+                <Flex flexDirection={'row'} gap={4} w='full'>
+                  <Input
+                    value={formState.description}
+                    onChange={(e) => setFormState(prev => ({ ...prev, description: e.target.value }))}
+                    id="inputDescription"
+                    placeholder={intl.formatMessage({ id: 'text.description' })}
+                  />
+                  <Flex justify="flex-end" gap={4}>
+                    <Button
+                      id="btnSaveAsset"
+                      colorScheme={isEdit ? "green" : "blue"}
+                      onClick={isEdit ? handleUpdate : handleCreate}
+                      disabled={!formState.name}
+                    >
+                      {intl.formatMessage({ id: 'text.save' })}
+                    </Button>
+                    {isEdit && (
+                      <Button id="btnClearAsset" onClick={clearForm} colorScheme="red">
+                        <FormattedMessage id='text.cancel_update' />
                       </Button>
-                      {isEdit && (
-                        <Button id="btnClearAsset" onClick={clearForm} colorScheme="red">
-                          <FormattedMessage id='text.cancel_update' />
-                        </Button>
-                      )}
-                    </Flex>
+                    )}
                   </Flex>
                 </Flex>
-              )}
-            </DamCardBody>
-          </DamCard>
-          <Flex flexDirection={'row'}
-            gap={'2%'}
-            flexWrap="wrap">
-            <Flex w={{ base: "full", sm: "full", md: "49%", lg: "59%" }}>
-              <AssetsTable
-                assets={assets}
-                selectedAsset={selectedAsset}
-                onSelectAsset={handleSelectAsset}
-                onDeleteAsset={deleteAsset}
-              />
-            </Flex>
-            <Flex w={{ base: "full", sm: "full", md: "49%", lg: "39%" }}>
+              </Flex>
+            )}
+          </DamCardBody>
+        </DamCard>
+        <Flex flexDirection={'row'}
+          gap={'2%'}
+          flexWrap="wrap">
+          <Flex w={{ base: "full", sm: "full", md: "49%", lg: "59%" }}>
+            <AssetsTable
+              assets={assets}
+              selectedAsset={selectedAsset}
+              onSelectAsset={handleSelectAsset}
+              onDeleteAsset={deleteAsset}
+            />
+          </Flex>
+          <Flex w={{ base: "full", sm: "full", md: "49%", lg: "39%" }}>
 
 
-              <Tabs w='full'>
-                <TabList>
-                  {UsersTabs.map((tab) => (
-                    <Tab key={tab.key}>
-                      {tab.title}
-                    </Tab>
-                  ))}
-                </TabList>
-                <TabPanels>
-                  {UsersTabs.map((tab) => (
-                    <TabPanel key={tab.key} p={0}>
-                      {getTabContent(tab.key)}
-                    </TabPanel>
-                  ))}
-                </TabPanels>
-              </Tabs>
-            </Flex>
+            <Tabs w='full'>
+              <TabList>
+                {UsersTabs.map((tab) => (
+                  <Tab key={tab.key}>
+                    {tab.title}
+                  </Tab>
+                ))}
+              </TabList>
+              <TabPanels>
+                {UsersTabs.map((tab) => (
+                  <TabPanel key={tab.key} p={0}>
+                    {getTabContent(tab.key)}
+                  </TabPanel>
+                ))}
+              </TabPanels>
+            </Tabs>
           </Flex>
         </Flex>
-      </DamBasePage>
+      </Flex>
+
 
       <DamAlertDialog
         isOpen={isDelDlgOpen}
@@ -429,6 +428,6 @@ export function Component() {
         message="text.are_you_sure_del_asset"
         confirmButtonId="btnConfirmDeleteAsset"
       />
-    </DamContent>
+    </DamBasePage>
   );
 } 

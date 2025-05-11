@@ -8,7 +8,7 @@ export * from "./state";
 export * from "./hooks/useDamToast";
 export * from "./hooks/useListPage";
 export * from "./components/DamFullLoading";
-export * from "./components/DamAlert";
+export * from "./components/DamDialog";
 export * from "./components/DamLoading";
 export * from "./components/DamCard";
 export * from "./components/DamCardBody";

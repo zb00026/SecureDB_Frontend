@@ -13,12 +13,14 @@ import { FormattedMessage } from "react-intl";
 
 interface SetCredentialDialogProps {
   readonly isOpen: boolean;
+  readonly titleId?: string;
   readonly onClose: () => void;
   readonly onSubmit: (username: string, password: string) => void;
   readonly isTemporaryPassword?: boolean;
+  readonly saveButtonTextId?: string;
 }
 
-export function SetCredentialDialog({ isOpen, onClose, onSubmit, isTemporaryPassword = false }: SetCredentialDialogProps) {
+export function SetCredentialDialog({ isOpen, titleId, onClose, onSubmit, isTemporaryPassword = false, saveButtonTextId }: SetCredentialDialogProps) {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const cancelRef = useRef(null);
@@ -44,7 +46,7 @@ export function SetCredentialDialog({ isOpen, onClose, onSubmit, isTemporaryPass
       <AlertDialogOverlay>
         <AlertDialogContent>
           <AlertDialogHeader fontSize="lg" fontWeight="bold">
-            <FormattedMessage id="text.set_credential" />
+            <FormattedMessage id={titleId ?? "text.set_credential"} />
           </AlertDialogHeader>
           <AlertDialogBody id='credentialDialogBody'>
             {!isTemporaryPassword && (
@@ -64,11 +66,11 @@ export function SetCredentialDialog({ isOpen, onClose, onSubmit, isTemporaryPass
             />
           </AlertDialogBody>
           <AlertDialogFooter>
-            <Button onClick={onClose}>
+            <Button onClick={onClose} id="btnCancelCredential">
               <FormattedMessage id='text.cancel' />
             </Button>
             <Button id="btnSaveCredential" colorScheme="blue" onClick={handleSubmit} ml={3}>
-              <FormattedMessage id='text.save' />
+              <FormattedMessage id={saveButtonTextId ?? 'text.save'} />
             </Button>
           </AlertDialogFooter>
         </AlertDialogContent>

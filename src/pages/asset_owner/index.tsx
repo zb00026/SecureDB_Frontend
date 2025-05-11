@@ -4,8 +4,8 @@ import { DamCardBody, DamCard, request, useDamToast, TextCardHeader, DamCardDivi
 import { AssetCredential } from "@models/assets/AssetCredential";
 import { useEffect, useState } from "react";
 import { FormattedMessage, useIntl } from "react-intl";
-import { SetCredentialDialog } from "@common/components/SetCredentialDialog";
-import { DamAlertDialog } from "@common/components/DamAlert/DamAlertDialog";
+import { SetCredentialDialog } from "@common/components/DamDialog/SetCredentialDialog";
+import { DamAlertDialog } from "@common/components/DamDialog/DamAlertDialog";
 import { AssetRequestApprovals } from "./components/asset_request_approvals";
 
 export const isSearchable = true;

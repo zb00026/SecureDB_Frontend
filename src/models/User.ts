@@ -6,6 +6,7 @@ export interface User {
     lastName: string;
     email: string;
     isActive: boolean;
+    isInitialPassword?: boolean;
 
     approver: User;
     roles: Array<Role>;

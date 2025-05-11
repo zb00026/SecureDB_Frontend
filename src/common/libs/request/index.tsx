@@ -1,6 +1,5 @@
 import { state, stateActions } from '../../state';
 import keycloak from '@common/keycloak/keycloak';
-import { useNavigate } from 'react-router';
 
 // Initialize googleToken from localStorage
 let googleToken: string | null = localStorage.getItem('googleToken');
@@ -21,12 +20,10 @@ export const clearGoogleToken = () => {
 };
 
 export const logout = () => {
-  const navigate = useNavigate();
-  clearGoogleToken();
-  keycloak.logout();
   state.storage.isLogin = false;
   state.storage.token = '';
-  navigate('/');
+  clearGoogleToken();
+  keycloak.logout({ redirectUri: window.location.origin });
 }
 
 // Main request function

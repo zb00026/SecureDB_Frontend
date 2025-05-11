@@ -167,5 +167,8 @@
   "text.shortkey_search": "Search Short Key Settings",
   "text.settings_shortcut_key": "ShortKey",
   "text.port_number": "Port Number",
-  "text.database_name": "Database Name"
+  "text.database_name": "Database Name",
+  "text.user_management": "Users Management",
+  "text.initial_password": "Initial Password",
+  "text.update_temporary_password": "You are using temporary login password, please update your password!"
 }

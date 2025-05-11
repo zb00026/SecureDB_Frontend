@@ -6,7 +6,7 @@ import { useEffect, useState } from "react";
 import { useIntl } from "react-intl";
 import { useNavigate } from "react-router-dom";
 import { AssetsTable } from "../components/assets_table";
-import { SetCredentialDialog } from "@common/components/SetCredentialDialog";
+import { SetCredentialDialog } from "@common/components/DamDialog/SetCredentialDialog";
 import { AccessRequest } from "@models/assets/AccessRequest";
 import { useApiRequest } from "@common/hooks/useApiRequest";
 import { AssetCredential } from "@models/assets/AssetCredential";

@@ -3,7 +3,7 @@ import {
   IconButton
 } from "@chakra-ui/react";
 import { DamButton, DamCard, DamCardBody, DamCardDivider, DamContent, PrimaryButton, request, stateActions, TextCardHeader, useListPage, useDamToast, userHasRole } from "@common/index";
-import { DamAlertDialog } from "@common/components/DamAlert/DamAlertDialog";
+import { DamAlertDialog } from "@common/components/DamDialog/DamAlertDialog";
 import { useApiRequest } from "@common/hooks/useApiRequest";
 import { Role } from "@models/Role";
 import { User } from "@models/User";
@@ -15,6 +15,7 @@ import { MultiValue, Select } from 'chakra-react-select';
 import { AUTH_PROVIDER, USER_ROLE } from "@/constants/enums";
 import { CloseIcon } from "@chakra-ui/icons";
 import { UserApproversDlg } from "./components/user_approvers_dlg";
+import { DamBasePage } from "@common/components/DamBasePage";
 type Option = {
   label: string;  // The display name of the role
   value: string;  // The ID of the role
@@ -45,6 +46,7 @@ export function Component() {
   const [approvers, setApprovers] = useState<Array<User>>([]);
   const [isApproversDlgOpen, setIsApproversDlgOpen] = useState<boolean>(false);
   const [isUnsetApproverDlgOpen, setIsUnsetApproverDlgOpen] = useState<boolean>(false);
+  const [isShowEditForm, setIsShowEditForm] = useState<boolean>(false);
 
   const { getData, getList } = useListPage<User>({
     baseUri: "/api/admin/users",
@@ -103,6 +105,7 @@ export function Component() {
     setChkInvitation(false);
     setSelectedRoles(user.roles || []);
     setIsEdit(true);
+    setIsShowEditForm(true);
   };
   const handleUpdate = async () => {
     if (!selectedUser) return;
@@ -126,9 +129,9 @@ export function Component() {
 
     const postUri = chkInvitation ? '/api/admin/users/createUserAndSendInvite' : '/api/admin/users';
     const postData = chkInvitation ? {
-      user: { firstName, lastName, email, password, roles: selectedRoles },
+      user: { firstName, lastName, email, password, roles: selectedRoles, isInitialPassword: true },
       authProvider: auth_provider.toUpperCase()
-    } : { firstName, lastName, email, password, roles: selectedRoles };
+    } : { firstName, lastName, email, password, roles: selectedRoles, isInitialPassword: true };
 
     handleRequest(postUri, 'POST', postData, {
       onSuccess: () => {
@@ -140,6 +143,18 @@ export function Component() {
       errorDescriptionId: 'text.user_create_failed'
     });
   };
+
+  const handleOnShowCreateUser = () => {
+    clearForm();
+    setIsEdit(false);
+    if (!isEdit) {
+      if (isShowEditForm) {
+        setIsShowEditForm(false);
+      } else {
+        setIsShowEditForm(true);
+      }
+    }
+  }
 
   const handleRoleChange = (selectedOptions: MultiValue<Option>) => {
     const selectedRoles: Array<Role> = selectedOptions
@@ -218,15 +233,14 @@ export function Component() {
   }
 
   return (
-    <DamContent w="98%">
+    <DamBasePage
+      title={intl.formatMessage({ id: 'text.user_management' })}
+      backTitle={intl.formatMessage({ id: 'text.dashboard' })}
+      backURI="/"
+    >
       <Flex flexDir="column">
-        <Flex w="100%">
+        {isShowEditForm && <Flex w="100%">
           <Flex pt={5} w="100%">
-            <Link to="/admin">
-              <DamButton colorScheme="green" mr={4}>
-                <FormattedMessage id="text.home" />
-              </DamButton>
-            </Link>
             <Flex id="flexUserForm" direction={'column'} w='full' pr={4}>
               <Flex gap={4}>
                 <Flex w='full'>
@@ -245,9 +259,6 @@ export function Component() {
                     placeholder={intl.formatMessage({ id: 'text.last_name' })}
                   />
                 </Flex>
-
-              </Flex>
-              <Flex gap={4} mt={4}>
                 <Flex w='full'>
                   <Input
                     id="inputEmail"
@@ -256,7 +267,8 @@ export function Component() {
                     placeholder={intl.formatMessage({ id: 'text.email' })}
                   />
                 </Flex>
-
+              </Flex>
+              <Flex gap={4} mt={4}>
                 <Flex w={'full'}>
                   <Box w="100%" minW="100%">
                     <Select
@@ -278,8 +290,6 @@ export function Component() {
                     />
                   </Box>
                 </Flex>
-              </Flex>
-              <Flex mt={4} gap={4}>
                 <Flex w='full'>
                   <Input
                     disabled={isEdit}
@@ -287,7 +297,7 @@ export function Component() {
                     value={password}
                     id="inputPassword"
                     onChange={(e) => setPassword(e.target.value)}
-                    placeholder={intl.formatMessage({ id: 'text.password' })}
+                    placeholder={intl.formatMessage({ id: 'text.initial_password' })}
                   />
                 </Flex>
 
@@ -301,7 +311,6 @@ export function Component() {
                     <FormattedMessage id="text.invite_email" />
                   </Checkbox>
                 </Flex>
-
               </Flex>
             </Flex>
             <Flex direction={'column'} gap={4} alignItems={'center'} w='110px'>
@@ -316,26 +325,43 @@ export function Component() {
                 borderRadius="5px"
                 data-testid="submit-button"
               >
-                {isEdit ? intl.formatMessage({ id: 'text.update' }) : intl.formatMessage({ id: 'text.create' })}
+                <FormattedMessage id="text.save" />
               </Button>
               {isEdit && (
-                <PrimaryButton
+                <DamButton
                   borderRadius="5px" pr="30px" pl="30px"
                   w='full'
-                  onClick={clearForm}>
-                  <FormattedMessage id='text.clear' />
-                </PrimaryButton>
+                  colorScheme="red"
+                  onClick={() => {
+                    clearForm();
+                    setIsEdit(false);
+                    setIsShowEditForm(false);
+                  }}>
+                  <FormattedMessage id='text.cancel' />
+                </DamButton>
               )}
             </Flex>
           </Flex>
-        </Flex>
+        </Flex>}
         <Flex flexWrap="wrap" w="100%">
           <Flex pt={5} flexDir="column" w="100%">
             <DamCard mt="4">
               <DamCardBody>
-                <TextCardHeader id="txtUsersTitle">
-                  <FormattedMessage id="text.users" />
-                </TextCardHeader>
+                <Flex justifyContent="space-between" alignItems="center" w='full'>
+                  <TextCardHeader id="txtUsersTitle" mb={0}>
+                    <FormattedMessage id="text.users" />
+                  </TextCardHeader>
+                  <DamButton colorScheme={isShowEditForm && !isEdit ? "red" : "green"} mr={4}
+                    id="btnCreateUser"
+                    onClick={handleOnShowCreateUser}
+                    pr="30px"
+                    pl="30px"
+                    borderRadius="5px"
+                    data-testid="submit-button">
+                    {isShowEditForm && !isEdit ? <FormattedMessage id="text.cancel_creation" /> : <FormattedMessage id="text.create" />}
+                  </DamButton>
+                </Flex>
+
                 <Flex flexDir="column" w="full" px={6}>
                   <DamCardDivider></DamCardDivider>
                   <ConfigProvider prefixCls={defauleDark}>
@@ -445,6 +471,6 @@ export function Component() {
         onSaveApprover={onSaveApprover}
         confirmButtonId="btnConfirmSaveApprover"
       />
-    </DamContent>
+    </DamBasePage>
   );
 }

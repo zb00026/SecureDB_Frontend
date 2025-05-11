@@ -11,7 +11,7 @@ import { AccessRequest } from "@models/assets/AccessRequest";
 import { useApiRequest } from "@common/hooks/useApiRequest";
 import { AccessLevelManager } from "@pages/developer/components/access_level_manager";
 import { AccessRequestDTO } from "@models/assets/AccessRequestDTO";
-import { DamAlertDialog } from "@common/components/DamAlert/DamAlertDialog";
+import { DamAlertDialog } from "@common/components/DamDialog/DamAlertDialog";
 import { AssetDetailsSection } from "@pages/developer/components/asset_detail_section";
 import { ExpirationInput } from "@common/components/DamExpirationInput";
 export function Component() {

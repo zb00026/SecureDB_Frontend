@@ -17,7 +17,7 @@ import { useState, useEffect } from "react";
 import { AccessRequest } from "@models/assets/AccessRequest";
 import { format } from 'date-fns';
 import { Link } from "react-router-dom";
-import { DamAlertDialog } from "@common/components/DamAlert/DamAlertDialog";
+import { DamAlertDialog } from "@common/components/DamDialog/DamAlertDialog";
 import { useApiRequest } from "@common/hooks/useApiRequest";
 
 export function AssetRequestApprovals() {
