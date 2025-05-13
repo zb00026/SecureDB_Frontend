@@ -10,6 +10,7 @@ import { SetCredentialDialog } from "@common/components/DamDialog/SetCredentialD
 import { AccessRequest } from "@models/assets/AccessRequest";
 import { useApiRequest } from "@common/hooks/useApiRequest";
 import { AssetCredential } from "@models/assets/AssetCredential";
+import { DamAlertDialog } from "@common/components/DamDialog/DamAlertDialog";
 
 export const isSearchable = true;
 export const displayName = 'Developer Assets Access Request Page';
@@ -20,6 +21,7 @@ export function Component() {
   const { handleRequest } = useApiRequest();
   const [assets, setAssets] = useState<Array<Asset>>([]);
   const [isPsdDialogOpen, setIsPsdDialogOpen] = useState<boolean>(false);
+  const [isRelinquishDialogOpen, setIsRelinquishDialogOpen] = useState<boolean>(false);
   const [selectedAsset, setSelectedAsset] = useState<Asset | null>(null);
   const [selectedAccessRequest, setSelectedAccessRequest] = useState<AccessRequest | null>(null);
 
@@ -39,7 +41,7 @@ export function Component() {
 
   const handleUpdatePassword = (username: string, password: string) => {
     if (selectedAccessRequest) {
-      let assetCredential : AssetCredential = {
+      let assetCredential: AssetCredential = {
         id: 0,
         assetId: 0,
         userId: 0,
@@ -54,6 +56,20 @@ export function Component() {
         successTitleId: 'text.password_updated',
         successDescriptionId: 'text.password_update_success',
         errorDescriptionId: 'text.password_update_failed'
+      });
+    }
+  };
+
+  const handleRelinquishAccess = () => {
+    if (selectedAccessRequest) {
+      handleRequest(`/api/developer/assets/relinquish_access/${selectedAccessRequest.id}`, 'POST', null, {
+        onSuccess: () => {
+          setIsRelinquishDialogOpen(false);
+          getAssetsList();
+        },
+        successTitleId: 'text.access_relinquished',
+        successDescriptionId: 'text.access_relinquished_success',
+        errorDescriptionId: 'text.access_relinquished_failed'
       });
     }
   };
@@ -75,6 +91,7 @@ export function Component() {
           onSelectAsset={handleSelectAsset}
           onRequestAccess={handleRequestAccess}
           onUpdatePassword={(accessRequest) => { setIsPsdDialogOpen(true); setSelectedAccessRequest(accessRequest) }}
+          onRelinquishAccess={(accessRequest) => { setIsRelinquishDialogOpen(true); setSelectedAccessRequest(accessRequest) }}
         />
       </Flex>
       <SetCredentialDialog
@@ -82,6 +99,14 @@ export function Component() {
         onClose={() => setIsPsdDialogOpen(false)}
         onSubmit={handleUpdatePassword}
         isTemporaryPassword={true}
+      />
+      <DamAlertDialog
+        isOpen={isRelinquishDialogOpen}
+        onClose={() => setIsRelinquishDialogOpen(false)}
+        onConfirm={handleRelinquishAccess}
+        title="text.relinquish_access"
+        message="text.are_you_sure_relinquish_access"
+        confirmButtonId="btnConfirmRelinquishAccess"
       />
     </DamBasePage>
   );

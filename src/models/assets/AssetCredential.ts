@@ -9,6 +9,7 @@ export interface AssetCredential {
     password: string;
     createdAt?: Date;
     updatedAt?: Date;
+    isTemporaryPassword?: boolean;
     
     // Optional references to related entities
     asset?: Asset;

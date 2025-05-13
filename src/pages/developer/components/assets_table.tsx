@@ -9,6 +9,7 @@ interface AssetsTableProps {
   readonly selectedAsset: Asset | null;
   readonly onSelectAsset: (asset: Asset) => void;
   readonly onRequestAccess: (asset: Asset) => void;
+  readonly onRelinquishAccess: (asset: AccessRequest | null) => void;
   readonly onUpdatePassword: (asset: AccessRequest | null) => void;
 }
 
@@ -17,10 +18,11 @@ export function AssetsTable({
   selectedAsset,
   onSelectAsset,
   onRequestAccess,
-  onUpdatePassword
+  onUpdatePassword,
+  onRelinquishAccess
 }: AssetsTableProps) {
   const renderAccessRequestAction = (asset: Asset) => {
-    if (asset.accessRequest?.isTempPassword) {
+    if (asset.accessRequest?.assetCredential?.isTemporaryPassword) {
       return (
         <Text
           textDecor={'underline'}
@@ -43,10 +45,10 @@ export function AssetsTable({
         cursor='pointer'
         onClick={(e) => {
           e.stopPropagation();
-          onRequestAccess(asset);
+          onRelinquishAccess(asset.accessRequest ?? null);
         }}
       >
-        <FormattedMessage id="text.update_request" />
+        <FormattedMessage id="text.relinquish_access" />
       </Text>
     );
   };

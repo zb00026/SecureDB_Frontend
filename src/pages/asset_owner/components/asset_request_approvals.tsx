@@ -92,8 +92,8 @@ export function AssetRequestApprovals() {
           <Tbody>
             {assetRequestApprovals.map((request) => (
               <Tr key={request.id}>
-                <Td>{request.asset.name}</Td>
-                <Td>{request.asset.description}</Td>
+                <Td>{request.assetDTO.name}</Td>
+                <Td>{request.assetDTO.description}</Td>
                 <Td>{`${request.requestor.firstName} ${request.requestor.lastName}`}</Td>
                 <Td>{request.requestor.email}</Td>
                 <Td>{formatDate(request.requestTime)}</Td>
@@ -105,7 +105,7 @@ export function AssetRequestApprovals() {
                     </Text>
                     {request.assetApproverStatus === 'PENDING' && (
                       <HStack spacing={2}>
-                        <Link to={`/asset_owner/access_request_details?accessRequestId=${request.id}&assetId=${request.asset.id}`}>
+                        <Link to={`/asset_owner/access_request_details?accessRequestId=${request.id}&assetId=${request.assetDTO.id}`}>
                           <Button
                             size="sm"
                             colorScheme="green"
