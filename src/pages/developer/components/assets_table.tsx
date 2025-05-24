@@ -28,6 +28,7 @@ export function AssetsTable({
           textDecor={'underline'}
           mb={0}
           cursor='pointer'
+          className="btnUpdatePassword"
           onClick={(e) => {
             e.stopPropagation();
             onUpdatePassword(asset.accessRequest ?? null);
@@ -43,6 +44,7 @@ export function AssetsTable({
         textDecor={'underline'}
         mb={0}
         cursor='pointer'
+        className="btnRelinquishAccess"
         onClick={(e) => {
           e.stopPropagation();
           onRelinquishAccess(asset.accessRequest ?? null);

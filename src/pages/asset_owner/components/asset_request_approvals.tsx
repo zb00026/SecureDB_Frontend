@@ -77,7 +77,7 @@ export function AssetRequestApprovals() {
         </TextCardHeader>
         <DamCardDivider />
 
-        <Table variant="simple" mt={4}>
+        <Table variant="simple" mt={4} id="tblRequestApprovals">
           <Thead>
             <Tr>
               <Th><FormattedMessage id="text.asset_name" /></Th>

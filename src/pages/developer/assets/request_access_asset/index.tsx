@@ -137,6 +137,7 @@ export function Component() {
             <FormattedMessage id="text.request_reason" />
           </Text>
           <Textarea value={requestReason}
+            id="txtAccessRequestReason"
             onChange={(e) => setRequestReason(e.target.value)}
           />
         </Flex>
@@ -153,7 +154,7 @@ export function Component() {
         </Flex>
         <DamCardDivider />
         <Flex w='full' my={4} alignItems={'center'} justifyContent={'center'}>
-          <PrimaryButton onClick={handleRequestAccess}>
+          <PrimaryButton onClick={handleRequestAccess} id="btnAccessRequest">
             <FormattedMessage id="text.request_access" />
           </PrimaryButton>
         </Flex>

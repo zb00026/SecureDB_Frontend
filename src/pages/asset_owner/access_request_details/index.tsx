@@ -139,6 +139,7 @@ export function Component() {
             <FormattedMessage id="text.request_reason" />
           </Text>
           <Textarea value={requestReason}
+            id="txtAccessRequestReason"
             readOnly={true}
           />
         </Flex>
@@ -157,7 +158,7 @@ export function Component() {
         <DamCardDivider />
         {accessRequest?.assetApproverStatus === 'PENDING' && (
           <Flex w='full' my={4} alignItems={'center'} justifyContent={'center'} gap={4}>
-            <Button onClick={approveRequestAccess} colorScheme="green">
+            <Button onClick={approveRequestAccess} colorScheme="green" id="btnApprove">
               <FormattedMessage id="text.approve_access_request" />
             </Button>
             <Button onClick={() => setIsAccessRejectDlgOpen(true)} colorScheme="red">
