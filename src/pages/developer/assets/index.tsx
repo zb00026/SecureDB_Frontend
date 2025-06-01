@@ -74,6 +74,10 @@ export function Component() {
     }
   };
 
+  const handleQueryAsset = (asset: Asset) => {
+    navigate(`/developer/assets/query_asset?assetId=${asset.id}&accessRequestId=${asset.accessRequest?.id}`);
+  };
+
   useEffect(() => {
     setAssets(Array.isArray(getData) ? getData : getData.content ?? []);
   }, [getData]);
@@ -92,6 +96,8 @@ export function Component() {
           onRequestAccess={handleRequestAccess}
           onUpdatePassword={(accessRequest) => { setIsPsdDialogOpen(true); setSelectedAccessRequest(accessRequest) }}
           onRelinquishAccess={(accessRequest) => { setIsRelinquishDialogOpen(true); setSelectedAccessRequest(accessRequest) }}
+          onQueryAsset={handleQueryAsset}
+          showQueryButton={true}
         />
       </Flex>
       <SetCredentialDialog

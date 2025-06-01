@@ -3,6 +3,7 @@ import { request, stateActions, useDamToast } from "@common/index";
 
 interface ApiRequestOptions {
   onSuccess?: (data: any) => void;
+  onError?: (error: any) => void;
   successTitleId?: string;
   successDescriptionId?: string;
   errorDescriptionId?: string;
@@ -37,6 +38,7 @@ export function useApiRequest() {
       showError({
         description: e?.response?.data?.error ?? intl.formatMessage({ id: options.errorDescriptionId ?? 'text.operation_failed' })
       });
+      options.onError?.(e);
     }
   };
 

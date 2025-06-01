@@ -1,5 +1,5 @@
 import { Flex, Table, TableContainer, Tbody, Td, Th, Thead, Tr } from "@chakra-ui/react";
-import { DamCard, DamCardBody, DamCardDivider, TextCardHeader } from "@common/index";
+import { DamCard, DamCardBody, DamCardDivider, PrimaryButton, TextCardHeader } from "@common/index";
 import { Asset } from "@models/assets/Asset";
 import { FormattedMessage } from "react-intl";
 
@@ -8,7 +8,9 @@ interface BaseAssetsTableProps {
   readonly selectedAsset: Asset | null;
   readonly onSelectAsset: (asset: Asset) => void;
   readonly showFetchTemplate?: boolean;
+  readonly showQueryButton?: boolean;
   readonly renderActions: (asset: Asset) => React.ReactNode;
+  readonly onQueryAsset?: (asset: Asset) => void;
 }
 
 export function BaseAssetsTable({
@@ -16,7 +18,9 @@ export function BaseAssetsTable({
   selectedAsset,
   onSelectAsset,
   showFetchTemplate = false,
-  renderActions
+  showQueryButton = false,
+  renderActions,
+  onQueryAsset
 }: BaseAssetsTableProps) {
   return (
     <DamCard mt={4}>
@@ -41,6 +45,9 @@ export function BaseAssetsTable({
                   <Th><FormattedMessage id='text.fetch_template' /></Th>
                 )}
                 <Th><FormattedMessage id='text.actions' /></Th>
+                {showQueryButton && (
+                  <Th><FormattedMessage id='text.query_action' /></Th>
+                )}
               </Tr>
             </Thead>
             <Tbody maxHeight={500}>
@@ -65,6 +72,13 @@ export function BaseAssetsTable({
                           {renderActions(asset)}
                         </Flex>
                       </Td>
+                      {showQueryButton && asset.accessRequest && !asset.accessRequest?.assetCredential?.isTemporaryPassword && (
+                        <Td>
+                          <PrimaryButton variant='outline' size='sm' onClick={() => onQueryAsset?.(asset)}>
+                            <FormattedMessage id='text.run_query' />
+                          </PrimaryButton>
+                        </Td>
+                      )}
                     </Tr>
                   ))}
                 </>

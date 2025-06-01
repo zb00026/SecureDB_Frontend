@@ -11,6 +11,8 @@ interface AssetsTableProps {
   readonly onRequestAccess: (asset: Asset) => void;
   readonly onRelinquishAccess: (asset: AccessRequest | null) => void;
   readonly onUpdatePassword: (asset: AccessRequest | null) => void;
+  readonly onQueryAsset: (asset: Asset) => void;
+  readonly showQueryButton: boolean;
 }
 
 export function AssetsTable({
@@ -19,7 +21,9 @@ export function AssetsTable({
   onSelectAsset,
   onRequestAccess,
   onUpdatePassword,
-  onRelinquishAccess
+  onRelinquishAccess,
+  showQueryButton,
+  onQueryAsset
 }: AssetsTableProps) {
   const renderAccessRequestAction = (asset: Asset) => {
     if (asset.accessRequest?.assetCredential?.isTemporaryPassword) {
@@ -78,7 +82,9 @@ export function AssetsTable({
       selectedAsset={selectedAsset}
       onSelectAsset={onSelectAsset}
       showFetchTemplate={true}
+      showQueryButton={true}
       renderActions={renderActions}
+      onQueryAsset={onQueryAsset}
     />
   );
 } 

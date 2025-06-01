@@ -126,6 +126,16 @@ export function AssetRequestApprovals() {
                         </Button>
                       </HStack>
                     )}
+                    {request.assetApproverStatus === 'APPROVED' && (
+                      <Link to={`/asset_owner/access_request_details?accessRequestId=${request.id}&assetId=${request.assetDTO.id}`}>
+                        <Button
+                          size="sm"
+                          colorScheme="blue"
+                        >
+                          <FormattedMessage id="text.details" />
+                        </Button>
+                      </Link>
+                    )}
                   </VStack>
                 </Td>
               </Tr>

@@ -7,16 +7,19 @@ interface AssetDetailsSectionProps {
   readonly showDescription?: boolean; // Optional flag to show/hide description
   readonly className?: string; // Optional styling
   readonly textSize?: string; // Optional text size override
+  readonly pb?: number;
 }
 
 export function AssetDetailsSection({ 
   asset, 
   showDescription = true,
   className,
-  textSize = "lg"
+  textSize = "lg",
+  pb = 6
+
 }: AssetDetailsSectionProps) {
   return (
-    <Flex w="full" flexDirection={'column'} gap={3} pt={3} pb={6} className={className}>
+    <Flex w="full" flexDirection={'column'} gap={1} pt={3} pb={pb} className={className}>
       <Flex>
         <Text fontSize={textSize} fontWeight="bold">
           <FormattedMessage id="text.asset_name" />

@@ -15,7 +15,7 @@ export function Component() {
       backTitle={intl.formatMessage({ id: 'text.dashboard' })}
       backURI="/">
       <Flex flexDir="column" w="full" px={6}>
-        <Flex mt={6} gap={2} >
+        <Flex mt={6} gap={2}>
           <Link to="/developer/assets" >
             <PrimaryButton>
               <FormattedMessage id="text.show_assets" />

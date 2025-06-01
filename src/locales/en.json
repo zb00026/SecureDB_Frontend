@@ -175,5 +175,14 @@
   "text.initial_password": "Initial Password",
   "text.update_temporary_password": "You are using temporary login password, please update your password!",
   "text.relinquish_access": "Relinquish Access",
-  "text.are_you_sure_relinquish_access": "All access to this asset will be released immediately. Are you sure to relinquish access?"
+  "text.are_you_sure_relinquish_access": "All access to this asset will be released immediately. Are you sure to relinquish access?",
+  "text.query_action": "Query Action",
+  "text.run_query": "Run",
+  "text.query_asset": "Query Asset",
+  "text.query_to_run": "Query to Run",
+  "text.query_placeholder": "Query",
+  "text.run": "Run",
+  "text.query_run_success": "Query run successfully",
+  "text.failed_to_run_query": "Failed to run query",
+  "text.details": "Details"
 }
