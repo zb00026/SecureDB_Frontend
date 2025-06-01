@@ -25,6 +25,43 @@ interface QueryHistory {
 
 const QUERY_HISTORY_KEY = 'dam_query_history';
 
+// SQL validation functions
+const validateSQL = (query: string): { isValid: boolean; errorMessage?: string } => {
+  const trimmedQuery = query.trim().toUpperCase();
+  
+  // Check for DDL statements
+  const ddlKeywords = ['ALTER', 'DROP', 'CREATE', 'TRUNCATE', 'RENAME'];
+  const isDDL = ddlKeywords.some(keyword => 
+    trimmedQuery.startsWith(keyword + ' ') || trimmedQuery === keyword
+  );
+  
+  if (isDDL) {
+    return {
+      isValid: false,
+      errorMessage: 'Please execute any DDL statements as a change request'
+    };
+  }
+  
+  // Check DELETE/UPDATE queries for WHERE clause
+  const isDelete = trimmedQuery.startsWith('DELETE ');
+  const isUpdate = trimmedQuery.startsWith('UPDATE ');
+  
+  if (isDelete || isUpdate) {
+    // Simple regex to check for WHERE clause (case insensitive)
+    const hasWhereClause = /\bWHERE\b/i.test(query);
+    
+    if (!hasWhereClause) {
+      const operation = isDelete ? 'DELETE' : 'UPDATE';
+      return {
+        isValid: false,
+        errorMessage: `${operation} queries must include a WHERE clause to prevent accidental mass operations`
+      };
+    }
+  }
+  
+  return { isValid: true };
+};
+
 export function Component() {
   const intl = useIntl();
   const [searchParams] = useSearchParams();
@@ -99,6 +136,14 @@ export function Component() {
   const runQuery = () => {
     if (!query.trim()) {
       showError({ description: 'Please enter a query' });
+      return;
+    }
+
+
+    // Validate SQL before execution
+    const validation = validateSQL(query);
+    if (!validation.isValid) {
+      showError({ description: validation.errorMessage ?? 'Invalid query' });
       return;
     }
 
