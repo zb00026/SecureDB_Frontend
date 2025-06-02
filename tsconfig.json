@@ -37,7 +37,7 @@
         "src/*"
       ],
       "~assets/*": [
-        "src/models/assets/*"
+        "src/assets/*"
       ],
       "~/*": [
         "src/*"
@@ -83,6 +83,12 @@
       ],
       "~services/*": [
         "src/services/*"
+      ],
+      "~routes/*": [
+        "src/routes/*"
+      ],
+      "~theme/*": [
+        "src/theme/*"
       ]
     }
   },

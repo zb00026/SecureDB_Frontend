@@ -166,9 +166,7 @@ export function Component() {
 
   return (
     <DamBasePage
-      title={intl.formatMessage({ id: 'text.audit_trail' })}
-      backTitle={intl.formatMessage({ id: 'text.dashboard' })}
-      backURI="/">
+      title={intl.formatMessage({ id: 'text.audit_trail' })}>
       <Global styles={getDarkModeStyles(colorMode)} />
       <Box p={6}>
         <Box 

@@ -10,9 +10,7 @@ export function Component() {
   const intl = useIntl();
   return (
     <DamBasePage
-      title={intl.formatMessage({ id: 'text.approver' })}
-      backTitle={intl.formatMessage({ id: 'text.dashboard' })}
-      backURI="/">
+      title={intl.formatMessage({ id: 'text.approver' })}>
       <TextBody>
         This is Approver Page
       </TextBody>

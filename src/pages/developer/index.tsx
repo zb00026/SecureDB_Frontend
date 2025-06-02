@@ -11,9 +11,7 @@ export function Component() {
   const intl = useIntl();
   return (
     <DamBasePage
-      title={intl.formatMessage({ id: 'text.developer' })}
-      backTitle={intl.formatMessage({ id: 'text.dashboard' })}
-      backURI="/">
+      title={intl.formatMessage({ id: 'text.developer' })}>
       <Flex flexDir="column" w="full" px={6}>
         <Flex mt={6} gap={2}>
           <Link to="/developer/assets" >

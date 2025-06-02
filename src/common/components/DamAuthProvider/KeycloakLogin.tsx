@@ -1,7 +1,13 @@
-import { Box, Button } from "@chakra-ui/react";
-import colors from "@common/libs/chakra/colors";
+import { 
+  Box, 
+  Button, 
+  Flex, 
+  Icon, 
+  Text
+} from "@chakra-ui/react";
 import { useKeycloak } from "@react-keycloak/web";
 import { useEffect } from "react";
+import { FiShield } from 'react-icons/fi';
 
 export interface KeycloakLoginType {
   onInitialized: () => void,
@@ -55,18 +61,37 @@ export default function KeycloakLogin({
   useEffect(() => {
   }, [authenticating]);
   return (
-    <Box mb="5">
+    <Box w="full">
       <Button
         isLoading={authenticating}
+        loadingText="Connecting to Keycloak..."
         onClick={doLogin}
         size="lg"
-        color="white"
-        backgroundColor={colors.blue[60]}
-        width="158"
+        w="full"
+        h="14"
+        colorScheme="brand"
+        variant="solid"
         id="btnLogin"
-        borderRadius="10"
+        borderRadius="xl"
+        bgGradient="linear(to-r, brand.500, brand.600)"
+        _hover={{
+          bgGradient: "linear(to-r, brand.600, brand.700)",
+          transform: "translateY(-1px)",
+          boxShadow: "lg",
+        }}
+        _active={{
+          transform: "translateY(0)",
+        }}
+        transition="all 0.2s ease-in-out"
+        fontWeight="600"
+        boxShadow="md"
       >
-        Login with Keycloak
+        {!authenticating && (
+          <Flex gap={3} direction={'row'} alignItems={'center'}>
+            <Icon as={FiShield} boxSize={5} />
+            <Text mb={0}>Login with Keycloak</Text>
+          </Flex>
+        )}
       </Button>
     </Box>
   )

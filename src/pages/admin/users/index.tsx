@@ -235,8 +235,6 @@ export function Component() {
   return (
     <DamBasePage
       title={intl.formatMessage({ id: 'text.user_management' })}
-      backTitle={intl.formatMessage({ id: 'text.dashboard' })}
-      backURI="/"
     >
       <Flex flexDir="column">
         {isShowEditForm && <Flex w="100%">

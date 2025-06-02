@@ -276,8 +276,6 @@ export function Component() {
   return (
     <DamBasePage
       title={intl.formatMessage({ id: 'text.asset_management' })}
-      backTitle={intl.formatMessage({ id: 'text.dashboard' })}
-      backURI="/"
     >
       <Flex flexDir="column" w="full" px={0} pt={3}>
         <DamCard>

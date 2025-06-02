@@ -1,5 +1,18 @@
 import { AUTH_PROVIDER, USER_ROLE } from "@/constants/enums";
-import { Flex } from "@chakra-ui/react";
+import { 
+  Flex,
+  Box,
+  VStack,
+  Heading,
+  Text,
+  Card,
+  CardBody,
+  useColorModeValue,
+  Container,
+  HStack,
+  Icon,
+  Divider
+} from "@chakra-ui/react";
 import KeycloakLogin from "@common/components/DamAuthProvider/KeycloakLogin";
 import { request, setGoogleToken, useDamToast, getGoogleToken, clearGoogleToken, stateActions, DamFullLoading, userHasRole } from "@common/index";
 import { User } from "@models/User";
@@ -7,6 +20,7 @@ import { GoogleLogin, googleLogout } from '@react-oauth/google';
 import { useEffect, useState } from "react";
 import { useIntl } from "react-intl";
 import { useSearchParams, useNavigate } from "react-router-dom";
+import { FiShield, FiDatabase, FiLock } from 'react-icons/fi';
 
 export default function Login({ authProviders, children }: { authProviders: string, children: React.ReactNode }) {
   const { showError, showSuccess } = useDamToast();
@@ -22,6 +36,12 @@ export default function Login({ authProviders, children }: { authProviders: stri
   const inviteCode = searchParams.get('inviteCode');
   const navigate = useNavigate();
 
+  const bgGradient = useColorModeValue(
+    'linear(to-br, blue.50, purple.50, brand.50)',
+    'linear(to-br, gray.900, blue.900, purple.900)'
+  );
+  const cardBg = useColorModeValue('white', 'gray.800');
+  const borderColor = useColorModeValue('gray.200', 'gray.700');
 
   const isAuthProviderAvailable = (provider: string) => {
     const auth_providers: string[] = authProviders.split(',');
@@ -200,37 +220,187 @@ export default function Login({ authProviders, children }: { authProviders: stri
     return <>{children}</>;
   }
 
-  // Show loading state or login buttons
   return (
-    <Flex direction="column" align="center" justify="center" height="100vh">
+    <Box 
+      height="100vh" 
+      bgGradient={bgGradient}
+      position="relative"
+      overflow="hidden"
+      _before={{
+        content: '""',
+        position: 'absolute',
+        top: '-50%',
+        left: '-50%',
+        width: '200%',
+        height: '200%',
+        background: `radial-gradient(circle, rgba(79, 172, 254, 0.1) 0%, transparent 50%)`,
+        animation: 'pulse 4s ease-in-out infinite',
+      }}
+    >
       {isLoading && <DamFullLoading showBackground />}
-      {
-        isAuthProviderAvailable(AUTH_PROVIDER.KEYCLOAK) &&
+      
+      <Container maxW="container.xl" h="full">
+        <Flex 
+          align="center" 
+          justify="center" 
+          h="full"
+          position="relative"
+          zIndex={1}
+        >
+          {/* Hero Section - Left Side */}
+          <Box flex="1" pr={{ base: 0, lg: 12 }} mb={{ base: 8, lg: 0 }}>
+            <VStack spacing={6} align={{ base: 'center', lg: 'start' }} textAlign={{ base: 'center', lg: 'left' }}>
+              <Box position="relative">
+                <Icon 
+                  as={FiShield} 
+                  boxSize={12} 
+                  color="brand.500"
+                  filter="drop-shadow(0 4px 12px rgba(79, 172, 254, 0.3))"
+                />
+                <Box
+                  position="absolute"
+                  top="50%"
+                  left="50%"
+                  transform="translate(-50%, -50%)"
+                  p={3}
+                  bg="brand.500"
+                  borderRadius="full"
+                  opacity={0.1}
+                  animation="pulse 2s ease-in-out infinite"
+                />
+              </Box>
+              
+              <VStack spacing={3} align={{ base: 'center', lg: 'start' }}>
+                <Heading 
+                  size="2xl" 
+                  bgGradient="linear(to-r, brand.500, purple.500)"
+                  bgClip="text"
+                  fontWeight="800"
+                  lineHeight="1.2"
+                >
+                  Hagrid
+                </Heading>
+                <Text 
+                  fontSize="lg" 
+                  color="gray.600" 
+                  _dark={{ color: 'gray.400' }}
+                  maxW="md"
+                >
+                  Secure, auditable, and controlled access to your enterprise databases
+                </Text>
+              </VStack>
+              
+              <HStack spacing={6} flexWrap="wrap" justify={{ base: 'center', lg: 'start' }}>
+                <VStack spacing={1}>
+                  <Icon as={FiDatabase} boxSize={5} color="brand.500" />
+                  <Text fontSize="sm" color="gray.600" _dark={{ color: 'gray.400' }}>
+                    Database Access
+                  </Text>
+                </VStack>
+                <VStack spacing={1}>
+                  <Icon as={FiLock} boxSize={5} color="brand.500" />
+                  <Text fontSize="sm" color="gray.600" _dark={{ color: 'gray.400' }}>
+                    Secure Authentication
+                  </Text>
+                </VStack>
+                <VStack spacing={1}>
+                  <Icon as={FiShield} boxSize={5} color="brand.500" />
+                  <Text fontSize="sm" color="gray.600" _dark={{ color: 'gray.400' }}>
+                    Audit Trail
+                  </Text>
+                </VStack>
+              </HStack>
+            </VStack>
+          </Box>
 
-        <KeycloakLogin
-          authenticating={authenticating}
-          inviteCode={inviteCode}
-          handleKeycloakLogin={handleKeycloakLogin}
-          onInitialized={() => { setKeycloakInitialized(true) }}
-          isLoggedOut={keycloakLoggedOut}
-          onAuthenticated={(token: string) => {
-            setIsCheckingLocalToken(true);
-            setKeycloakAuthenticated(true);
-            verifyUserToken(token, AUTH_PROVIDER.KEYCLOAK, true);
-          }}
-        />
-      }
-      {
-        isAuthProviderAvailable(AUTH_PROVIDER.GOOGLE) && <GoogleLogin
-          onSuccess={handleGoogleSuccess}
-          onError={() => {
-            setAuthenticating(false);
-            setIsValidToken(false);
-          }}
-          useOneTap
-        />
-      }
-    </Flex>
+          {/* Login Card - Right Side */}
+          <Box w={{ base: 'full', lg: 'md' }} maxW="md">
+            <Card
+              variant="elevated"
+              bg={cardBg}
+              borderColor={borderColor}
+              borderWidth="1px"
+              borderRadius="2xl"
+              p={6}
+              boxShadow="2xl"
+              _hover={{
+                boxShadow: '3xl',
+                transform: 'translateY(-2px)',
+              }}
+              transition="all 0.2s ease-in-out"
+            >
+              <CardBody>
+                <VStack spacing={6}>
+                  <VStack spacing={2} textAlign="center">
+                    <Heading size="lg" color="gray.700" _dark={{ color: 'gray.200' }}>
+                      Welcome Back
+                    </Heading>
+                    <Text color="gray.600" _dark={{ color: 'gray.400' }}>
+                      Sign in to access your dashboard
+                    </Text>
+                  </VStack>
+
+                  <VStack spacing={4} w="full">
+                    {isAuthProviderAvailable(AUTH_PROVIDER.KEYCLOAK) && (
+                      <KeycloakLogin
+                        authenticating={authenticating}
+                        inviteCode={inviteCode}
+                        handleKeycloakLogin={handleKeycloakLogin}
+                        onInitialized={() => { setKeycloakInitialized(true) }}
+                        isLoggedOut={keycloakLoggedOut}
+                        onAuthenticated={(token: string) => {
+                          setIsCheckingLocalToken(true);
+                          setKeycloakAuthenticated(true);
+                          verifyUserToken(token, AUTH_PROVIDER.KEYCLOAK, true);
+                        }}
+                      />
+                    )}
+
+                    {isAuthProviderAvailable(AUTH_PROVIDER.GOOGLE) && 
+                     isAuthProviderAvailable(AUTH_PROVIDER.KEYCLOAK) && (
+                      <HStack w="full" spacing={4}>
+                        <Divider />
+                        <Text fontSize="sm" color="gray.500" whiteSpace="nowrap">
+                          OR
+                        </Text>
+                        <Divider />
+                      </HStack>
+                    )}
+
+                    {isAuthProviderAvailable(AUTH_PROVIDER.GOOGLE) && (
+                      <Box w="full" display="flex" justifyContent="center">
+                        <GoogleLogin
+                          onSuccess={handleGoogleSuccess}
+                          onError={() => {
+                            setAuthenticating(false);
+                            setIsValidToken(false);
+                          }}
+                          useOneTap
+                        />
+                      </Box>
+                    )}
+                  </VStack>
+
+                  <Text fontSize="sm" color="gray.500" textAlign="center">
+                    Protected by enterprise-grade security
+                  </Text>
+                </VStack>
+              </CardBody>
+            </Card>
+
+            {/* Footer */}
+            <Text 
+              fontSize="sm" 
+              color="gray.500" 
+              mt={4}
+              textAlign="center"
+            >
+              © {new Date().getFullYear()} Hagrid Database Access Management
+            </Text>
+          </Box>
+        </Flex>
+      </Container>
+    </Box>
   );
 }
 

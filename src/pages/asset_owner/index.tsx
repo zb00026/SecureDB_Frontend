@@ -81,9 +81,7 @@ export function Component() {
 
   return (
     <DamBasePage
-      title={intl.formatMessage({ id: 'text.asset_owner' })}
-      backTitle={intl.formatMessage({ id: 'text.dashboard' })}
-      backURI="/">
+      title={intl.formatMessage({ id: 'text.asset_owner' })}>
       <DamCard mt={4}>
         <DamCardBody>
           <TextCardHeader mb={0} id="lblAssetSetting">

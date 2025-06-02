@@ -11,9 +11,7 @@ export function Component() {
   
   return (
     <DamBasePage
-      title={intl.formatMessage({ id: 'text.auditor' })}
-      backTitle={intl.formatMessage({ id: 'text.dashboard' })}
-      backURI="/">
+      title={intl.formatMessage({ id: 'text.auditor' })}>
       <Flex flexDir="column" w="full" px={6}>
         <DamCardDivider></DamCardDivider>
         <Flex w='full' textAlign={'center'} mt={2} alignItems={'center'} gap={2}>

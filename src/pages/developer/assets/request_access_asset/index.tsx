@@ -117,9 +117,7 @@ export function Component() {
 
   return (
     <DamBasePage
-      title={intl.formatMessage({ id: 'text.request_access' })}
-      backTitle={intl.formatMessage({ id: 'text.back' })}
-      backURI="/developer/assets">
+      title={intl.formatMessage({ id: 'text.request_access' })}>
       <Flex flexDir="column" w="full" px={6}>
         <AssetDetailsSection
           asset={currentAsset}

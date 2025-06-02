@@ -1,11 +1,12 @@
-import { Flex, Input, Text } from "@chakra-ui/react";
+import { Flex, Input, Text, VStack } from "@chakra-ui/react";
 import { DamBasePage } from "@common/components/DamBasePage";
-import { DamCard, DamCardBody, DamCardDivider, DamContent, PrimaryButton, request, TextCardHeader, useDamToast } from "@common/index";
+import { DamCard, DamCardBody, DamCardDivider, PrimaryButton, request, TextCardHeader, useDamToast } from "@common/index";
 import { S3BucketSettings } from "@models/S3BucketSettings";
 import { useEffect, useState } from "react";
 import { FormattedMessage, useIntl } from "react-intl";
 import { stateActions } from "@common/state";
 import { ShortKey } from "./components/shortkey";
+
 export const isSearchable = true;
 export const displayName = 'Settings Page';
 
@@ -41,24 +42,22 @@ export function Component() {
       setS3BucketName('');
     });
   }
+
   return (
-    <>
-      <DamBasePage
-        title={intl.formatMessage({ id: 'text.settings' })}
-        backTitle={intl.formatMessage({ id: 'text.dashboard' })}
-        backURI="/"
-        hasBody={false}>
-      </DamBasePage>
-      <DamContent w="98%">
-        <DamCard mt="4" pb="4">
+    <DamBasePage
+      title={intl.formatMessage({ id: 'text.settings' })}>
+      
+      <VStack spacing={6} align="stretch">
+        {/* Audit Log Storage Settings */}
+        <DamCard>
           <DamCardBody>
             <TextCardHeader id="lblAuditLogStorage" w="full" pb={0} textAlign={'center'}>
               <FormattedMessage id="text.audit_log_storage" />
             </TextCardHeader>
 
             <Flex flexDir="column" w="full" px={6}>
-              <DamCardDivider></DamCardDivider>
-              <Flex w='full' textAlign={'center'} mt={2} alignItems={'center'} gap={2}>
+              <DamCardDivider />
+              <Flex w='full' textAlign={'center'} mt={4} alignItems={'center'} gap={2}>
                 <Text mb={0} minW='150px' textAlign={'right'}>
                   <FormattedMessage id="text.s3_bucket_name" />
                 </Text>
@@ -78,22 +77,23 @@ export function Component() {
             </Flex>
           </DamCardBody>
         </DamCard>
-        <DamCard mt="4" pb="4">
+
+        {/* Shortkey Search Settings */}
+        <DamCard>
           <DamCardBody>
-            <TextCardHeader id="lblAuditLogStorage" w="full" pb={0} textAlign={'center'}>
+            <TextCardHeader id="lblShortkeySearch" w="full" pb={0} textAlign={'center'}>
               <FormattedMessage id="text.shortkey_search" />
             </TextCardHeader>
 
             <Flex flexDir="column" w="full" px={6}>
-              <DamCardDivider></DamCardDivider>
-              <Flex w='full' textAlign={'center'} mt={2} alignItems={'center'} gap={2}>
+              <DamCardDivider />
+              <Flex w='full' textAlign={'center'} mt={4} alignItems={'center'} gap={2}>
                 <ShortKey />
               </Flex>
             </Flex>
           </DamCardBody>
         </DamCard>
-      </DamContent>
-
-    </>
+      </VStack>
+    </DamBasePage>
   );
 }

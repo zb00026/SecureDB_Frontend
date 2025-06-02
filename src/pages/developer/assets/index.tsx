@@ -84,9 +84,7 @@ export function Component() {
 
   return (
     <DamBasePage
-      title={intl.formatMessage({ id: 'text.assets' })}
-      backTitle={intl.formatMessage({ id: 'text.dashboard' })}
-      backURI="/">
+      title={intl.formatMessage({ id: 'text.assets' })}>
       <Flex flexDir="column" w="full" px={6}>
         <DamCardDivider></DamCardDivider>
         <AssetsTable

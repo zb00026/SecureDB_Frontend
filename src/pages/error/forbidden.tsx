@@ -6,9 +6,7 @@ export function ForbiddenPage() {
     const intl = useIntl();
     return (
         <DamBasePage
-            title="Permission Error"
-            backTitle={intl.formatMessage({ id: 'text.dashboard' })}
-            backURI="/">
+            title="Permission Error">
             <Flex w='full' h='300px' textAlign={'center'} alignItems={'center'} justifyContent={'center'}>
                 <Text
                     fontSize='18px'
