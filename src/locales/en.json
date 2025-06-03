@@ -184,5 +184,8 @@
   "text.run": "Run",
   "text.query_run_success": "Query run successfully",
   "text.failed_to_run_query": "Failed to run query",
-  "text.details": "Details"
+  "text.details": "Details",
+  "text.save_as_change_request": "Save as chagne request",
+  "text.ticket_reference": "Ticket Reference",
+  "text.change_description": "Change Description"
 }

@@ -1,4 +1,4 @@
-import { Flex, Text, Table, Thead, Tbody, Tr, Th, Td, Box, VStack, HStack, Badge, IconButton } from "@chakra-ui/react";
+import { Flex, Text, Table, Thead, Tbody, Tr, Th, Td, Box, VStack, HStack, Badge, IconButton, Textarea, Checkbox } from "@chakra-ui/react";
 import { DamBasePage } from "@common/components/DamBasePage";
 import { DamCardDivider, PrimaryButton, useDamToast } from "@common/index";
 import { Asset } from "@models/assets/Asset";
@@ -9,10 +9,17 @@ import { useApiRequest } from "@common/hooks/useApiRequest";
 import { AssetDetailsSection } from "@pages/developer/components/asset_detail_section";
 import { DamQueryInput } from "@common/components/DamQueryInput";
 import { DeleteIcon } from "@chakra-ui/icons";
+import { DamAlertDialog } from "@common/components/DamDialog/DamAlertDialog";
 
 interface QueryResult {
   headers: string[];
   data: Record<string, any>[];
+  query: string;
+}
+
+interface QueryResponse {
+  totalQueries: number;
+  results: QueryResult[];
 }
 
 interface QueryHistory {
@@ -20,7 +27,7 @@ interface QueryHistory {
   query: string;
   timestamp: string;
   resultCount?: number;
-  results?: QueryResult;
+  results?: QueryResponse;
 }
 
 const QUERY_HISTORY_KEY = 'dam_query_history';
@@ -68,13 +75,20 @@ export function Component() {
   const { showError, showSuccess } = useDamToast();
   const [currentAsset, setCurrentAsset] = useState<Asset | null>(null);
   const [query, setQuery] = useState<string>('');
-  const [queryResults, setQueryResults] = useState<QueryResult | null>(null);
+  const [queryResults, setQueryResults] = useState<QueryResponse | null>(null);
   const [queryHistory, setQueryHistory] = useState<QueryHistory[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const assetId = searchParams.get('assetId');
   const accessRequestId = searchParams.get('accessRequestId');
   const { handleRequest } = useApiRequest();
-
+  const [isSaveDlgOpen, setIsSaveDlgOpen] = useState(false);
+  const [saveDialogConfig, setSaveDialogConfig] = useState<{
+    title: string;
+    message: string;
+  }>({ title: '', message: '' });
+  const [ticketReference, setTicketReference] = useState('');
+  const [changeDescription, setChangeDescription] = useState('');
+  const [isChangeRequest, setIsChangeRequest] = useState(false);
   // Load query history from localStorage on component mount
   useEffect(() => {
     const savedHistory = localStorage.getItem(QUERY_HISTORY_KEY);
@@ -88,12 +102,12 @@ export function Component() {
   }, []);
 
   // Save query to history
-  const saveQueryToHistory = (query: string, results?: QueryResult) => {
+  const saveQueryToHistory = (query: string, results?: QueryResponse) => {
     const newQuery: QueryHistory = {
       id: Date.now().toString(),
       query: query.trim(),
       timestamp: new Date().toISOString(),
-      resultCount: results?.data?.length,
+      resultCount: results?.results?.reduce((total, result) => total + result.data.length, 0),
       results
     };
 
@@ -115,6 +129,37 @@ export function Component() {
     setQueryHistory([]);
     localStorage.removeItem(QUERY_HISTORY_KEY);
     showSuccess({ description: 'Query history cleared' });
+  };
+
+  // Handle save as change request
+  const handleSaveAsChangeRequest = () => {
+    if (!query.trim()) {
+      showError({ description: 'Please enter a query to save as change request' });
+      return;
+    }
+
+    // Check if query is single line or multi-line
+    const isMultiLine = query.trim().split('\n').length > 1;
+    
+    if (isMultiLine) {
+      setSaveDialogConfig({
+        title: 'Save as Change Request',
+        message: 'The query provided will be executed under a transaction and transaction will be rolled back to validate script. Ok to proceed?'
+      });
+    } else {
+      setSaveDialogConfig({
+        title: 'Save as Change Request', 
+        message: 'The query provided will be executed with an Explain statement to validate and create a change request. Ok to proceed?'
+      });
+    }
+    
+    setIsSaveDlgOpen(true);
+  };
+
+  // Confirm save as change request
+  const confirmSaveAsChangeRequest = () => {
+    setIsSaveDlgOpen(false);
+    runQuery();
   };
 
   const getAsset = () => {
@@ -139,7 +184,6 @@ export function Component() {
       return;
     }
 
-
     // Validate SQL before execution
     const validation = validateSQL(query);
     if (!validation.isValid) {
@@ -151,11 +195,13 @@ export function Component() {
     handleRequest(`/api/developer/assets/run_query`, 'POST', {
       requestId: accessRequestId,
       assetId,
+      isChangeRequest,
+      ticketReference,
+      changeDescription,
       query
     },
       {
         onSuccess: (data: any) => {
-          console.log(data);
           if (data.results) {
             setQueryResults(data.results);
             saveQueryToHistory(query, data.results);
@@ -201,7 +247,13 @@ export function Component() {
               onChange={setQuery}
             />
             <Flex direction={'row'} gap={3} mt={2}>
-              <PrimaryButton onClick={runQuery} isLoading={isLoading}>
+              <PrimaryButton onClick={() => {
+                if (isChangeRequest) {
+                  handleSaveAsChangeRequest();
+                } else {
+                  runQuery();
+                }
+              }} isLoading={isLoading}>
                 <FormattedMessage id="text.run" />
               </PrimaryButton>
               <PrimaryButton
@@ -212,6 +264,19 @@ export function Component() {
                 }}>
                 <FormattedMessage id="text.clear" />
               </PrimaryButton>
+              <Checkbox onChange={(e) => setIsChangeRequest(e.target.checked)}>
+                <FormattedMessage id="text.save_as_change_request" />
+              </Checkbox>
+            </Flex>
+            <Flex hidden={!isChangeRequest} direction={'column'} gap={3} mt={2}>
+              <Text fontSize="md" fontWeight="bold" mt={4} mb={0}>
+                <FormattedMessage id="text.ticket_reference" />
+              </Text>
+              <Textarea value={ticketReference} onChange={(e) => setTicketReference(e.target.value)} />
+              <Text fontSize="md" fontWeight="bold" mt={4} mb={0}>
+                <FormattedMessage id="text.change_description" />
+              </Text>
+              <Textarea value={changeDescription} onChange={(e) => setChangeDescription(e.target.value)} />
             </Flex>
           </Flex>
 
@@ -295,35 +360,60 @@ export function Component() {
         {queryResults && (
           <Box mt={6}>
             <Text fontSize="md" fontWeight="bold" mb={3}>
-              Query Results ({queryResults.data.length} rows)
+              Query Results ({queryResults.totalQueries} {queryResults.totalQueries === 1 ? 'query' : 'queries'}, {queryResults.results.reduce((total, result) => total + result.data.length, 0)} total rows)
             </Text>
-            <Box overflowX="auto" border="1px solid" borderColor="gray.200" borderRadius="md">
-              <Table variant="simple" size="sm">
-                <Thead bg="gray.50">
-                  <Tr>
-                    {queryResults.headers.map((header) => (
-                      <Th key={header} fontSize="xs" fontWeight="bold">
-                        {header}
-                      </Th>
-                    ))}
-                  </Tr>
-                </Thead>
-                <Tbody>
-                  {queryResults.data.map((row, rowIndex) => (
-                    <Tr key={`row-${rowIndex}-${JSON.stringify(Object.values(row)).substring(0, 50)}`} _hover={{ bg: "gray.50" }}>
-                      {queryResults.headers.map((header) => (
-                        <Td key={`${rowIndex}-${header}`} fontSize="sm">
-                          {row[header] !== null ? String(row[header]) : 'NULL'}
-                        </Td>
-                      ))}
-                    </Tr>
-                  ))}
-                </Tbody>
-              </Table>
-            </Box>
+            <VStack spacing={6} align="stretch">
+              {queryResults.results.map((result, resultIndex) => (
+                <Box key={`result-${result.query}-${result.data.length}`}>
+                  <Box mb={3} p={3} borderRadius="md" bg="gray.90">
+                    <Text fontSize="sm" fontWeight="bold" mb={1}>
+                      Query {resultIndex + 1}:
+                    </Text>
+                    <Text fontSize="sm" fontFamily="monospace">
+                      {result.query}
+                    </Text>
+                    <Text fontSize="xs" mt={1} mb={0}>
+                      {result.data.length} rows returned
+                    </Text>
+                  </Box>
+                  <Box overflowX="auto" border="1px solid" borderColor="gray.200" borderRadius="md">
+                    <Table variant="simple" size="sm">
+                      <Thead bg="gray.50">
+                        <Tr>
+                          {result.headers.map((header) => (
+                            <Th key={header} fontSize="xs" fontWeight="bold">
+                              {header}
+                            </Th>
+                          ))}
+                        </Tr>
+                      </Thead>
+                      <Tbody>
+                        {result.data.map((row) => (
+                          <Tr key={`row-${result.query}-${JSON.stringify(row).substring(0, 100)}`} _hover={{ bg: "gray.50" }}>
+                            {result.headers.map((header) => (
+                              <Td key={`cell-${result.query}-${JSON.stringify(row).substring(0, 50)}-${header}`} fontSize="sm">
+                                {row[header] !== null ? String(row[header]) : 'NULL'}
+                              </Td>
+                            ))}
+                          </Tr>
+                        ))}
+                      </Tbody>
+                    </Table>
+                  </Box>
+                </Box>
+              ))}
+            </VStack>
           </Box>
         )}
       </Flex>
+      <DamAlertDialog
+        isOpen={isSaveDlgOpen}
+        onClose={() => setIsSaveDlgOpen(false)}
+        onConfirm={confirmSaveAsChangeRequest}
+        title={saveDialogConfig.title}
+        message={saveDialogConfig.message}
+        confirmButtonId="btnConfirmSaveAsChangeRequest"
+      />
     </DamBasePage>
   );
 }
