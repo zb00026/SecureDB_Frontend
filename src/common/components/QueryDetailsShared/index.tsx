@@ -1,0 +1,169 @@
+import { Flex, Text, Table, Thead, Tbody, Tr, Th, Td, Box, VStack, Textarea } from "@chakra-ui/react";
+import { DamBasePage } from "@common/components/DamBasePage";
+import { DamCardDivider } from "@common/index";
+import { Asset } from "@models/assets/Asset";
+import { FormattedMessage } from "react-intl";
+import { AssetDetailsSection } from "@pages/developer/components/asset_detail_section";
+import { DamQueryInput } from "@common/components/DamQueryInput";
+
+interface QueryResult {
+  readonly headers: string[];
+  readonly data: Record<string, any>[];
+  readonly query: string;
+}
+
+interface QueryResponse {
+  readonly totalQueries: number;
+  readonly results: QueryResult[];
+}
+
+interface QueryDetailsSharedProps {
+  readonly title: string;
+  readonly asset: Asset | null;
+  readonly query: string;
+  readonly queryResults: QueryResponse | null;
+  readonly isQueryEditable?: boolean;
+  readonly onQueryChange?: (query: string) => void;
+  readonly ticketReference?: string;
+  readonly changeDescription?: string;
+  readonly isTicketInfoVisible?: boolean;
+  readonly actionButtons?: React.ReactNode;
+  readonly historySection?: React.ReactNode;
+}
+
+export function QueryDetailsShared({
+  title,
+  asset,
+  query,
+  queryResults,
+  isQueryEditable = false,
+  onQueryChange,
+  ticketReference,
+  changeDescription,
+  isTicketInfoVisible = false,
+  actionButtons,
+  historySection
+}: QueryDetailsSharedProps) {
+
+  return (
+    <DamBasePage title={title}>
+      <Flex flexDir="column" w="full" px={6}>
+        <AssetDetailsSection
+          asset={asset}
+          textSize="md"
+          pb={0}
+        />
+      </Flex>
+
+      <DamCardDivider />
+
+      <Flex direction={"column"} w="full">
+        <Flex direction="row" gap={2}>
+          <Flex direction={'column'} gap={3} flex={2}>
+            <Text fontSize="md" fontWeight="bold" mt={4} mb={0}>
+              <FormattedMessage id="text.query_to_run" />
+            </Text>
+
+            {isQueryEditable ? (
+              <DamQueryInput
+                value={query}
+                onChange={onQueryChange ?? (() => { })}
+              />
+            ) : (
+              <Box
+                border="1px solid"
+                borderColor="gray.200"
+                borderRadius="md"
+                p={3}
+                bg="gray.50"
+                fontFamily="monospace"
+                fontSize="sm"
+                minHeight="120px"
+                whiteSpace="pre-wrap"
+              >
+                {query ?? 'No query provided'}
+              </Box>
+            )}
+
+            {actionButtons && (
+              <Flex direction={'row'} gap={3} mt={2}>
+                {actionButtons}
+              </Flex>
+            )}
+
+            {isTicketInfoVisible && (
+              <Flex direction={'column'} gap={3} mt={2}>
+                <Text fontSize="md" fontWeight="bold" mt={4} mb={0}>
+                  <FormattedMessage id="text.ticket_reference" />
+                </Text>
+                <Textarea
+                  value={ticketReference ?? ''}
+                  isReadOnly={true}
+                />
+                <Text fontSize="md" fontWeight="bold" mt={4} mb={0}>
+                  <FormattedMessage id="text.change_description" />
+                </Text>
+                <Textarea
+                  value={changeDescription ?? ''}
+                  isReadOnly={true}
+                />
+              </Flex>
+            )}
+          </Flex>
+
+          {historySection}
+        </Flex>
+
+        {/* Results Table */}
+        {queryResults && (
+          <Box mt={6}>
+            <Text fontSize="md" fontWeight="bold" mb={3}>
+              Query Results ({queryResults.totalQueries} {queryResults.totalQueries === 1 ? 'query' : 'queries'}, {queryResults.results.reduce((total, result) => total + result.data.length, 0)} total rows)
+            </Text>
+            <VStack spacing={6} align="stretch">
+              {queryResults.results.map((result, resultIndex) => (
+                <Box key={`result-${result.query}-${result.data.length}`}>
+                  <Box mb={3} p={3} borderRadius="md" bg="gray.90">
+                    <Text fontSize="sm" fontWeight="bold" mb={1}>
+                      Query {resultIndex + 1}:
+                    </Text>
+                    <Text fontSize="sm" fontFamily="monospace">
+                      {result.query}
+                    </Text>
+                    <Text fontSize="xs" mt={1} mb={0}>
+                      {result.data.length} rows returned
+                    </Text>
+                  </Box>
+                  <Box overflowX="auto" border="1px solid" borderColor="gray.200" borderRadius="md">
+                    <Table variant="simple" size="sm">
+                      <Thead>
+                        <Tr>
+                          {result.headers.map((header) => (
+                            <Th key={header} fontSize="xs" fontWeight="bold">
+                              {header}
+                            </Th>
+                          ))}
+                        </Tr>
+                      </Thead>
+                      <Tbody>
+                        {result.data.map((row) => (
+                          <Tr key={`row-${result.query}-${JSON.stringify(row).substring(0, 100)}`} _hover={{ bg: "gray.50" }}>
+                            {result.headers.map((header) => (
+                              <Td key={`cell-${result.query}-${JSON.stringify(row).substring(0, 50)}-${header}`} fontSize="sm">
+                                {row[header] !== null ? String(row[header]) : 'NULL'}
+                              </Td>
+                            ))}
+                          </Tr>
+                        ))}
+                      </Tbody>
+                    </Table>
+                  </Box>
+                </Box>
+              ))}
+            </VStack>
+          </Box>
+        )}
+      </Flex>
+    </DamBasePage>
+  );
+} 

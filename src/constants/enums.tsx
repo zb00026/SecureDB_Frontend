@@ -25,3 +25,9 @@ export enum DatabaseType {
   SQLSERVER = "SQLSERVER"
   // Add more database types here as needed
 } 
+
+export enum ChangeRequestStatus {
+  PENDING = "PENDING",
+  APPROVED = "APPROVED",
+  REJECTED = "REJECTED"
+}

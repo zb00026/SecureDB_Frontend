@@ -67,7 +67,7 @@ const colors = {
     dark: '#1a1a1a',
     paper: '#f8f9fa',
     paperDark: '#2d2d2d',
-  }
+  },
 };
 
 // Enhanced typography for enterprise readability
@@ -102,10 +102,7 @@ const components = {
     },
     variants: {
       solid: {
-        bg: 'brand.500',
-        color: 'white',
         _hover: {
-          bg: 'brand.600',
           transform: 'translateY(-1px)',
           boxShadow: 'lg',
         },
@@ -115,11 +112,8 @@ const components = {
         },
       },
       primary: {
-        bg: 'linear-gradient(135deg, brand.500 0%, brand.600 100%)',
-        color: 'white',
         border: 'none',
         _hover: {
-          bg: 'linear-gradient(135deg, brand.600 0%, brand.700 100%)',
           transform: 'translateY(-2px)',
           boxShadow: 'xl',
         },
@@ -131,24 +125,19 @@ const components = {
         bg: 'transparent',
         border: '2px solid',
         borderColor: 'brand.500',
-        color: 'brand.500',
         _hover: {
-          bg: 'brand.50',
           transform: 'translateY(-1px)',
           boxShadow: 'md',
         },
       },
       ghost: {
         bg: 'transparent',
-        color: 'gray.600',
         _hover: {
-          bg: 'gray.50',
           color: 'gray.700',
         },
         _dark: {
           color: 'gray.300',
           _hover: {
-            bg: 'gray.800',
             color: 'gray.200',
           },
         },
@@ -334,4 +323,4 @@ export const theme = extendTheme({
     '3xl': '1.5rem',
     full: '9999px',
   },
-}); 
+});

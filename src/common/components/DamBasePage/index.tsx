@@ -42,7 +42,7 @@ export function DamBasePage({
   const breadcrumbItems = [
     { label: 'Dashboard', href: '/', icon: FiHome },
     ...pathSegments.map((segment, index) => ({
-      label: segment.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase()),
+      label: segment.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase()),
       href: '/' + pathSegments.slice(0, index + 1).join('/'),
     }))
   ];
@@ -60,7 +60,7 @@ export function DamBasePage({
         backdropFilter="blur(10px)"
         boxShadow="sm"
       >
-        <Container maxW="7xl" px={6} py={4}>
+        <Container maxW="95%" px={6} py={4}>
           <Flex justify="space-between" align="center">
             {/* Left side - Breadcrumb Navigation */}
             <HStack spacing={4} flex={1}>
@@ -147,7 +147,7 @@ export function DamBasePage({
       </Box>
 
       {/* Main Content */}
-      <Container maxW="7xl" px={6} py={8}>
+      <Container maxW="95%" px={6} py={8}>
         {hasBody ? (
           <Box
             bg={cardBg}

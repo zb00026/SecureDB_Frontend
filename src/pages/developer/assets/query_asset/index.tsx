@@ -1,15 +1,13 @@
-import { Flex, Text, Table, Thead, Tbody, Tr, Th, Td, Box, VStack, HStack, Badge, IconButton, Textarea, Checkbox } from "@chakra-ui/react";
-import { DamBasePage } from "@common/components/DamBasePage";
-import { DamCardDivider, PrimaryButton, useDamToast } from "@common/index";
+import { Flex, Text, Box, VStack, HStack, Badge, IconButton, Textarea, Checkbox } from "@chakra-ui/react";
+import { PrimaryButton, useDamToast } from "@common/index";
 import { Asset } from "@models/assets/Asset";
 import { useEffect, useState } from "react";
 import { FormattedMessage, useIntl } from "react-intl";
 import { useSearchParams } from "react-router-dom";
 import { useApiRequest } from "@common/hooks/useApiRequest";
-import { AssetDetailsSection } from "@pages/developer/components/asset_detail_section";
-import { DamQueryInput } from "@common/components/DamQueryInput";
 import { DeleteIcon } from "@chakra-ui/icons";
 import { DamAlertDialog } from "@common/components/DamDialog/DamAlertDialog";
+import { QueryDetailsShared } from "@common/components/QueryDetailsShared";
 
 interface QueryResult {
   headers: string[];
@@ -89,6 +87,7 @@ export function Component() {
   const [ticketReference, setTicketReference] = useState('');
   const [changeDescription, setChangeDescription] = useState('');
   const [isChangeRequest, setIsChangeRequest] = useState(false);
+
   // Load query history from localStorage on component mount
   useEffect(() => {
     const savedHistory = localStorage.getItem(QUERY_HISTORY_KEY);
@@ -222,190 +221,141 @@ export function Component() {
     getAsset();
   }, [assetId]);
 
-  return (
-    <DamBasePage
-      title={intl.formatMessage({ id: 'text.query_asset' })}>
+  // Action buttons for developer functionality
+  const actionButtons = (
+    <Flex direction="row" gap={3} w="full">
+      <PrimaryButton onClick={() => {
+        if (isChangeRequest) {
+          handleSaveAsChangeRequest();
+        } else {
+          runQuery();
+        }
+      }} isLoading={isLoading}>
+        <FormattedMessage id="text.run" />
+      </PrimaryButton>
+      <PrimaryButton
+        variant="outline"
+        onClick={() => {
+          setQuery('');
+          setQueryResults(null);
+        }}>
+        <FormattedMessage id="text.clear" />
+      </PrimaryButton>
+      <Checkbox onChange={(e) => setIsChangeRequest(e.target.checked)}>
+        <FormattedMessage id="text.save_as_change_request" />
+      </Checkbox>
+    </Flex>
+  );
 
-      <Flex flexDir="column" w="full" px={6}>
-        <AssetDetailsSection
-          asset={currentAsset}
-          textSize="md"
-          pb={0}
-        />
-      </Flex>
+  // Change request fields that show when isChangeRequest is true
+  const changeRequestFields = isChangeRequest ? (
+    <Flex direction={'column'} gap={3} mt={2}>
+      <Text fontSize="md" fontWeight="bold" mt={4} mb={0}>
+        <FormattedMessage id="text.ticket_reference" />
+      </Text>
+      <Textarea value={ticketReference} onChange={(e) => setTicketReference(e.target.value)} />
+      <Text fontSize="md" fontWeight="bold" mt={4} mb={0}>
+        <FormattedMessage id="text.change_description" />
+      </Text>
+      <Textarea value={changeDescription} onChange={(e) => setChangeDescription(e.target.value)} />
+    </Flex>
+  ) : null;
 
-      <DamCardDivider />
-
-      <Flex direction={"column"} w="full">
-        <Flex direction="row" gap={2}>
-          <Flex direction={'column'} gap={3} flex={2}>
-            <Text fontSize="md" fontWeight="bold" mt={4} mb={0}>
-              <FormattedMessage id="text.query_to_run" />
-            </Text>
-            <DamQueryInput
-              value={query}
-              onChange={setQuery}
-            />
-            <Flex direction={'row'} gap={3} mt={2}>
-              <PrimaryButton onClick={() => {
-                if (isChangeRequest) {
-                  handleSaveAsChangeRequest();
-                } else {
-                  runQuery();
-                }
-              }} isLoading={isLoading}>
-                <FormattedMessage id="text.run" />
-              </PrimaryButton>
-              <PrimaryButton
-                variant="outline"
-                onClick={() => {
-                  setQuery('');
-                  setQueryResults(null);
-                }}>
-                <FormattedMessage id="text.clear" />
-              </PrimaryButton>
-              <Checkbox onChange={(e) => setIsChangeRequest(e.target.checked)}>
-                <FormattedMessage id="text.save_as_change_request" />
-              </Checkbox>
-            </Flex>
-            <Flex hidden={!isChangeRequest} direction={'column'} gap={3} mt={2}>
-              <Text fontSize="md" fontWeight="bold" mt={4} mb={0}>
-                <FormattedMessage id="text.ticket_reference" />
-              </Text>
-              <Textarea value={ticketReference} onChange={(e) => setTicketReference(e.target.value)} />
-              <Text fontSize="md" fontWeight="bold" mt={4} mb={0}>
-                <FormattedMessage id="text.change_description" />
-              </Text>
-              <Textarea value={changeDescription} onChange={(e) => setChangeDescription(e.target.value)} />
-            </Flex>
-          </Flex>
-
-
-          {/* Query History Section */}
-          <Box flex={1} minW="300px" maxHeight={'320px'}>
-            <HStack justify="space-between" mt={4} mb={2}>
-              <Text fontSize="md" fontWeight="bold">
-                Query History
-              </Text>
-              {queryHistory.length > 0 && (
-                <IconButton
-                  aria-label="Clear history"
-                  icon={<DeleteIcon />}
-                  size="sm"
-                  variant="ghost"
-                  onClick={clearQueryHistory}
-                />
-              )}
-            </HStack>
-
-            <Box
-              border="1px solid"
-              borderColor="gray.200"
-              borderRadius="md"
-              p={3}
-              maxH="320px"
-              overflowY="auto"
-            >
-              {queryHistory.length === 0 ? (
-                <Text fontSize="sm" color="gray.500" textAlign="center">
-                  No query history yet
-                </Text>
-              ) : (
-                <VStack spacing={2} align="stretch">
-                  {queryHistory.map((item) => (
-                    <Box
-                      key={item.id}
-                      p={3}
-                      border="1px solid"
-                      borderColor="gray.100"
-                      borderRadius="md"
-                      cursor="pointer"
-                      _hover={{ bg: "gray.50", borderColor: "gray.300" }}
-                      onClick={() => loadQueryAndResultsFromHistory(item)}
-                    >
-                      <HStack justify="space-between" mb={1}>
-                        <Badge colorScheme="blue" fontSize="xs">
-                          {new Date(item.timestamp).toLocaleDateString()}
-                        </Badge>
-                        {item.resultCount !== undefined && (
-                          <Badge colorScheme="green" fontSize="xs">
-                            {item.resultCount} rows
-                          </Badge>
-                        )}
-                        {item.results && (
-                          <Badge colorScheme="purple" fontSize="xs">
-                            Cached
-                          </Badge>
-                        )}
-                      </HStack>
-                      <Text
-                        fontSize="xs"
-                        fontFamily="monospace"
-                        color="gray.700"
-                        noOfLines={3}
-                      >
-                        {item.query}
-                      </Text>
-                      <Text fontSize="xs" color="gray.400" mt={1}>
-                        {new Date(item.timestamp).toLocaleTimeString()}
-                      </Text>
-                    </Box>
-                  ))}
-                </VStack>
-              )}
-            </Box>
-          </Box>
-        </Flex>
-        {/* Results Table */}
-        {queryResults && (
-          <Box mt={6}>
-            <Text fontSize="md" fontWeight="bold" mb={3}>
-              Query Results ({queryResults.totalQueries} {queryResults.totalQueries === 1 ? 'query' : 'queries'}, {queryResults.results.reduce((total, result) => total + result.data.length, 0)} total rows)
-            </Text>
-            <VStack spacing={6} align="stretch">
-              {queryResults.results.map((result, resultIndex) => (
-                <Box key={`result-${result.query}-${result.data.length}`}>
-                  <Box mb={3} p={3} borderRadius="md" bg="gray.90">
-                    <Text fontSize="sm" fontWeight="bold" mb={1}>
-                      Query {resultIndex + 1}:
-                    </Text>
-                    <Text fontSize="sm" fontFamily="monospace">
-                      {result.query}
-                    </Text>
-                    <Text fontSize="xs" mt={1} mb={0}>
-                      {result.data.length} rows returned
-                    </Text>
-                  </Box>
-                  <Box overflowX="auto" border="1px solid" borderColor="gray.200" borderRadius="md">
-                    <Table variant="simple" size="sm">
-                      <Thead bg="gray.50">
-                        <Tr>
-                          {result.headers.map((header) => (
-                            <Th key={header} fontSize="xs" fontWeight="bold">
-                              {header}
-                            </Th>
-                          ))}
-                        </Tr>
-                      </Thead>
-                      <Tbody>
-                        {result.data.map((row) => (
-                          <Tr key={`row-${result.query}-${JSON.stringify(row).substring(0, 100)}`} _hover={{ bg: "gray.50" }}>
-                            {result.headers.map((header) => (
-                              <Td key={`cell-${result.query}-${JSON.stringify(row).substring(0, 50)}-${header}`} fontSize="sm">
-                                {row[header] !== null ? String(row[header]) : 'NULL'}
-                              </Td>
-                            ))}
-                          </Tr>
-                        ))}
-                      </Tbody>
-                    </Table>
-                  </Box>
-                </Box>
-              ))}
-            </VStack>
-          </Box>
+  // Query History Section
+  const historySection = (
+    <Box flex={1} minW="300px" maxHeight={'320px'}>
+      <HStack justify="space-between" mt={4} mb={2}>
+        <Text fontSize="md" fontWeight="bold">
+          Query History
+        </Text>
+        {queryHistory.length > 0 && (
+          <IconButton
+            aria-label="Clear history"
+            icon={<DeleteIcon />}
+            size="sm"
+            variant="ghost"
+            onClick={clearQueryHistory}
+          />
         )}
-      </Flex>
+      </HStack>
+
+      <Box
+        border="1px solid"
+        borderColor="gray.200"
+        borderRadius="md"
+        p={3}
+        maxH="320px"
+        overflowY="auto"
+      >
+        {queryHistory.length === 0 ? (
+          <Text fontSize="sm" color="gray.500" textAlign="center">
+            No query history yet
+          </Text>
+        ) : (
+          <VStack spacing={2} align="stretch">
+            {queryHistory.map((item) => (
+              <Box
+                key={item.id}
+                p={3}
+                border="1px solid"
+                borderColor="gray.100"
+                borderRadius="md"
+                cursor="pointer"
+                _hover={{ bg: "gray.50", borderColor: "gray.300" }}
+                onClick={() => loadQueryAndResultsFromHistory(item)}
+              >
+                <HStack justify="space-between" mb={1}>
+                  <Badge colorScheme="blue" fontSize="xs">
+                    {new Date(item.timestamp).toLocaleDateString()}
+                  </Badge>
+                  {item.resultCount !== undefined && (
+                    <Badge colorScheme="green" fontSize="xs">
+                      {item.resultCount} rows
+                    </Badge>
+                  )}
+                  {item.results && (
+                    <Badge colorScheme="purple" fontSize="xs">
+                      Cached
+                    </Badge>
+                  )}
+                </HStack>
+                <Text
+                  fontSize="xs"
+                  fontFamily="monospace"
+                  color="gray.700"
+                  noOfLines={3}
+                >
+                  {item.query}
+                </Text>
+                <Text fontSize="xs" color="gray.400" mt={1}>
+                  {new Date(item.timestamp).toLocaleTimeString()}
+                </Text>
+              </Box>
+            ))}
+          </VStack>
+        )}
+      </Box>
+    </Box>
+  );
+
+  return (
+    <>
+      <QueryDetailsShared
+        title={intl.formatMessage({ id: 'text.query_asset' })}
+        asset={currentAsset}
+        query={query}
+        queryResults={queryResults}
+        isQueryEditable={true}
+        onQueryChange={setQuery}
+        actionButtons={
+          <Flex direction="column" gap={3} w="full">
+            {actionButtons}
+            {changeRequestFields}
+          </Flex>
+        }
+        historySection={historySection}
+      />
+      
       <DamAlertDialog
         isOpen={isSaveDlgOpen}
         onClose={() => setIsSaveDlgOpen(false)}
@@ -414,6 +364,6 @@ export function Component() {
         message={saveDialogConfig.message}
         confirmButtonId="btnConfirmSaveAsChangeRequest"
       />
-    </DamBasePage>
+    </>
   );
 }

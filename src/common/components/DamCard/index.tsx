@@ -5,12 +5,12 @@ const styles = {
     width: "100%",
     border: "1px solid",
     _light: {
-      bg: "gray.0",
-      borderColor: "line",
+      bg: "light.300",
+      borderColor: "gray.400",
     },
     _dark: {
       bg: "gray.99",
-      borderColor: "lineDark",
+      borderColor: "gray.600",
     },
   },
 };

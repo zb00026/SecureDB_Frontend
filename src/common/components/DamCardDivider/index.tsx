@@ -11,10 +11,10 @@ export function DamCardDivider() {
         flexGrow: "1",
         mt: "0 !important",
         _light: {
-          bg: "line",
+          bg: "gray.400",
         },
         _dark: {
-          bg: "lineDark",
+          bg: "gray.600",
         },
       }}
     ></Flex>
