@@ -7,7 +7,7 @@ import { useIntl } from "react-intl";
 import { useNavigate } from "react-router-dom";
 import { AssetsTable } from "../components/assets_table";
 import { SetCredentialDialog } from "@common/components/DamDialog/SetCredentialDialog";
-import { AccessRequest } from "@models/assets/AccessRequest";
+import { AccessRequest, ApprovalStatus } from "@models/assets/AccessRequest";
 import { useApiRequest } from "@common/hooks/useApiRequest";
 import { AssetCredential } from "@models/assets/AssetCredential";
 import { DamAlertDialog } from "@common/components/DamDialog/DamAlertDialog";
@@ -92,9 +92,8 @@ export function Component() {
           onSelectAsset={handleSelectAsset}
           onRequestAccess={handleRequestAccess}
           onUpdatePassword={(accessRequest) => { setIsPsdDialogOpen(true); setSelectedAccessRequest(accessRequest) }}
-          onRelinquishAccess={(accessRequest) => { setIsRelinquishDialogOpen(true); setSelectedAccessRequest(accessRequest) }}
+          onRelinquishAccess={(accessRequest) => { setSelectedAccessRequest(accessRequest); setIsRelinquishDialogOpen(true); }}
           onQueryAsset={handleQueryAsset}
-          showQueryButton={true}
         />
       </Flex>
       <SetCredentialDialog
@@ -107,8 +106,8 @@ export function Component() {
         isOpen={isRelinquishDialogOpen}
         onClose={() => setIsRelinquishDialogOpen(false)}
         onConfirm={handleRelinquishAccess}
-        title="text.relinquish_access"
-        message="text.are_you_sure_relinquish_access"
+        title={selectedAccessRequest?.assetApproverStatus === ApprovalStatus.APPROVED ? "text.relinquish_access" : "text.cancel_access_request"}
+        message={selectedAccessRequest?.assetApproverStatus === ApprovalStatus.APPROVED ? "text.are_you_sure_relinquish_access" : "text.are_you_sure_cancel_access_request"}
         confirmButtonId="btnConfirmRelinquishAccess"
       />
     </DamBasePage>

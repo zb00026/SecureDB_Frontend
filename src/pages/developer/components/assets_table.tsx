@@ -2,7 +2,7 @@ import { Button, Text } from "@chakra-ui/react";
 import { Asset } from "@models/assets/Asset";
 import { FormattedMessage } from "react-intl";
 import { BaseAssetsTable } from "../../admin/assets/components/base_assets_table";
-import { AccessRequest } from "@models/assets/AccessRequest";
+import { AccessRequest, ApprovalStatus } from "@models/assets/AccessRequest";
 
 interface AssetsTableProps {
   readonly assets: Asset[];
@@ -12,7 +12,6 @@ interface AssetsTableProps {
   readonly onRelinquishAccess: (asset: AccessRequest | null) => void;
   readonly onUpdatePassword: (asset: AccessRequest | null) => void;
   readonly onQueryAsset: (asset: Asset) => void;
-  readonly showQueryButton: boolean;
 }
 
 export function AssetsTable({
@@ -22,30 +21,31 @@ export function AssetsTable({
   onRequestAccess,
   onUpdatePassword,
   onRelinquishAccess,
-  showQueryButton,
   onQueryAsset
 }: AssetsTableProps) {
   const renderAccessRequestAction = (asset: Asset) => {
     if (asset.accessRequest?.assetCredential?.isTemporaryPassword) {
       return (
-        <Text
-          textDecor={'underline'}
+        <Button
           mb={0}
           cursor='pointer'
+          colorScheme="orange"
           className="btnUpdatePassword"
+          size="sm"
           onClick={(e) => {
             e.stopPropagation();
             onUpdatePassword(asset.accessRequest ?? null);
           }}
         >
           <FormattedMessage id="text.update_password" />
-        </Text>
+        </Button>
       );
     }
     
     return (
-      <Text
-        textDecor={'underline'}
+      <Button
+        colorScheme="red"
+        size="sm"
         mb={0}
         cursor='pointer'
         className="btnRelinquishAccess"
@@ -54,13 +54,13 @@ export function AssetsTable({
           onRelinquishAccess(asset.accessRequest ?? null);
         }}
       >
-        <FormattedMessage id="text.relinquish_access" />
-      </Text>
+        <FormattedMessage id={asset.accessRequest?.assetApproverStatus === ApprovalStatus.APPROVED ? "text.relinquish_access" : "text.cancel_access_request"} />
+      </Button>
     );
   };
 
   const renderActions = (asset: Asset) => (
-    asset.accessRequest ? (
+    asset.accessRequest && asset.accessRequest.assetApproverStatus !== ApprovalStatus.REJECTED ? (
       renderAccessRequestAction(asset)
     ) : (
       <Button
@@ -81,10 +81,11 @@ export function AssetsTable({
       assets={assets}
       selectedAsset={selectedAsset}
       onSelectAsset={onSelectAsset}
-      showFetchTemplate={true}
+      showFetchTemplate={false}
       showQueryButton={true}
       renderActions={renderActions}
       onQueryAsset={onQueryAsset}
+      showAccessRequestStatus={true}
     />
   );
 } 

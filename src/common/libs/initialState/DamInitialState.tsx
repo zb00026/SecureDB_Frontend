@@ -128,6 +128,7 @@ export function DamInitialState() {
         onSubmit={handleUpdatePassword}
         isTemporaryPassword={true}
         saveButtonTextId={'text.update'}
+        showPasswordRequirements={true}
       />
       <Outlet />
     </>

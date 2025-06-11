@@ -1,19 +1,8 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { FormattedMessage, useIntl } from 'react-intl';
-import {
-  AlertDialog,
-  AlertDialogBody,
-  AlertDialogContent,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogOverlay,
-  Button,
-  Textarea,
-  FormControl,
-  FormLabel,
-} from '@chakra-ui/react';
-import { useDamToast } from '@common/index';
+import { Button } from '@chakra-ui/react';
+import { useDamToast, DamRejectDialog } from '@common/index';
 import { useApiRequest } from '@common/hooks/useApiRequest';
 import { AssetQueryChangeRequest } from '@models/assets/AssetQueryChangeRequest';
 import { QueryDetailsShared } from '@common/components/QueryDetailsShared';
@@ -40,10 +29,8 @@ export function Component() {
   const [isLoading, setIsLoading] = useState(false);
   const [isApproveDlgOpen, setIsApproveDlgOpen] = useState(false);
   const [isRejectDlgOpen, setIsRejectDlgOpen] = useState(false);
-  const [rejectReason, setRejectReason] = useState('');
   const changeRequestId = searchParams.get('changeRequestId');
   const { handleRequest } = useApiRequest();
-  const cancelRef = useRef(null);
 
   useEffect(() => {
     if (changeRequestId) {
@@ -74,11 +61,6 @@ export function Component() {
       approvalStatus,
     };
 
-    // Add reject reason if rejecting
-    if (approvalStatus === ChangeRequestStatus.REJECTED && rejectReason.trim()) {
-      requestData.rejectReason = rejectReason.trim();
-    }
-
     handleRequest(
       `/api/asset_owner/assets/change_requests/set_approval`,
       'POST',
@@ -95,7 +77,6 @@ export function Component() {
           } else {
             showSuccess({ description: intl.formatMessage({ id: 'text.change_request_rejected_successfully' }) });
             setIsRejectDlgOpen(false);
-            setRejectReason(''); // Reset reject reason
           }
         },
         onError: () => {
@@ -114,9 +95,36 @@ export function Component() {
     );
   };
 
-  const handleRejectDialogClose = () => {
-    setIsRejectDlgOpen(false);
-    setRejectReason('');
+  const handleReject = (reason: string) => {
+    setIsLoading(true);
+    
+    const requestData = {
+      requestId: changeRequest?.id,
+      query: changeRequest?.query,
+      approvalStatus: ChangeRequestStatus.REJECTED,
+      rejectReason: reason,
+    };
+
+    handleRequest(
+      `/api/asset_owner/assets/change_requests/set_approval`,
+      'POST',
+      requestData,
+      {
+        onSuccess: (data: any) => {
+          if (data.results) {
+            setQueryResults(data.results);
+          }
+          setIsLoading(false);
+          showSuccess({ description: intl.formatMessage({ id: 'text.change_request_rejected_successfully' }) });
+          setIsRejectDlgOpen(false);
+        },
+        onError: () => {
+          setIsLoading(false);
+          setIsRejectDlgOpen(false);
+        },
+        errorDescriptionId: 'text.failed_to_reject_change_request',
+      }
+    );
   };
 
   const actionButtons = (
@@ -154,45 +162,15 @@ export function Component() {
         actionButtons={actionButtons}
       />
 
-      {/* Custom Reject Dialog with Reason Textarea */}
-      <AlertDialog isOpen={isRejectDlgOpen} leastDestructiveRef={cancelRef} onClose={handleRejectDialogClose}>
-        <AlertDialogOverlay>
-          <AlertDialogContent>
-            <AlertDialogHeader fontSize='lg' fontWeight='bold'>
-              <FormattedMessage id='text.reject_change_request' />
-            </AlertDialogHeader>
-            <AlertDialogBody>
-              <FormattedMessage id='text.are_you_sure_reject_change_request' />
-              <FormControl mt={4}>
-                <FormLabel>
-                  <FormattedMessage id='text.reject_reason' />
-                </FormLabel>
-                <Textarea
-                  value={rejectReason}
-                  onChange={(e) => setRejectReason(e.target.value)}
-                  placeholder={intl.formatMessage({ id: 'text.enter_reject_reason' })}
-                  rows={4}
-                  resize='vertical'
-                />
-              </FormControl>
-            </AlertDialogBody>
-            <AlertDialogFooter>
-              <Button ref={cancelRef} onClick={handleRejectDialogClose}>
-                <FormattedMessage id='text.cancel' />
-              </Button>
-              <Button 
-                colorScheme='red' 
-                onClick={() => handleApprove(ChangeRequestStatus.REJECTED)} 
-                ml={3} 
-                isLoading={isLoading}
-                isDisabled={!rejectReason.trim()}
-              >
-                <FormattedMessage id='text.reject' />
-              </Button>
-            </AlertDialogFooter>
-          </AlertDialogContent>
-        </AlertDialogOverlay>
-      </AlertDialog>
+      {/* Reject Dialog with Reason */}
+      <DamRejectDialog
+        isOpen={isRejectDlgOpen}
+        onClose={() => setIsRejectDlgOpen(false)}
+        onConfirm={handleReject}
+        title="text.reject_change_request"
+        message="text.are_you_sure_reject_change_request"
+        isLoading={isLoading}
+      />
 
       {/* Approval Dialog */}
       <DamAlertDialog

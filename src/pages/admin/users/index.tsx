@@ -2,15 +2,14 @@ import {
   Box, Button, Checkbox, Text, Flex, Input, Table, TableContainer, Tbody, Td, Th, Thead, Tr, useColorModeValue,
   IconButton
 } from "@chakra-ui/react";
-import { DamButton, DamCard, DamCardBody, DamCardDivider, DamContent, PrimaryButton, request, stateActions, TextCardHeader, useListPage, useDamToast, userHasRole } from "@common/index";
+import { DamButton, DamCard, DamCardBody, DamCardDivider, DamPasswordInput, request, stateActions, TextCardHeader, useListPage, useDamToast, userHasRole } from "@common/index";
 import { DamAlertDialog } from "@common/components/DamDialog/DamAlertDialog";
 import { useApiRequest } from "@common/hooks/useApiRequest";
 import { Role } from "@models/Role";
 import { User } from "@models/User";
 import { ConfigProvider } from "antd";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { FormattedMessage, useIntl } from "react-intl";
-import { Link } from "react-router-dom";
 import { MultiValue, Select } from 'chakra-react-select';
 import { AUTH_PROVIDER, USER_ROLE } from "@/constants/enums";
 import { CloseIcon } from "@chakra-ui/icons";
@@ -36,6 +35,7 @@ export function Component() {
   const [lastName, setLastName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [isPasswordValid, setIsPasswordValid] = useState(false);
   const [selectedRoles, setSelectedRoles] = useState<Array<Role>>([]);
   const [isDelDlgOpen, setIsDelDlgOpen] = useState(false);
   const [roles, setRoles] = useState<Array<Role>>([]);
@@ -93,6 +93,7 @@ export function Component() {
     setChkInvitation(false);
     setSelectedRoles([]);
     setPassword('');
+    setIsPasswordValid(false);
     setSelectedUser(null);
     setIsEdit(false);
   }
@@ -289,13 +290,14 @@ export function Component() {
                   </Box>
                 </Flex>
                 <Flex w='full'>
-                  <Input
-                    disabled={isEdit}
-                    type="password"
+                  <DamPasswordInput
+                    isDisabled={isEdit}
                     value={password}
                     id="inputPassword"
-                    onChange={(e) => setPassword(e.target.value)}
+                    onChange={setPassword}
                     placeholder={intl.formatMessage({ id: 'text.initial_password' })}
+                    showRequirements={!isEdit}
+                    onValidationChange={(isValid) => setIsPasswordValid(isValid)}
                   />
                 </Flex>
 
@@ -317,7 +319,7 @@ export function Component() {
                 colorScheme={isEdit ? "green" : "blue"}
                 w='full'
                 onClick={isEdit ? handleUpdate : handleCreate}
-                disabled={!firstName || !lastName || !email}
+                disabled={!firstName || !lastName || !email || !isPasswordValid}
                 pr="30px"
                 pl="30px"
                 borderRadius="5px"
@@ -430,7 +432,7 @@ export function Component() {
                             ))
                           ) : (
                             <Tr>
-                              <Td colSpan={4} textAlign="center">
+                              <Td colSpan={6} textAlign="center">
                                 <FormattedMessage id="text.noUsers" defaultMessage="No users are registered" />
                               </Td>
                             </Tr>

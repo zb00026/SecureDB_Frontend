@@ -10,6 +10,7 @@ import {
   Input,
 } from "@chakra-ui/react";
 import { FormattedMessage } from "react-intl";
+import { DamPasswordInput } from '../DamPasswordInput';
 
 interface SetCredentialDialogProps {
   readonly isOpen: boolean;
@@ -18,11 +19,13 @@ interface SetCredentialDialogProps {
   readonly onSubmit: (username: string, password: string) => void;
   readonly isTemporaryPassword?: boolean;
   readonly saveButtonTextId?: string;
+  readonly showPasswordRequirements?: boolean;
 }
 
-export function SetCredentialDialog({ isOpen, titleId, onClose, onSubmit, isTemporaryPassword = false, saveButtonTextId }: SetCredentialDialogProps) {
+export function SetCredentialDialog({ isOpen, titleId, onClose, onSubmit, showPasswordRequirements = false, isTemporaryPassword = false, saveButtonTextId }: SetCredentialDialogProps) {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
+  const [isPasswordValid, setIsPasswordValid] = useState(false);
   const cancelRef = useRef(null);
 
   useEffect(() => {
@@ -31,6 +34,12 @@ export function SetCredentialDialog({ isOpen, titleId, onClose, onSubmit, isTemp
       setPassword('');
     }
   }, [isOpen]);
+
+  useEffect(() => {
+    if (!showPasswordRequirements && password.length > 1) {
+      setIsPasswordValid(true);
+    }
+  }, [password])
 
   const handleSubmit = () => {
     onSubmit(username, password);
@@ -57,19 +66,24 @@ export function SetCredentialDialog({ isOpen, titleId, onClose, onSubmit, isTemp
                 onChange={(e) => setUsername(e.target.value)}
                 mb={3}
               />)}
-            <Input
+            <DamPasswordInput
               placeholder="Password"
-              type="password"
               id="inputCredentialPassword"
               value={password}
-              onChange={(e) => setPassword(e.target.value)}
+              onChange={setPassword}
+              showRequirements={showPasswordRequirements}
+              onValidationChange={(isValid) => setIsPasswordValid(isValid)}
             />
           </AlertDialogBody>
           <AlertDialogFooter>
             <Button onClick={onClose} id="btnCancelCredential">
               <FormattedMessage id='text.cancel' />
             </Button>
-            <Button id="btnSaveCredential" colorScheme="blue" onClick={handleSubmit} ml={3}>
+            <Button id="btnSaveCredential"
+              colorScheme="blue"
+              onClick={handleSubmit}
+              disabled={!isPasswordValid}
+              ml={3}>
               <FormattedMessage id={saveButtonTextId ?? 'text.save'} />
             </Button>
           </AlertDialogFooter>

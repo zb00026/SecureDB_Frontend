@@ -15,6 +15,7 @@ export interface AccessRequest {
   requestor: User;
   requestTime: string; // ISO DateTime string
   requestReason: string;
+  rejectReason?: string;
   assetCredential: AssetCredential;
   developerApproverStatus: ApprovalStatus;
   assetApproverStatus: ApprovalStatus;

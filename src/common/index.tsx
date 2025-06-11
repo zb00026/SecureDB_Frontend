@@ -32,6 +32,7 @@ export * from "./components/DamIcon";
 export * from "./components/DamPageSearch";
 export * from "./components/DamAuthProvider";
 export * from "./components/DamAuthProvider/KeycloakLogin";
+export * from "./components/DamPasswordInput";
 export * from "./libs/utils";
 
 

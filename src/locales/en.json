@@ -205,5 +205,20 @@
   "text.change_request_approved_successfully": "Change Request Approved Successfully",
   "text.change_request_rejected_successfully": "Change Request Rejected Successfully",
   "text.reject_reason": "Reject Reason",
-  "text.enter_reject_reason": "Enter reject reason"
+  "text.enter_reject_reason": "Enter reject reason",
+  "text.cancel_access_request": "Cancel Request",
+  "text.are_you_sure_cancel_access_request": "Are you sure to cancel this access request? You can't undo this action afterwards.",
+  "text.no_access_level_objects": "Database objects are not synced. Please ask the asset owner to login once to sync",
+  "text.request_reason_required": "Request reason is required",
+  "text.view_request": "View Request",
+  "text.detail_action": "Detail",
+  "text.access_request_status": "Access Request Status",
+  "text.no_asset_request_approvals": "No Access Request Approvals",
+  "text.password_requirements": "Password Requirements",
+  "text.password_strength_help": "Password Strength Help",
+  "text.password_min_length": "Password must be at least 12 characters long",
+  "text.password_uppercase": "Password must contain at least one uppercase letter",
+  "text.password_lowercase": "Password must contain at least one lowercase letter",
+  "text.password_digit": "Password must contain at least one digit",
+  "text.password_special_char": "Password must contain at least one special character"
 }

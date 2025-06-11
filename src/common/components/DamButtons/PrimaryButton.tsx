@@ -15,14 +15,14 @@ export function PrimaryButton({
       fontWeight="var(--cds-fontWeights-medium)"
       sx={{
         _light: {
-          bg: "blue.60",
-          color: "gray.0",
+          bg: "blue.600",
+          color: "white",
           _hover: { bg: "rgb(1, 76, 236)" },
           _active: { bg: "rgb(1, 72, 221)" },
         },
         _dark: {
           bg: "rgb(55,115,245)",
-          color: "gray.99",
+          color: "white",
           _hover: { bg: "rgb(71, 126, 246)" },
           _active: { bg: "rgb(83, 135, 246)" },
         },

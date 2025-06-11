@@ -1,21 +1,21 @@
 import { Button, Flex, Text, Textarea } from "@chakra-ui/react";
 import { DamBasePage } from "@common/components/DamBasePage";
-import { DamCardDivider, useDamToast } from "@common/index";
+import { DamCardDivider, DamRejectDialog, useDamToast } from "@common/index";
 import { Asset } from "@models/assets/Asset";
 import { useEffect, useState } from "react";
 import { FormattedMessage, useIntl } from "react-intl";
-import { useSearchParams } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { AssetObject } from "@models/assets/AssetObject";
 import { AccessLevelObject } from "@models/assets/AccessLevelObject";
 import { AccessRequest } from "@models/assets/AccessRequest";
 import { useApiRequest } from "@common/hooks/useApiRequest";
 import { AccessLevelManager } from "@pages/developer/components/access_level_manager";
 import { AccessRequestDTO } from "@models/assets/AccessRequestDTO";
-import { DamAlertDialog } from "@common/components/DamDialog/DamAlertDialog";
 import { AssetDetailsSection } from "@pages/developer/components/asset_detail_section";
 import { ExpirationInput } from "@common/components/DamExpirationInput";
 export function Component() {
   const intl = useIntl();
+  const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const { showError, showSuccess } = useDamToast();
   const [currentAsset, setCurrentAsset] = useState<Asset | null>(null);
@@ -41,21 +41,23 @@ export function Component() {
             description: intl.formatMessage({ id: 'text.access_request_approved' }),
           });
           fetchData();
+          navigate(`/asset_owner`);
         },
         errorDescriptionId: 'text.failed_to_approve_access_request'
       }
     );
   };
 
-  const rejectRequestAccess = () => {
+  const rejectRequestAccess = (rejectReason: string) => {
     setIsAccessRejectDlgOpen(false);
-    handleRequest(`/api/asset_owner/assets/request/${accessRequestId}/reject`, 'POST', {},
+    handleRequest(`/api/asset_owner/assets/request/${accessRequestId}/reject`, 'POST', { rejectReason },
       {
         onSuccess: () => {
           showSuccess({
             description: intl.formatMessage({ id: 'text.access_request_rejected' }),
           });
           fetchData();
+          navigate(`/asset_owner`);
         },
         errorDescriptionId: 'text.failed_to_reject_access_request'
       }
@@ -179,10 +181,10 @@ export function Component() {
           </Flex>
         )}
       </Flex>
-      <DamAlertDialog
+      <DamRejectDialog
         isOpen={isAccessRejectDlgOpen}
         onClose={() => setIsAccessRejectDlgOpen(false)}
-        onConfirm={() => rejectRequestAccess()}
+        onConfirm={rejectRequestAccess}
         title="text.reject_access_request"
         message="text.are_you_sure_reject_access_request"
         confirmButtonId="btnConfirmRejectAccessRequest"

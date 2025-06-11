@@ -164,6 +164,44 @@ const components = {
       },
     },
   },
+  Checkbox: {
+    baseStyle: {
+      control: {
+        borderRadius: 'md',
+        borderWidth: '2px',
+        _light: {
+          borderColor: 'gray.400',
+          _checked: {
+            bg: 'blue.500',
+            borderColor: 'blue.500',
+            color: 'white',
+            _hover: {
+              bg: 'blue.600',
+              borderColor: 'blue.600',
+            },
+          },
+          _hover: {
+            borderColor: 'blue.400',
+          },
+        },
+        _dark: {
+          borderColor: 'gray.600',
+          _checked: {
+            bg: 'blue.400',
+            borderColor: 'blue.400',
+            color: 'white',
+            _hover: {
+              bg: 'blue.500',
+              borderColor: 'blue.500',
+            },
+          },
+          _hover: {
+            borderColor: 'blue.300',
+          },
+        },
+      },
+    },
+  },
   Card: {
     baseStyle: {
       p: '6',

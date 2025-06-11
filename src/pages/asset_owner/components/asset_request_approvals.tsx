@@ -8,17 +8,29 @@ import {
   Button,
   VStack,
   Text,
-  HStack
+  TableContainer
 } from "@chakra-ui/react";
 
 import { FormattedMessage, useIntl } from "react-intl";
-import { DamCard, DamCardBody, DamCardDivider, request, TextCardHeader, useDamToast } from "@common/index";
+import { DamCard, DamCardBody, DamCardDivider, DamRejectDialog, request, TextCardHeader, useDamToast } from "@common/index";
 import { useState, useEffect } from "react";
 import { AccessRequest } from "@models/assets/AccessRequest";
 import { format } from 'date-fns';
 import { Link } from "react-router-dom";
-import { DamAlertDialog } from "@common/components/DamDialog/DamAlertDialog";
 import { useApiRequest } from "@common/hooks/useApiRequest";
+
+const getStatusColor = (status: string): string => {
+  switch (status) {
+    case 'APPROVED':
+      return 'green.500';
+    case 'REJECTED':
+      return 'red.500';
+    case 'PENDING':
+      return 'orange.500';
+    default:
+      return 'gray.500';
+  }
+};
 
 export function AssetRequestApprovals() {
   const [assetRequestApprovals, setAssetRequestApprovals] = useState<AccessRequest[]>([]);
@@ -47,12 +59,12 @@ export function AssetRequestApprovals() {
   };
 
 
-  const handleReject = async (requestId: number | undefined) => {
-    if (!requestId) {
+  const handleReject = async (rejectReason: string) => {
+    if (!selectedRequest?.id) {
       return;
     }
     setIsAccessRejectDlgOpen(false);
-    handleRequest(`/api/asset_owner/assets/request/${requestId}/reject`, 'POST', {},
+    handleRequest(`/api/asset_owner/assets/request/${selectedRequest.id}/reject`, 'POST', { rejectReason },
       {
         onSuccess: () => {
           showSuccess({
@@ -76,77 +88,79 @@ export function AssetRequestApprovals() {
           <FormattedMessage id="text.asset_request_approvals" />
         </TextCardHeader>
         <DamCardDivider />
-
-        <Table variant="simple" mt={4} id="tblRequestApprovals">
-          <Thead>
-            <Tr>
-              <Th><FormattedMessage id="text.asset_name" /></Th>
-              <Th><FormattedMessage id="text.asset_description" /></Th>
-              <Th><FormattedMessage id="text.requestor" /></Th>
-              <Th><FormattedMessage id="text.email" /></Th>
-              <Th><FormattedMessage id="text.request_time" /></Th>
-              <Th><FormattedMessage id="text.request_reason" /></Th>
-              <Th textAlign="center"><FormattedMessage id="text.status" /></Th>
-            </Tr>
-          </Thead>
-          <Tbody>
-            {assetRequestApprovals.map((request) => (
-              <Tr key={request.id}>
-                <Td>{request.assetDTO.name}</Td>
-                <Td>{request.assetDTO.description}</Td>
-                <Td>{`${request.requestor.firstName} ${request.requestor.lastName}`}</Td>
-                <Td>{request.requestor.email}</Td>
-                <Td>{formatDate(request.requestTime)}</Td>
-                <Td>{request.requestReason}</Td>
-                <Td>
-                  <VStack align="stretch" spacing={2} alignItems={'center'}>
-                    <Text mb={0}>
-                      {request.assetApproverStatus}
-                    </Text>
-                    {request.assetApproverStatus === 'PENDING' && (
-                      <HStack spacing={2}>
-                        <Link to={`/asset_owner/access_request_details?accessRequestId=${request.id}&assetId=${request.assetDTO.id}`}>
-                          <Button
-                            size="sm"
-                            colorScheme="green"
-                          >
-                            <FormattedMessage id="text.approve" />
-                          </Button>
-                        </Link>
-
-                        <Button
-                          size="sm"
-                          colorScheme="red"
-                          onClick={() => {
-                            setSelectedRequest(request);
-                            setIsAccessRejectDlgOpen(true);
-                          }}
-                        >
-                          <FormattedMessage id="text.reject" />
-                        </Button>
-                      </HStack>
-                    )}
-                    {request.assetApproverStatus === 'APPROVED' && (
-                      <Link to={`/asset_owner/access_request_details?accessRequestId=${request.id}&assetId=${request.assetDTO.id}`}>
-                        <Button
-                          size="sm"
-                          colorScheme="blue"
-                        >
-                          <FormattedMessage id="text.details" />
-                        </Button>
-                      </Link>
-                    )}
-                  </VStack>
-                </Td>
+        <TableContainer w='full'>
+          <Table variant="simple" mt={4} id="tblRequestApprovals">
+            <Thead>
+              <Tr>
+                <Th><FormattedMessage id="text.asset_name" /></Th>
+                <Th><FormattedMessage id="text.asset_description" /></Th>
+                <Th><FormattedMessage id="text.requestor" /></Th>
+                <Th><FormattedMessage id="text.email" /></Th>
+                <Th><FormattedMessage id="text.request_time" /></Th>
+                <Th><FormattedMessage id="text.request_reason" /></Th>
+                <Th textAlign="center"><FormattedMessage id="text.status" /></Th>
+                <Th textAlign="center"><FormattedMessage id="text.details" /></Th>
+                <Th textAlign="center"><FormattedMessage id="text.reject" /></Th>
               </Tr>
-            ))}
-          </Tbody>
-        </Table>
+            </Thead>
+            <Tbody>
+              {assetRequestApprovals.length === 0 && (
+                <Tr>
+                  <Td colSpan={9} textAlign="center">
+                    <FormattedMessage id="text.no_asset_request_approvals" />
+                  </Td>
+                </Tr>
+              )}
+              {assetRequestApprovals.map((request) => (
+                <Tr key={request.id}>
+                  <Td>{request.assetDTO.name}</Td>
+                  <Td>{request.assetDTO.description}</Td>
+                  <Td>{`${request.requestor.firstName} ${request.requestor.lastName}`}</Td>
+                  <Td>{request.requestor.email}</Td>
+                  <Td>{formatDate(request.requestTime)}</Td>
+                  <Td>{request.requestReason}</Td>
+                  <Td>
+                    <VStack align="stretch" spacing={2} alignItems={'center'}>
+                      <Text
+                        mb={0}
+                        color={getStatusColor(request.assetApproverStatus)}
+                        fontWeight="semibold"
+                      >
+                        {request.assetApproverStatus}
+                      </Text>
+                    </VStack>
+                  </Td>
+                  <Td textAlign="center">
+                    <Link to={`/asset_owner/access_request_details?accessRequestId=${request.id}&assetId=${request.assetDTO.id}`}>
+                      <Button size="sm" colorScheme="blue">
+                        <FormattedMessage id="text.view_request" />
+                      </Button>
+                    </Link>
+                  </Td>
+                  <Td textAlign="center">
+                    {request.assetApproverStatus === 'PENDING' && (
+                      <Button
+                        size="sm"
+                        colorScheme="red"
+                        onClick={() => {
+                          setSelectedRequest(request);
+                          setIsAccessRejectDlgOpen(true);
+                        }}
+                      >
+                        <FormattedMessage id="text.reject" />
+                      </Button>
+                    )}
+                  </Td>
+                </Tr>
+              ))}
+            </Tbody>
+          </Table>
+        </TableContainer>
       </DamCardBody>
-      <DamAlertDialog
+      <DamRejectDialog
         isOpen={isAccessRejectDlgOpen}
         onClose={() => setIsAccessRejectDlgOpen(false)}
-        onConfirm={() => handleReject(selectedRequest?.id)}
+        onConfirm={handleReject}
         title="text.reject_access_request"
         message="text.are_you_sure_reject_access_request"
         confirmButtonId="btnConfirmRejectAccessRequest"

@@ -5,7 +5,7 @@ import { Asset } from "@models/assets/Asset";
 import { AccessLevel } from "@models/assets/AccessLevel";
 import { useEffect, useState, useCallback } from "react";
 import { FormattedMessage, useIntl } from "react-intl";
-import { useSearchParams } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { AccessLevelManager } from "../../components/access_level_manager";
 import { AssetObject } from "@models/assets/AssetObject";
 import { AccessLevelObject } from "@models/assets/AccessLevelObject";
@@ -26,8 +26,15 @@ export function Component() {
   const [accessLevelObjects, setAccessLevelObjects] = useState<Array<AccessLevelObject>>([]);
   const assetId = searchParams.get('assetId');
   const { handleRequest } = useApiRequest();
+  const navigate = useNavigate();
 
   const handleRequestAccess = () => {
+    if (!requestReason) {
+      showError({
+        description: intl.formatMessage({ id: 'text.request_reason_required' }),
+      });
+      return;
+    }
     const expHrs = expirationHours + (expirationDays * 24);
     handleRequest(`/api/developer/assets/request`, 'POST', {
       requestId: currentAsset?.accessRequest?.id,
@@ -45,6 +52,7 @@ export function Component() {
               accessRequest: accessRequest
             };
           });
+          navigate(`/developer/assets`);
         },
         successTitleId: 'text.SUCCESS',
         successDescriptionId: 'text.access_request_sent',
@@ -88,7 +96,30 @@ export function Component() {
     handleRequest(`/api/developer/assets/${assetId}/asset_objects`, 'GET', {},
       {
         onSuccess: (data: Array<AssetObject> | null) => {
-          setAssetObjects(data);
+          let isEmptyData = false;
+          if (data == null || data.length == 0) {
+            isEmptyData = true;
+          } else {
+            let nEmptyData = 0;
+            data.forEach((accessObject: AssetObject) => {
+              if (accessObject.data == null || accessObject.data.length == 0) {
+                nEmptyData++;
+              }
+            });
+            if (nEmptyData == data.length) {
+              isEmptyData = true;
+            }
+          }
+          if (isEmptyData) {
+            showError({
+              description: intl.formatMessage({ id: 'text.no_access_level_objects' }),
+              onCloseComplete: () => {
+                navigate('/developer/assets');
+              }
+            });
+          } else {
+            setAssetObjects(data);
+          }
         },
         errorDescriptionId: 'text.failed_to_fetch_asset_objects'
       }
@@ -152,7 +183,7 @@ export function Component() {
         </Flex>
         <DamCardDivider />
         <Flex w='full' my={4} alignItems={'center'} justifyContent={'center'}>
-          <PrimaryButton onClick={handleRequestAccess} id="btnAccessRequest">
+          <PrimaryButton onClick={handleRequestAccess} id="btnAccessRequest" isDisabled={assetObjects == null || assetObjects?.length == 0 || accessLevelObjects?.length == 0}>
             <FormattedMessage id="text.request_access" />
           </PrimaryButton>
         </Flex>
