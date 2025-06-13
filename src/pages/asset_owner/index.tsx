@@ -1,4 +1,6 @@
-import { Button, Flex, Tr, Tbody, Table, TableContainer, Td, Th, Thead } from "@chakra-ui/react";
+import {
+  Button, Flex, Tr, Tbody, Table, TableContainer, Td, Th, Thead
+} from "@chakra-ui/react";
 import { DamBasePage } from "@common/components/DamBasePage";
 import { DamCardBody, DamCard, request, useDamToast, TextCardHeader, DamCardDivider, stateActions } from "@common/index";
 import { AssetCredential } from "@models/assets/AssetCredential";
@@ -8,6 +10,8 @@ import { SetCredentialDialog } from "@common/components/DamDialog/SetCredentialD
 import { DamAlertDialog } from "@common/components/DamDialog/DamAlertDialog";
 import { AssetRequestApprovals } from "./components/asset_request_approvals";
 import { ChangeRequests } from "./components/change_requests";
+import { DamViewAccessModal } from "@common/components/DamDialog/DamViewAccessModal";
+import { useViewAccess } from "@common/hooks/useViewAccess";
 
 export const isSearchable = true;
 export const displayName = 'Asset Owner Main Page';
@@ -18,6 +22,17 @@ export function Component() {
   const [selectedCredential, setSelectedCredential] = useState<AssetCredential | null>(null);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [isDelDlgOpen, setIsDelDlgOpen] = useState(false);
+
+  // Use the shared view access hook
+  const {
+    isViewAccessModalOpen,
+    viewAccessAsset,
+    assetAccessData,
+    isLoadingAccess,
+    accessError,
+    viewAssetAccess,
+    closeViewAccessModal
+  } = useViewAccess({ apiEndpoint: '/api/asset_owner/assets' });
 
   const fetchAssignedCredentials = () => {
     stateActions.addLoading();
@@ -35,6 +50,7 @@ export function Component() {
         });
       });
   }
+
   useEffect(() => {
     fetchAssignedCredentials();
   }, []);
@@ -102,6 +118,7 @@ export function Component() {
                   <Th><FormattedMessage id='text.database_name' /></Th>
                   <Th><FormattedMessage id='text.description' /></Th>
                   <Th textAlign={'center'}><FormattedMessage id='text.status' /></Th>
+                  <Th textAlign={'center'}><FormattedMessage id='text.actions' /></Th>
                 </Tr>
               </Thead>
               <Tbody maxHeight={500}>
@@ -125,7 +142,8 @@ export function Component() {
                                 size="sm"
                                 className="btn-set-credential"
                                 colorScheme="green"
-                                onClick={() => {
+                                onClick={(e) => {
+                                  e.stopPropagation();
                                   setIsDialogOpen(true);
                                 }}
                               >
@@ -137,7 +155,8 @@ export function Component() {
                                 size="sm"
                                 className="btn-update-credential"
                                 colorScheme="yellow"
-                                onClick={() => {
+                                onClick={(e) => {
+                                  e.stopPropagation();
                                   setIsDialogOpen(true);
                                 }}
                               >
@@ -147,18 +166,34 @@ export function Component() {
                                 size="sm"
                                 className="btn-relinquish-credential"
                                 colorScheme="red"
-                                onClick={() => setIsDelDlgOpen(true)}
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setIsDelDlgOpen(true);
+                                }}
                               >
                                 <FormattedMessage id="text.relinquish_credential" />
                               </Button>
                             </Flex>)}
+                        </Td>
+                        <Td textAlign={'center'}>
+                          <Button
+                            size="sm"
+                            colorScheme="blue"
+                            variant="outline"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              viewAssetAccess(credential);
+                            }}
+                          >
+                            <FormattedMessage id="text.view_access" />
+                          </Button>
                         </Td>
                       </Tr>
                     ))}
                   </>
                 ) : (
                   <Tr>
-                    <Td colSpan={6} textAlign={'center'}>
+                    <Td colSpan={9} textAlign={'center'}>
                       <FormattedMessage id="text.no_asset_credentials" />
                     </Td>
                   </Tr>
@@ -186,6 +221,16 @@ export function Component() {
         title="text.relinquish_credential"
         message="text.are_you_sure_relinquish_credential"
         confirmButtonId="btnConfirmRelinquish"
+      />
+
+      {/* View Access Modal */}
+      <DamViewAccessModal
+        isOpen={isViewAccessModalOpen}
+        onClose={closeViewAccessModal}
+        asset={viewAccessAsset}
+        assetAccessData={assetAccessData}
+        isLoading={isLoadingAccess}
+        error={accessError}
       />
     </DamBasePage>
   );

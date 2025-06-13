@@ -54,29 +54,8 @@
       "~models/*": [
         "src/models/*"
       ],
-      "~developer/*": [
-        "src/pages/developer/*"
-      ],
-      "~admin/*": [
-        "src/pages/admin/*"
-      ],
-      "~asset_owner/*": [
-        "src/pages/asset_owner/*"
-      ],
-      "~approver/*": [
-        "src/pages/approver/*"
-      ],
-      "~auditor/*": [
-        "src/pages/auditor/*"
-      ],
       "~constants/*": [
         "src/constants/*"
-      ],
-      "~error/*": [
-        "src/pages/error/*"
-      ],
-      "~main/*": [
-        "src/main/*"
       ],
       "~config/*": [
         "src/config/*"

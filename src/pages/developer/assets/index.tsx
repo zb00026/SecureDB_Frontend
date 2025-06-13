@@ -11,6 +11,8 @@ import { AccessRequest, ApprovalStatus } from "@models/assets/AccessRequest";
 import { useApiRequest } from "@common/hooks/useApiRequest";
 import { AssetCredential } from "@models/assets/AssetCredential";
 import { DamAlertDialog } from "@common/components/DamDialog/DamAlertDialog";
+import { DamViewAccessModal } from "@common/components/DamDialog/DamViewAccessModal";
+import { useViewAccess } from "@common/hooks/useViewAccess";
 
 export const isSearchable = true;
 export const displayName = 'Developer Assets Access Request Page';
@@ -24,6 +26,17 @@ export function Component() {
   const [isRelinquishDialogOpen, setIsRelinquishDialogOpen] = useState<boolean>(false);
   const [selectedAsset, setSelectedAsset] = useState<Asset | null>(null);
   const [selectedAccessRequest, setSelectedAccessRequest] = useState<AccessRequest | null>(null);
+
+  // Use the shared view access hook
+  const {
+    isViewAccessModalOpen,
+    viewAccessAsset,
+    assetAccessData,
+    isLoadingAccess,
+    accessError,
+    viewAssetAccess,
+    closeViewAccessModal
+  } = useViewAccess({ apiEndpoint: '/api/developer/assets' });
 
   const { getData, getList: getAssetsList } = useListPage<Asset>({
     baseUri: "/api/developer/assets",
@@ -94,6 +107,8 @@ export function Component() {
           onUpdatePassword={(accessRequest) => { setIsPsdDialogOpen(true); setSelectedAccessRequest(accessRequest) }}
           onRelinquishAccess={(accessRequest) => { setSelectedAccessRequest(accessRequest); setIsRelinquishDialogOpen(true); }}
           onQueryAsset={handleQueryAsset}
+          onViewAccess={viewAssetAccess}
+          showQueryButton={true}
         />
       </Flex>
       <SetCredentialDialog
@@ -109,6 +124,16 @@ export function Component() {
         title={selectedAccessRequest?.assetApproverStatus === ApprovalStatus.APPROVED ? "text.relinquish_access" : "text.cancel_access_request"}
         message={selectedAccessRequest?.assetApproverStatus === ApprovalStatus.APPROVED ? "text.are_you_sure_relinquish_access" : "text.are_you_sure_cancel_access_request"}
         confirmButtonId="btnConfirmRelinquishAccess"
+      />
+
+      {/* View Access Modal */}
+      <DamViewAccessModal
+        isOpen={isViewAccessModalOpen}
+        onClose={closeViewAccessModal}
+        asset={viewAccessAsset}
+        assetAccessData={assetAccessData}
+        isLoading={isLoadingAccess}
+        error={accessError}
       />
     </DamBasePage>
   );

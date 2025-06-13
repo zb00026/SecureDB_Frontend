@@ -1,5 +1,5 @@
 import {
-  Box, Button, Flex, Input, Text, Select, Table, TableContainer, Tbody, Td, Th, Thead, Tr,
+  Box, Button, Flex, Input, Text, Select,
   Tabs,
   Tab,
   TabList,
@@ -7,7 +7,7 @@ import {
   TabPanels
 } from "@chakra-ui/react";
 import { DamBasePage } from "@common/components/DamBasePage";
-import { DamCard, DamCardBody, DamCardDivider, DamContent, request, stateActions, TextCardHeader, useListPage, useDamToast } from "@common/index";
+import { DamCard, DamCardBody, DamCardDivider, request, stateActions, useListPage, useDamToast } from "@common/index";
 import { Asset } from "@models/assets/Asset";
 import { User } from "@models/User";
 import { useEffect, useState } from "react";
@@ -17,6 +17,8 @@ import { DamAlertDialog } from "@common/components/DamDialog/DamAlertDialog";
 import { useApiRequest } from "@common/hooks/useApiRequest";
 import { FilteredUsers } from "./components/filtered_users";
 import { AssetsTable } from "./components/assets_table";
+import { DamViewAccessModal } from "@common/components/DamDialog/DamViewAccessModal";
+import { useViewAccess } from "@common/hooks/useViewAccess";
 
 export const isSearchable = true;
 export const displayName = 'Assets Management Page';
@@ -40,6 +42,17 @@ export function Component() {
     portNumber: '',
     databaseName: ''
   });
+
+  // Use the shared view access hook
+  const {
+    isViewAccessModalOpen,
+    viewAccessAsset,
+    assetAccessData,
+    isLoadingAccess,
+    accessError,
+    viewAssetAccess,
+    closeViewAccessModal
+  } = useViewAccess({ apiEndpoint: '/api/admin/assets' });
 
   const UsersTabs = [
     {
@@ -237,34 +250,26 @@ export function Component() {
     });
   };
 
-  const assetOwners = Array.isArray(getAssetOwners) ? getAssetOwners : getAssetOwners.content;
-  const approvers = Array.isArray(getApprovers) ? getApprovers : getApprovers.content;
-
   const getTabContent = (key: string) => {
-    if (key == 'owners') {
-      return (<FilteredUsers
-        users={assetOwners}
+    const userData = key === 'owners' ? getAssetOwners : getApprovers;
+    const users = Array.isArray(userData) ? userData : userData.content ?? [];
+    const checkFunction = key === 'owners' ? checkAssetOwner : checkApprover;
+    const titleMessageId = key === 'owners' ? 'text.asset_owner_users' : 'text.approver_users';
+    const noDataMessageId = key === 'owners' ? 'text.no_asset_owners' : 'text.no_approver_users';
+
+    return (
+      <FilteredUsers
+        users={users}
         selectedAsset={selectedAsset}
         isFormShow={isFormShow}
+        checkAvailability={checkFunction}
+        updateAvailability={(user: User, checked: boolean, filterKey: string) => updateAssetUser(user, checked, key)}
+        titleMessageId={titleMessageId}
+        noDataMessageId={noDataMessageId}
         filterKey={key}
-        checkAvailability={checkAssetOwner}
-        updateAvailability={updateAssetUser}
-        titleMessageId="text.asset_owner_users"
-        noDataMessageId="text.no_asset_owners"
-      />);
-    } else if (key == 'approvers') {
-      return (<FilteredUsers
-        users={approvers}
-        selectedAsset={selectedAsset}
-        isFormShow={isFormShow}
-        filterKey={key}
-        checkAvailability={checkApprover}
-        updateAvailability={updateAssetUser}
-        titleMessageId="text.approver_users"
-        noDataMessageId="text.no_approver_users"
-      />);
-    }
-  }
+      />
+    );
+  };
 
   const getButtonMessageId = (isFormShow: boolean, isEdit: boolean): string => {
     if (isFormShow) {
@@ -392,11 +397,10 @@ export function Component() {
               selectedAsset={selectedAsset}
               onSelectAsset={handleSelectAsset}
               onDeleteAsset={deleteAsset}
+              onViewAccess={viewAssetAccess}
             />
           </Flex>
           <Flex w={{ base: "full", sm: "full", md: "49%", lg: "39%" }}>
-
-
             <Tabs w='full'>
               <TabList>
                 {UsersTabs.map((tab) => (
@@ -425,6 +429,14 @@ export function Component() {
         title="text.delete_asset"
         message="text.are_you_sure_del_asset"
         confirmButtonId="btnConfirmDeleteAsset"
+      />
+      <DamViewAccessModal
+        isOpen={isViewAccessModalOpen}
+        onClose={closeViewAccessModal}
+        asset={viewAccessAsset}
+        assetAccessData={assetAccessData}
+        isLoading={isLoadingAccess}
+        error={accessError}
       />
     </DamBasePage>
   );

@@ -14,6 +14,7 @@
   "text.new": "New",
   "text.id": "ID",
   "text.delete": "Delete",
+  "text.view_access": "View Access",
   "text.create": "Create",
   "text.delete_user": "Delete User",
   "text.are_you_sure_del_user": "Are you sure? You can't undo this action afterwards.",

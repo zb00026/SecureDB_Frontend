@@ -15,6 +15,7 @@ interface BaseAssetsTableProps {
   readonly renderActions: (asset: Asset) => React.ReactNode;
   readonly onQueryAsset?: (asset: Asset) => void;
   readonly showAccessRequestStatus?: boolean;
+  readonly onViewAccess?: (asset: Asset) => void;
 }
 
 const getStatusColor = (status: string | undefined): string => {
@@ -39,7 +40,8 @@ export function BaseAssetsTable({
   renderDetailButton,
   renderActions,
   onQueryAsset,
-  showAccessRequestStatus
+  showAccessRequestStatus,
+  onViewAccess
 }: BaseAssetsTableProps) {
   return (
     <DamCard mt={4}>
@@ -72,6 +74,9 @@ export function BaseAssetsTable({
                 )}
                 {renderDetailButton && (
                   <Th><FormattedMessage id='text.detail_action' /></Th>
+                )}
+                {onViewAccess && (
+                  <Th><FormattedMessage id='text.view_access' /></Th>
                 )}
               </Tr>
             </Thead>
@@ -149,12 +154,26 @@ export function BaseAssetsTable({
                           {renderDetailButton(asset)}
                         </Td>
                       )}
+                      {onViewAccess && (
+                        <Td>
+                          <PrimaryButton variant='outline' size='sm' onClick={() => onViewAccess?.(asset)}>
+                            <FormattedMessage id='text.view_access' />
+                          </PrimaryButton>
+                        </Td>
+                      )}
                     </Tr>
                   ))}
                 </>
               ) : (
                 <Tr>
-                  <Td colSpan={showFetchTemplate ? 7 : 6} textAlign={'center'}>
+                  <Td colSpan={
+                    7 + 
+                    (showFetchTemplate ? 1 : 0) + 
+                    (showAccessRequestStatus ? 1 : 0) +
+                    (showQueryButton ? 1 : 0) + 
+                    (renderDetailButton ? 1 : 0) +
+                    (onViewAccess ? 1 : 0)
+                  } textAlign={'center'}>
                     <FormattedMessage id="text.no_assets" />
                   </Td>
                 </Tr>
