@@ -11,7 +11,7 @@ export const setGoogleToken = (token: string) => {
 };
 
 export const getGoogleToken = () => {
-  return googleToken || localStorage.getItem('googleToken');
+  return googleToken ?? localStorage.getItem('googleToken');
 };
 
 export const clearGoogleToken = () => {
@@ -26,16 +26,14 @@ export const logout = () => {
   keycloak.logout({ redirectUri: window.location.origin });
 }
 
-// Main request function
-export const request = async (url: string, options: RequestInit & { data?: any } = {}) => {
-  const baseURL = import.meta.env.VITE_REQUEST_BASE_URL;
-  const timeout = 30000;
+// Helper function to prepare headers
+const prepareHeaders = (options: RequestInit, isFormData: boolean): Headers => {
+  const headers = new Headers(options.headers);
 
-  // Prepare headers
-  const headers = new Headers({
-    'Content-Type': 'application/json',
-    ...options.headers,
-  });
+  // Only set Content-Type for non-FormData requests
+  if (!isFormData && !headers.has('Content-Type')) {
+    headers.set('Content-Type', 'application/json');
+  }
 
   // Add authorization header
   const storedToken = localStorage.getItem('googleToken');
@@ -45,19 +43,48 @@ export const request = async (url: string, options: RequestInit & { data?: any }
     headers.set('Authorization', `Bearer ${keycloak.token}`);
   }
 
-  // Prepare fetch options
+  return headers;
+};
+
+// Helper function to prepare request body
+const prepareRequestBody = (options: RequestInit & { data?: any }): BodyInit | undefined => {
+  if (options.method === 'GET') return undefined;
+  
+  if (options.body) return options.body;
+  if (options.data) return JSON.stringify(options.data);
+  
+  return undefined;
+};
+
+// Helper function to handle response errors
+const handleResponseError = (response: Response, data: any): Promise<never> => {
+  const error = new Error(data.message ?? 'Request failed');
+  error.name = 'ApiError';
+  Object.assign(error, { status: response.status, data });
+  return Promise.reject(error);
+};
+
+// Helper function to handle data errors
+const handleDataError = (data: any): Promise<never> => {
+  console.log(window.location.href);
+  const error = new Error(data.error.message ?? data.error);
+  error.name = 'ApiError';
+  Object.assign(error, { data });
+  return Promise.reject(error);
+};
+
+// Main request function
+export const request = async (url: string, options: RequestInit & { data?: any } = {}, responseIsJson: boolean = true, timeout: number = 30000) => {
+  const baseURL = import.meta.env.VITE_REQUEST_BASE_URL;
+  const isFormData = options.body instanceof FormData;
+  
   const fetchOptions: RequestInit = {
     ...options,
-    headers,
+    headers: prepareHeaders(options, isFormData),
+    body: prepareRequestBody(options),
   };
 
-  // Only add body for non-GET requests
-  if (options.method !== 'GET' && options.data) {
-    fetchOptions.body = JSON.stringify(options.data);
-  }
-
   try {
-    // Create abort controller for timeout
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), timeout);
     fetchOptions.signal = controller.signal;
@@ -65,30 +92,17 @@ export const request = async (url: string, options: RequestInit & { data?: any }
     const response = await fetch(`${baseURL}${url}`, fetchOptions);
     clearTimeout(timeoutId);
 
+    if (!responseIsJson) return response;
+    
     const data = await response.json();
-
-    // Handle response
     stateActions.subLoading();
     
     if (![200, 201].includes(response.status)) {
-      // Create Error object with response data
-      const error = new Error(data.message || 'Request failed');
-      error.name = 'ApiError';
-      // Attach additional data to the error object
-      Object.assign(error, { 
-        status: response.status,
-        data: data 
-      });
-      return Promise.reject(error);
+      return handleResponseError(response, data);
     }
 
     if (data.error) {
-      console.log(window.location.href);
-      // Create Error object for data.error
-      const error = new Error(data.error.message || data.error);
-      error.name = 'ApiError';
-      Object.assign(error, { data });
-      return Promise.reject(error);
+      return handleDataError(data);
     }
 
     return data;
@@ -99,9 +113,8 @@ export const request = async (url: string, options: RequestInit & { data?: any }
       throw new Error('Request timeout');
     }
     
-    // If error is not already an Error instance, wrap it
     if (!(error instanceof Error)) {
-      throw new Error(error.message || 'Unknown error occurred');
+      throw new Error(error.message ?? 'Unknown error occurred');
     }
     
     throw error;

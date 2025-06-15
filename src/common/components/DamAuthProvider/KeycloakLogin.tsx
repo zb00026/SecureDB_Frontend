@@ -41,7 +41,14 @@ export default function KeycloakLogin({
   }, [initialized, onInitialized]);
 
   const doLogin = () => {
-    keycloak?.login();
+    // If there's an invite code, redirect to a clean URL after login
+    const redirectUri = inviteCode 
+      ? window.location.origin + window.location.pathname 
+      : undefined;
+    
+    keycloak?.login({
+      redirectUri: redirectUri
+    });
     handleKeycloakLogin();
   };
 

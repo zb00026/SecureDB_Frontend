@@ -1,8 +1,8 @@
 import {
-  Box, Button, Checkbox, Text, Flex, Input, Table, TableContainer, Tbody, Td, Th, Thead, Tr, useColorModeValue,
-  IconButton
+  Box, Button, Text, Flex, Input, Table, TableContainer, Tbody, Td, Th, Thead, Tr, useColorModeValue,
+  IconButton, useDisclosure, HStack
 } from "@chakra-ui/react";
-import { DamButton, DamCard, DamCardBody, DamCardDivider, DamPasswordInput, request, stateActions, TextCardHeader, useListPage, useDamToast, userHasRole } from "@common/index";
+import { DamButton, DamCard, DamCardBody, request, stateActions, useListPage, useDamToast, userHasRole } from "@common/index";
 import { DamAlertDialog } from "@common/components/DamDialog/DamAlertDialog";
 import { useApiRequest } from "@common/hooks/useApiRequest";
 import { Role } from "@models/Role";
@@ -13,19 +13,21 @@ import { FormattedMessage, useIntl } from "react-intl";
 import { MultiValue, Select } from 'chakra-react-select';
 import { AUTH_PROVIDER, USER_ROLE } from "@/constants/enums";
 import { CloseIcon } from "@chakra-ui/icons";
-import { UserApproversDlg } from "./components/user_approvers_dlg";
+
 import { DamBasePage } from "@common/components/DamBasePage";
+import { UserApproversDlg } from "./components/user_approvers_dlg";
+import { BulkUploadModal } from "./components/bulk_upload_modal";
+
 type Option = {
   label: string;  // The display name of the role
   value: string;  // The ID of the role
 };
 
-
 export const isSearchable = true;
 export const displayName = 'User Management Page';
 
 export function Component() {
-  const { showError } = useDamToast();
+  const { showError, showSuccess } = useDamToast();
   const [users, setUsers] = useState<Array<User>>([]);
   const intl = useIntl();
 
@@ -34,19 +36,19 @@ export function Component() {
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
   const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [isPasswordValid, setIsPasswordValid] = useState(false);
   const [selectedRoles, setSelectedRoles] = useState<Array<Role>>([]);
   const [isDelDlgOpen, setIsDelDlgOpen] = useState(false);
   const [roles, setRoles] = useState<Array<Role>>([]);
-  const [chkInvitation, setChkInvitation] = useState<boolean>(false);
   const [deleteUserId, setDeleteUserId] = useState<number | null>(null);
   const [roleOptions, setRoleOptions] = useState<Array<Option>>([]);
   const defauleDark = useColorModeValue("ant", "antdark");
+  const selectedRowBg = useColorModeValue('gray.100', 'gray.700');
   const [approvers, setApprovers] = useState<Array<User>>([]);
   const [isApproversDlgOpen, setIsApproversDlgOpen] = useState<boolean>(false);
   const [isUnsetApproverDlgOpen, setIsUnsetApproverDlgOpen] = useState<boolean>(false);
   const [isShowEditForm, setIsShowEditForm] = useState<boolean>(false);
+  
+  const { isOpen: isBulkUploadOpen, onOpen: onBulkUploadOpen, onClose: onBulkUploadClose } = useDisclosure();
 
   const { getData, getList } = useListPage<User>({
     baseUri: "/api/admin/users",
@@ -90,10 +92,7 @@ export function Component() {
     setFirstName('');
     setLastName('');
     setEmail('');
-    setChkInvitation(false);
     setSelectedRoles([]);
-    setPassword('');
-    setIsPasswordValid(false);
     setSelectedUser(null);
     setIsEdit(false);
   }
@@ -103,7 +102,6 @@ export function Component() {
     setFirstName(user.firstName);
     setLastName(user.lastName);
     setEmail(user.email);
-    setChkInvitation(false);
     setSelectedRoles(user.roles || []);
     setIsEdit(true);
     setIsShowEditForm(true);
@@ -128,34 +126,28 @@ export function Component() {
     if (selectedUser) return;
     const auth_provider = import.meta.env.VITE_AUTH_PROVIDER || AUTH_PROVIDER.GOOGLE;
 
-    const postUri = chkInvitation ? '/api/admin/users/createUserAndSendInvite' : '/api/admin/users';
-    const postData = chkInvitation ? {
-      user: { firstName, lastName, email, password, roles: selectedRoles, isInitialPassword: true },
+    // Always use the invite endpoint for new user creation
+    const postUri = '/api/admin/users/createUserAndSendInvite';
+    const postData = {
+      user: { firstName, lastName, email, roles: selectedRoles, isInitialPassword: true },
       authProvider: auth_provider.toUpperCase()
-    } : { firstName, lastName, email, password, roles: selectedRoles, isInitialPassword: true };
+    };
 
     handleRequest(postUri, 'POST', postData, {
       onSuccess: () => {
         getList({});
+        // Show success message with temporary password
+        showSuccess({
+          title: intl.formatMessage({ id: 'text.user_created' }),
+          description: intl.formatMessage({ id: 'text.user_create_success_with_temp_password' })
+        });
         clearForm();
       },
-      successTitleId: 'text.user_created',
-      successDescriptionId: 'text.user_create_success',
+      successTitleId: undefined, // We're handling the success message manually
+      successDescriptionId: undefined,
       errorDescriptionId: 'text.user_create_failed'
     });
   };
-
-  const handleOnShowCreateUser = () => {
-    clearForm();
-    setIsEdit(false);
-    if (!isEdit) {
-      if (isShowEditForm) {
-        setIsShowEditForm(false);
-      } else {
-        setIsShowEditForm(true);
-      }
-    }
-  }
 
   const handleRoleChange = (selectedOptions: MultiValue<Option>) => {
     const selectedRoles: Array<Role> = selectedOptions
@@ -233,11 +225,13 @@ export function Component() {
     return !(approvers.length == 1 && approvers[0].id === user.id);
   }
 
+  
+
   return (
     <DamBasePage
       title={intl.formatMessage({ id: 'text.user_management' })}
     >
-      <Flex flexDir="column">
+      <Flex flexDir="column" w="100%" maxW="100%">
         {isShowEditForm && <Flex w="100%">
           <Flex pt={5} w="100%">
             <Flex id="flexUserForm" direction={'column'} w='full' pr={4}>
@@ -289,29 +283,14 @@ export function Component() {
                     />
                   </Box>
                 </Flex>
-                <Flex w='full'>
-                  <DamPasswordInput
-                    isDisabled={isEdit}
-                    value={password}
-                    id="inputPassword"
-                    onChange={setPassword}
-                    placeholder={intl.formatMessage({ id: 'text.initial_password' })}
-                    showRequirements={!isEdit}
-                    onValidationChange={(isValid) => setIsPasswordValid(isValid)}
-                  />
-                </Flex>
-
-                <Flex w='full'>
-                  <Checkbox
-                    disabled={isEdit}
-                    checked={chkInvitation}
-                    id="chkInvitation"
-                    onChange={(e) => { setChkInvitation(e.target.checked) }}
-                  >
-                    <FormattedMessage id="text.invite_email" />
-                  </Checkbox>
-                </Flex>
               </Flex>
+              {!isEdit && (
+                <Flex mt={2}>
+                  <Text fontSize="sm" color="gray.600">
+                    <FormattedMessage id="text.user_will_receive_email" />
+                  </Text>
+                </Flex>
+              )}
             </Flex>
             <Flex direction={'column'} gap={4} alignItems={'center'} w='110px'>
               <Button
@@ -319,7 +298,7 @@ export function Component() {
                 colorScheme={isEdit ? "green" : "blue"}
                 w='full'
                 onClick={isEdit ? handleUpdate : handleCreate}
-                disabled={!firstName || !lastName || !email || !isPasswordValid}
+                disabled={!firstName || !lastName || !email}
                 pr="30px"
                 pl="30px"
                 borderRadius="5px"
@@ -345,103 +324,130 @@ export function Component() {
         </Flex>}
         <Flex flexWrap="wrap" w="100%">
           <Flex pt={5} flexDir="column" w="100%">
-            <DamCard mt="4">
-              <DamCardBody>
-                <Flex justifyContent="space-between" alignItems="center" w='full'>
-                  <TextCardHeader id="txtUsersTitle" mb={0}>
+            <DamCard mt="4" w="100%" overflow="hidden">
+              <DamCardBody p={6}>
+                <Flex
+                  justify="space-between"
+                  align={{ base: "flex-start", md: "center" }}
+                  mb={4}
+                  wrap="wrap"
+                  gap={3}
+                  direction={{ base: "column", md: "row" }}
+                  w="100%"
+                >
+                  <Text fontSize="lg" fontWeight="bold" flexShrink={0} minW="fit-content" mb={{ base: 2, md: 0 }}>
                     <FormattedMessage id="text.users" />
-                  </TextCardHeader>
-                  <DamButton colorScheme={isShowEditForm && !isEdit ? "red" : "green"} mr={4}
-                    id="btnCreateUser"
-                    onClick={handleOnShowCreateUser}
-                    pr="30px"
-                    pl="30px"
-                    borderRadius="5px"
-                    data-testid="submit-button">
-                    {isShowEditForm && !isEdit ? <FormattedMessage id="text.cancel_creation" /> : <FormattedMessage id="text.create" />}
-                  </DamButton>
+                  </Text>
+                  <Flex
+                    justify="flex-end"
+                    flexShrink={0}
+                    flex={{ base: "none", md: "1" }}
+                    w={{ base: "100%", md: "auto" }}
+                    ml={{ base: 0, md: "auto" }}
+                  >
+                                        <HStack spacing={3} flexWrap="wrap">
+                      <DamButton
+                        size="sm"
+                        colorScheme="blue"
+                        onClick={onBulkUploadOpen}
+                        whiteSpace="nowrap"
+                        minW="fit-content"
+                      >
+                        <FormattedMessage id="text.bulk_upload" />
+                      </DamButton>
+                      <DamButton
+                        size="sm"
+                        colorScheme="blue"
+                        onClick={() => {
+                          setIsShowEditForm(true);
+                          setIsEdit(false);
+                          clearForm();
+                        }}
+                        whiteSpace="nowrap"
+                        minW="fit-content"
+                      >
+                        <FormattedMessage id="text.new_user" />
+                      </DamButton>
+                    </HStack>
+                  </Flex>
                 </Flex>
-
-                <Flex flexDir="column" w="full" px={6}>
-                  <DamCardDivider></DamCardDivider>
-                  <ConfigProvider prefixCls={defauleDark}>
-                    <TableContainer w='100%' sx={{ overflowX: 'scroll' }}>
-                      <Table variant='simple' size='md' w='100%'>
-                        <Thead>
-                          <Tr>
-                            <Th><FormattedMessage id='text.id' /></Th>
-                            <Th><FormattedMessage id='text.first_name' /></Th>
-                            <Th><FormattedMessage id='text.last_name' /></Th>
-                            <Th><FormattedMessage id='text.email' /></Th>
-                            <Th><FormattedMessage id='text.approver' /></Th>
-                            <Th><FormattedMessage id='text.role' /></Th>
-                            <Th></Th>
-                          </Tr>
-                        </Thead>
-                        <Tbody>
-                          {users && users.length > 0 ? (
-                            users.map((user) => (
-                              <Tr key={user.id}
-                                onClick={() => handleSelectUser(user)}
-                                cursor={'pointer'}
-                                backgroundColor={user.id === selectedUser?.id ? 'gray.80' : 'transparent'}>
-                                <Td>{user.id}</Td>
-                                <Td>{user.firstName}</Td>
-                                <Td>{user.lastName}</Td>
-                                <Td>{user.email}</Td>
-                                <Td>
-                                  {user.approver ?
-                                    <Flex
-                                      alignItems={'center'}
-                                      gap={2}
-                                    >
-                                      <Text
-                                        textDecoration={'underline'}
-                                        mb={0}
-                                        onClick={() => setIsApproversDlgOpen(true)}>
-                                        {user.approver.email}
-                                      </Text>
-                                      <IconButton
-                                        colorScheme="red"
-                                        aria-label="unset"
-                                        size="sm"
-                                        icon={<CloseIcon />}
-                                        onClick={() => {
-                                          setIsUnsetApproverDlgOpen(true);
-                                        }}
-                                      />
-                                    </Flex>
-                                    :
-                                    <Button
-                                      disabled={!canSetApprover(user)}
-                                      colorScheme="green"
+                <ConfigProvider prefixCls={defauleDark}>
+                  <TableContainer w='100%' sx={{ overflowX: 'scroll' }}>
+                    <Table variant='simple' size='md' w='100%'>
+                      <Thead>
+                        <Tr>
+                          <Th><FormattedMessage id='text.id' /></Th>
+                          <Th><FormattedMessage id='text.first_name' /></Th>
+                          <Th><FormattedMessage id='text.last_name' /></Th>
+                          <Th><FormattedMessage id='text.email' /></Th>
+                          <Th><FormattedMessage id='text.approver' /></Th>
+                          <Th><FormattedMessage id='text.role' /></Th>
+                          <Th></Th>
+                        </Tr>
+                      </Thead>
+                      <Tbody>
+                        {users && users.length > 0 ? (
+                          users.map((user) => (
+                            <Tr key={user.id}
+                              onClick={() => handleSelectUser(user)}
+                              cursor={'pointer'}
+                              backgroundColor={user.id === selectedUser?.id ? selectedRowBg : 'transparent'}>
+                              <Td>{user.id}</Td>
+                              <Td>{user.firstName}</Td>
+                              <Td>{user.lastName}</Td>
+                              <Td>{user.email}</Td>
+                              <Td>
+                                {user.approver ?
+                                  <Flex
+                                    alignItems={'center'}
+                                    gap={2}
+                                  >
+                                    <Text
+                                      textDecoration={'underline'}
+                                      mb={0}
                                       onClick={() => setIsApproversDlgOpen(true)}>
-                                      <FormattedMessage id='text.set_approver' />
-                                    </Button>
-                                  }
-                                </Td>
-                                <Td>
-                                  {user.roles?.map(role => role.name).join(', ') || '-'}
-                                </Td>
-                                <Td>
-                                  <Button colorScheme="red" onClick={() => askDelete(user.id)}>
-                                    <FormattedMessage id="text.delete" />
+                                      {user.approver.email}
+                                    </Text>
+                                    <IconButton
+                                      colorScheme="red"
+                                      aria-label="unset"
+                                      size="sm"
+                                      icon={<CloseIcon />}
+                                      onClick={() => {
+                                        setIsUnsetApproverDlgOpen(true);
+                                      }}
+                                    />
+                                  </Flex>
+                                  :
+                                  <Button
+                                    disabled={!canSetApprover(user)}
+                                    colorScheme="green"
+                                    onClick={() => setIsApproversDlgOpen(true)}>
+                                    <FormattedMessage id='text.set_approver' />
                                   </Button>
-                                </Td>
-                              </Tr>
-                            ))
-                          ) : (
-                            <Tr>
-                              <Td colSpan={6} textAlign="center">
-                                <FormattedMessage id="text.noUsers" defaultMessage="No users are registered" />
+                                }
+                              </Td>
+                              <Td>
+                                {user.roles?.map(role => role.name).join(', ') || '-'}
+                              </Td>
+                              <Td>
+                                <Button colorScheme="red" onClick={() => askDelete(user.id)}>
+                                  <FormattedMessage id="text.delete" />
+                                </Button>
                               </Td>
                             </Tr>
-                          )}
-                        </Tbody>
-                      </Table>
-                    </TableContainer>
-                  </ConfigProvider>
-                </Flex>
+                          ))
+                        ) : (
+                          <Tr>
+                            <Td colSpan={6} textAlign="center">
+                              <FormattedMessage id="text.noUsers" defaultMessage="No users are registered" />
+                            </Td>
+                          </Tr>
+                        )}
+                      </Tbody>
+                    </Table>
+                  </TableContainer>
+                </ConfigProvider>
               </DamCardBody>
             </DamCard>
           </Flex>
@@ -456,20 +462,29 @@ export function Component() {
         message="text.are_you_sure_del_user"
         confirmButtonId="btnConfirmDeleteUser"
       />
+
       <DamAlertDialog
         isOpen={isUnsetApproverDlgOpen}
-        onClose={closeUnsetApproverDialog}
+        onClose={() => setIsUnsetApproverDlgOpen(false)}
         onConfirm={handleUnsetApprover}
         title="text.unset_approver"
         message="text.are_you_sure_unset_approver"
         confirmButtonId="btnConfirmUnsetApprover"
       />
+
+
       <UserApproversDlg
         approvers={approvers}
         selectedUser={selectedUser}
         isOpen={isApproversDlgOpen}
         onSaveApprover={onSaveApprover}
         confirmButtonId="btnConfirmSaveApprover"
+      />
+
+            <BulkUploadModal
+        isOpen={isBulkUploadOpen}
+        onClose={onBulkUploadClose}
+        onUploadSuccess={() => getList({})}
       />
     </DamBasePage>
   );

@@ -45,6 +45,7 @@ export function UserApproversDlg({
   const cancelRef = useRef(null);
   const borderColor = useColorModeValue('gray.200', 'gray.600');
   const tableBg = useColorModeValue('white', 'gray.800');
+  const selectedRowBg = useColorModeValue('gray.100', 'gray.700');
 
   const checkUserCriteria = (user: User) => {
     if (selectedUser?.id == user.id) return false;
@@ -128,7 +129,7 @@ export function UserApproversDlg({
                         checkUserCriteria(approver) &&
                         <Tr key={approver.id}
                           cursor={'pointer'}
-                          backgroundColor={approver.id === selectedApprover?.id ? 'gray.80' : 'transparent'}
+                          backgroundColor={approver.id === selectedApprover?.id ? selectedRowBg : 'transparent'}
                           onClick={() => setSelectedApprover(approver)}>
                           <Td>{approver.firstName}</Td>
                           <Td>{approver.lastName}</Td>

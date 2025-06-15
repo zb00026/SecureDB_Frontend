@@ -213,10 +213,16 @@ export default function Login({ authProviders, children }: { authProviders: stri
   if (isValidToken && (
     (isAuthProviderAvailable(AUTH_PROVIDER.KEYCLOAK) && keycloakAuthenticated) ||
     (isAuthProviderAvailable(AUTH_PROVIDER.GOOGLE) && getGoogleToken()))) {
-    const queryParams = new URLSearchParams(window.location.search);
-    queryParams.delete('inviteCode');
-    const newUrl = window.location.pathname + '?' + queryParams.toString();
-    window.history.replaceState({}, '', newUrl);
+    
+    // Clean up the URL by removing the inviteCode parameter
+    const currentUrl = new URL(window.location.href);
+    if (currentUrl.searchParams.has('inviteCode')) {
+      currentUrl.searchParams.delete('inviteCode');
+      // Use navigate to redirect to clean URL without inviteCode
+      const cleanPath = currentUrl.pathname + (currentUrl.search || '');
+      navigate(cleanPath.endsWith('?') ? cleanPath.slice(0, -1) : cleanPath, { replace: true });
+    }
+    
     return <>{children}</>;
   }
 
