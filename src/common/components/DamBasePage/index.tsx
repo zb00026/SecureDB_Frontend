@@ -16,6 +16,8 @@ import useLogout from "@common/hooks/useLogout";
 import { FormattedMessage } from "react-intl";
 import { Link, useLocation } from "react-router-dom";
 import { FiMoon, FiSun, FiLogOut, FiHome } from 'react-icons/fi';
+import { useLicenseStatus } from "@common/hooks/useLicenseStatus";
+import { DamLicenseBanner } from "@common/components/DamLicenseBanner";
 
 export type DamPageProps = Readonly<{
   title: string;
@@ -31,6 +33,7 @@ export function DamBasePage({
   const logout = useLogout();
   const { colorMode, toggleColorMode } = useColorMode();
   const location = useLocation();
+  const { licenseStatus } = useLicenseStatus();
   
   const headerBg = useColorModeValue('white', 'gray.800');
   const headerBorderColor = useColorModeValue('gray.200', 'gray.700');
@@ -145,6 +148,9 @@ export function DamBasePage({
           </Flex>
         </Container>
       </Box>
+
+      {/* License Expiry Banner */}
+      {licenseStatus && <DamLicenseBanner licenseStatus={licenseStatus} />}
 
       {/* Main Content */}
       <Container maxW="95%" px={6} py={8}>

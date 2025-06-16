@@ -83,7 +83,7 @@ export const request = async (url: string, options: RequestInit & { data?: any }
     headers: prepareHeaders(options, isFormData),
     body: prepareRequestBody(options),
   };
-
+        
   try {
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), timeout);

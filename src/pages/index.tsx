@@ -31,11 +31,11 @@ import {
   FiClock,
   FiCheckCircle,
   FiUser,
-  FiHardDrive
+  FiHardDrive,
+  FiKey
 } from 'react-icons/fi';
 
 export const name = 'Dashboard';
-export const isSearchable = true;
 
 // Role icon mapping for better visual identification
 const roleIcons: Record<string, any> = {
@@ -78,6 +78,14 @@ const adminNavItems = [
     icon: FiHardDrive,
     colorScheme: 'teal',
     href: '/admin/assets'
+  },
+  {
+    id: 'license',
+    titleId: 'text.license',
+    description: 'Manage license files and settings',
+    icon: FiKey,
+    colorScheme: 'purple',
+    href: '/admin/license'
   }
 ];
 

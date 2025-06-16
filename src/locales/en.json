@@ -46,6 +46,7 @@
   "text.invite_email": "Send Invitation Email",
   "text.clear": "Clear",
   "text.settings": "Settings",
+  "text.license": "License",
   "text.audit_log_storage": "Audit Log Storage",
   "text.s3_bucket_name": "S3 Bucket Name",
   "text.apply": "Apply",
