@@ -111,6 +111,17 @@ export function Component() {
   const nonAdminRoles = user.roles.filter((role: Role) => role.name.toLowerCase() !== 'admin');
   const isAdmin = userHasRole(user, USER_ROLE.ADMIN);
 
+  // Helper function to get audit trail description based on user role
+  const getAuditTrailDescription = () => {
+    if (userHasRole(user, USER_ROLE.ADMIN) || userHasRole(user, USER_ROLE.AUDITOR)) {
+      return 'View all system audit logs';
+    }
+    if (userHasRole(user, USER_ROLE.ASSET_OWNER)) {
+      return 'View audit logs for your assets';
+    }
+    return 'View audit logs for approved assets';
+  };
+
   return (
     <DamBasePage
       title={intl.formatMessage({ id: 'text.dashboard' })}
@@ -289,7 +300,10 @@ export function Component() {
           ))}
           
           {/* Audit Trail Card (if user has permission) */}
-          {(userHasRole(user, USER_ROLE.AUDITOR) || userHasRole(user, USER_ROLE.ADMIN)) && (
+          {(userHasRole(user, USER_ROLE.AUDITOR) || 
+            userHasRole(user, USER_ROLE.ADMIN) || 
+            userHasRole(user, USER_ROLE.ASSET_OWNER) || 
+            userHasRole(user, USER_ROLE.APPROVER)) && (
             <GridItem>
               <Card
                 variant="elevated"
@@ -324,7 +338,7 @@ export function Component() {
                         <FormattedMessage id="text.audit_trail" />
                       </Heading>
                       <Text fontSize="sm" color="gray.600" _dark={{ color: 'gray.400' }}>
-                        View system audit logs
+                        {getAuditTrailDescription()}
                       </Text>
                     </VStack>
                     <Button

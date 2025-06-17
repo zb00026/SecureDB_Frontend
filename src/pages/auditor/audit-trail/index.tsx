@@ -1,15 +1,13 @@
-import { Box, Flex, Input, Select, Grid, GridItem, useColorMode } from "@chakra-ui/react";
+import { Box, Flex, Input, Select, Grid, GridItem, useColorMode, Alert, AlertIcon, Text } from "@chakra-ui/react";
 import { Global, css } from "@emotion/react";
 import { DamBasePage } from "@common/components/DamBasePage";
-import { useListPage } from "@common/hooks/useListPage";
+import { useRoleBasedAuditTrail } from "@common/hooks/useRoleBasedAuditTrail";
 
-import { useState } from "react";
 import { FormattedMessage, useIntl } from "react-intl";
-import { AuditTrail } from "@models/AuditTrail";
 import { DatePicker } from "antd";
 import dayjs from "dayjs";
 const { RangePicker } = DatePicker;
-import { PrimaryButton } from "@common/index";
+import { PrimaryButton, useMyState } from "@common/index";
 import { DamTable } from "@common/components/DamTable";
 
 export const isSearchable = true;
@@ -18,20 +16,18 @@ export const displayName = 'Audit Trail';
 export function Component() {
   const intl = useIntl();
   const { colorMode } = useColorMode();
-  const [filters, setFilters] = useState({
-    startDate: '',
-    endDate: '',
-    action: '',
-    user: '',
-    previousValue: '',
-    newValue: '',
-    ipAddress: '',
-  });
+  const { snap } = useMyState();
+  const user = snap.session.user;
 
-  const { getData, getList, pagination } = useListPage<AuditTrail>({
-    baseUri: '/api/audit-trails',
-    defaultParams: { ...filters }
-  });
+  const {
+    filters,
+    setFilters,
+    getData,
+    getList,
+    pagination,
+    availableFilters,
+    roleBasedMessage
+  } = useRoleBasedAuditTrail({ user });
 
   const columns = [
     {
@@ -55,7 +51,6 @@ export function Component() {
       dataIndex: 'ipAddress',
       key: 'ipAddress',
     },
-
     {
       title: 'Instance',
       dataIndex: 'instanceId',
@@ -79,7 +74,6 @@ export function Component() {
     getList({
       page: 1,
       perPage: 20,
-      ...filters
     });
   };
 
@@ -169,6 +163,11 @@ export function Component() {
       title={intl.formatMessage({ id: 'text.audit_trail' })}>
       <Global styles={getDarkModeStyles(colorMode)} />
       <Box p={6}>
+        {/* Role-based access notice */}
+        <Alert status="info" mb={4}>
+          <AlertIcon />
+          <Text fontSize="sm" mb={0}>{roleBasedMessage}</Text>
+        </Alert>
         <Box 
           p={4} 
           borderRadius="md" 
@@ -210,20 +209,22 @@ export function Component() {
                 value={filters.action}
                 onChange={(e) => setFilters({ ...filters, action: e.target.value })}
               >
-                <option value="CREATE">Create</option>
-                <option value="UPDATE">Update</option>
-                <option value="DELETE">Delete</option>
+                {availableFilters.availableActions.map(action => (
+                  <option key={action} value={action}>{action}</option>
+                ))}
               </Select>
             </GridItem>
 
-            {/* User Input */}
-            <GridItem>
-              <Input
-                placeholder="User"
-                value={filters.user}
-                onChange={(e) => setFilters({ ...filters, user: e.target.value })}
-              />
-            </GridItem>
+            {/* User Input - only show if user can view all users */}
+            {availableFilters.canViewAllUsers && (
+              <GridItem>
+                <Input
+                  placeholder="User"
+                  value={filters.user}
+                  onChange={(e) => setFilters({ ...filters, user: e.target.value })}
+                />
+              </GridItem>
+            )}
 
             {/* IP Address */}
             <GridItem>

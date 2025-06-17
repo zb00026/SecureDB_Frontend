@@ -29,9 +29,12 @@ export function isAuthorizedPath(path: string, user?: User): boolean {
       hasRole = true;
     }
 
-    // Add audit trail access for both ADMIN and AUDITOR
+    // Add audit trail access for multiple roles with different restrictions
     if (path.startsWith('/auditor/audit-trail') && 
-        (userRole === USER_ROLE.ADMIN || userRole === USER_ROLE.AUDITOR)) {
+        (userRole === USER_ROLE.ADMIN || 
+         userRole === USER_ROLE.AUDITOR || 
+         userRole === USER_ROLE.ASSET_OWNER || 
+         userRole === USER_ROLE.APPROVER)) {
       hasRole = true;
     }
 
