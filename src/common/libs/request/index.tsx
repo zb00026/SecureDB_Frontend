@@ -58,7 +58,10 @@ const prepareRequestBody = (options: RequestInit & { data?: any }): BodyInit | u
 
 // Helper function to handle response errors
 const handleResponseError = (response: Response, data: any): Promise<never> => {
-  const error = new Error(data.message ?? 'Request failed');
+  // Spring Boot ResponseStatusException sends error message in 'error' field
+  // but some other endpoints might use 'message' field, so check both
+  const errorMessage = data.error ?? data.message ?? 'Request failed';
+  const error = new Error(errorMessage);
   error.name = 'ApiError';
   Object.assign(error, { status: response.status, data });
   return Promise.reject(error);

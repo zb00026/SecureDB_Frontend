@@ -36,6 +36,24 @@ export default function Login({ authProviders, children }: { authProviders: stri
   const inviteCode = searchParams.get('inviteCode');
   const navigate = useNavigate();
 
+  // Store invite code in localStorage when it's found in URL, so it persists through Keycloak redirects
+  useEffect(() => {
+    if (inviteCode) {
+      localStorage.setItem('pendingInviteCode', inviteCode);
+      console.log('Stored invite code for later use:', inviteCode);
+    }
+  }, [inviteCode]);
+
+  // Retrieve stored invite code (for use after Keycloak redirects)
+  const getStoredInviteCode = () => {
+    return localStorage.getItem('pendingInviteCode');
+  };
+
+  // Clear stored invite code after successful authentication
+  const clearStoredInviteCode = () => {
+    localStorage.removeItem('pendingInviteCode');
+  };
+
   const bgGradient = useColorModeValue(
     'linear(to-br, blue.50, purple.50, brand.50)',
     'linear(to-br, gray.900, blue.900, purple.900)'
@@ -85,7 +103,7 @@ export default function Login({ authProviders, children }: { authProviders: stri
       method: 'POST',
       data: {
         token,
-        inviteCode,
+        inviteCode: getStoredInviteCode(),
         authProvider: authProvider.toUpperCase()
       }
     }).then((res: any) => {
@@ -100,6 +118,7 @@ export default function Login({ authProviders, children }: { authProviders: stri
           }
         }
         handleLoginSuccess(res.user);
+        clearStoredInviteCode();
       } else {
         setIsValidToken(false);
         handleAuthFailure(authProvider);
@@ -134,9 +153,20 @@ export default function Login({ authProviders, children }: { authProviders: stri
   };
 
   const handleAuthError = (error: any, authProvider: string) => {
+    // Try multiple possible error message paths from Spring Boot ResponseStatusException
+    const errorMessage = error?.response?.data?.message ?? 
+                         error?.response?.data?.error ?? 
+                         error?.message ??
+                         intl.formatMessage({ id: 'text.login_failed' });
+    
+    console.log('Authentication error details:', {
+      status: error?.response?.status,
+      data: error?.response?.data,
+      message: errorMessage
+    });
+    
     showError({
-      description: error?.response?.data?.error ??
-        intl.formatMessage({ id: 'text.login_failed' }),
+      description: errorMessage,
       onCloseComplete: () => {
         logoutToken(authProvider);
       }
@@ -160,7 +190,7 @@ export default function Login({ authProviders, children }: { authProviders: stri
   }
 
   const checkAssetCredential = (user: User) => {
-    if (userHasRole(user, USER_ROLE.ASSET_OWNER) || userHasRole(user, USER_ROLE.ADMIN)) {
+    if (userHasRole(user, USER_ROLE.ASSET_OWNER) ?? userHasRole(user, USER_ROLE.ADMIN)) {
       request('/api/asset_owner/assets/new-credentials', {})
       .then((res) => {
         if(res.length > 0) {
@@ -219,7 +249,7 @@ export default function Login({ authProviders, children }: { authProviders: stri
     if (currentUrl.searchParams.has('inviteCode')) {
       currentUrl.searchParams.delete('inviteCode');
       // Use navigate to redirect to clean URL without inviteCode
-      const cleanPath = currentUrl.pathname + (currentUrl.search || '');
+      const cleanPath = currentUrl.pathname + (currentUrl.search ?? '');
       navigate(cleanPath.endsWith('?') ? cleanPath.slice(0, -1) : cleanPath, { replace: true });
     }
     
@@ -350,7 +380,7 @@ export default function Login({ authProviders, children }: { authProviders: stri
                     {isAuthProviderAvailable(AUTH_PROVIDER.KEYCLOAK) && (
                       <KeycloakLogin
                         authenticating={authenticating}
-                        inviteCode={inviteCode}
+                        inviteCode={getStoredInviteCode()}
                         handleKeycloakLogin={handleKeycloakLogin}
                         onInitialized={() => { setKeycloakInitialized(true) }}
                         isLoggedOut={keycloakLoggedOut}

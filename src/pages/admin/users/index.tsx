@@ -1,6 +1,6 @@
 import {
   Box, Button, Text, Flex, Input, Table, TableContainer, Tbody, Td, Th, Thead, Tr, useColorModeValue,
-  IconButton, useDisclosure, HStack
+  IconButton, useDisclosure, HStack, InputGroup, InputLeftElement, Badge, Tooltip, VStack
 } from "@chakra-ui/react";
 import { DamButton, DamCard, DamCardBody, request, stateActions, useListPage, useDamToast, userHasRole } from "@common/index";
 import { DamAlertDialog } from "@common/components/DamDialog/DamAlertDialog";
@@ -8,11 +8,11 @@ import { useApiRequest } from "@common/hooks/useApiRequest";
 import { Role } from "@models/Role";
 import { User } from "@models/User";
 import { ConfigProvider } from "antd";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { FormattedMessage, useIntl } from "react-intl";
 import { MultiValue, Select } from 'chakra-react-select';
 import { AUTH_PROVIDER, USER_ROLE } from "@/constants/enums";
-import { CloseIcon } from "@chakra-ui/icons";
+import { CloseIcon, SearchIcon } from "@chakra-ui/icons";
 
 import { DamBasePage } from "@common/components/DamBasePage";
 import { UserApproversDlg } from "./components/user_approvers_dlg";
@@ -48,6 +48,10 @@ export function Component() {
   const [isUnsetApproverDlgOpen, setIsUnsetApproverDlgOpen] = useState<boolean>(false);
   const [isShowEditForm, setIsShowEditForm] = useState<boolean>(false);
   
+  // Search state
+  const [searchTerm, setSearchTerm] = useState('');
+  const [isSearchActive, setIsSearchActive] = useState(false);
+  
   const { isOpen: isBulkUploadOpen, onOpen: onBulkUploadOpen, onClose: onBulkUploadClose } = useDisclosure();
 
   const { getData, getList } = useListPage<User>({
@@ -57,6 +61,64 @@ export function Component() {
     }
   });
   const { handleRequest } = useApiRequest();
+
+  // Debounced search function
+  const debouncedSearch = useCallback(
+    (() => {
+      let timeoutId: NodeJS.Timeout;
+      return (term: string) => {
+        clearTimeout(timeoutId);
+        timeoutId = setTimeout(() => {
+          if (term.trim()) {
+            setIsSearchActive(true);
+            getList({ search: term.trim() });
+          } else {
+            setIsSearchActive(false);
+            getList({});
+          }
+        }, 300); // 300ms delay
+      };
+    })(),
+    [getList]
+  );
+
+  // Handle search input change
+  const handleSearchChange = (value: string) => {
+    setSearchTerm(value);
+    debouncedSearch(value);
+  };
+
+  // Clear search
+  const clearSearch = () => {
+    setSearchTerm('');
+    setIsSearchActive(false);
+    getList({});
+  };
+
+  // Get search suggestions based on current input
+  const getSearchSuggestions = () => {
+    if (!searchTerm) return [];
+    
+    const suggestions = [];
+    const term = searchTerm.toLowerCase();
+    
+    // Suggest status searches
+    if ('active'.includes(term) || 'enabled'.includes(term)) {
+      suggestions.push('active');
+    }
+    if ('inactive'.includes(term) || 'disabled'.includes(term)) {
+      suggestions.push('inactive');
+    }
+    
+    // Suggest role searches
+    roles.forEach(role => {
+      if (role.name.toLowerCase().includes(term)) {
+        suggestions.push(role.name);
+      }
+    });
+    
+    return suggestions.slice(0, 3); // Limit to 3 suggestions
+  };
 
   useEffect(() => {
     const tmpUsers = Array.isArray(getData) ? getData : getData.content;
@@ -221,6 +283,28 @@ export function Component() {
     });
   }
 
+  const handleActivateUser = (user: User) => {
+    handleRequest(`/api/admin/users/activate/${user.id}`, 'PUT', {}, {
+      onSuccess: () => {
+        getList({});
+      },
+      successTitleId: 'text.user_activated',
+      successDescriptionId: 'text.user_activation_success',
+      errorDescriptionId: 'text.user_activation_failed'
+    });
+  }
+
+  const handleDeactivateUser = (user: User) => {
+    handleRequest(`/api/admin/users/deactivate/${user.id}`, 'PUT', {}, {
+      onSuccess: () => {
+        getList({});
+      },
+      successTitleId: 'text.user_deactivated',
+      successDescriptionId: 'text.user_deactivation_success',
+      errorDescriptionId: 'text.user_deactivation_failed'
+    });
+  }
+
   const canSetApprover = (user: User) => {
     return !(approvers.length == 1 && approvers[0].id === user.id);
   }
@@ -338,14 +422,84 @@ export function Component() {
                   <Text fontSize="lg" fontWeight="bold" flexShrink={0} minW="fit-content" mb={{ base: 2, md: 0 }}>
                     <FormattedMessage id="text.users" />
                   </Text>
+                  
+                  {/* Search Section */}
+                  <Flex flex="1" justify="center" maxW={{ base: "100%", md: "400px" }} mx={4}>
+                    <VStack w="100%" spacing={2}>
+                      <InputGroup size="md" w="100%">
+                        <InputLeftElement pointerEvents="none">
+                          <SearchIcon color="gray.400" />
+                        </InputLeftElement>
+                        <Input
+                          placeholder={intl.formatMessage({ id: 'text.search_users_placeholder' })}
+                          value={searchTerm}
+                          onChange={(e) => handleSearchChange(e.target.value)}
+                          bg={useColorModeValue('white', 'gray.700')}
+                          border="1px solid"
+                          borderColor={isSearchActive ? 'blue.400' : 'gray.300'}
+                          _hover={{ borderColor: 'gray.400' }}
+                          _focus={{ borderColor: 'blue.500', boxShadow: '0 0 0 1px #3182ce' }}
+                          pr={searchTerm ? "40px" : "12px"}
+                        />
+                        {searchTerm && (
+                          <Tooltip label={intl.formatMessage({ id: 'text.search_clear' })} fontSize="xs">
+                            <IconButton
+                              aria-label={intl.formatMessage({ id: 'text.search_clear' })}
+                              icon={<CloseIcon />}
+                              size="xs"
+                              variant="ghost"
+                              position="absolute"
+                              right="8px"
+                              top="50%"
+                              transform="translateY(-50%)"
+                              onClick={clearSearch}
+                              zIndex={2}
+                            />
+                          </Tooltip>
+                        )}
+                      </InputGroup>
+                      
+                      {/* Search Suggestions */}
+                      {searchTerm && getSearchSuggestions().length > 0 && (
+                        <HStack spacing={2} w="100%" justify="flex-start" flexWrap="wrap">
+                          <Text fontSize="xs" color="gray.500">
+                            <FormattedMessage id="text.search_suggestions_try" />
+                          </Text>
+                          {getSearchSuggestions().map((suggestion, index) => (
+                            <Badge
+                              key={suggestion}
+                              variant="outline"
+                              colorScheme="blue"
+                              cursor="pointer"
+                              fontSize="xs"
+                              onClick={() => handleSearchChange(suggestion)}
+                              _hover={{ bg: 'blue.50' }}
+                            >
+                              {suggestion}
+                            </Badge>
+                          ))}
+                        </HStack>
+                      )}
+                      
+                      {/* Search Status */}
+                      {isSearchActive && (
+                        <Text fontSize="xs" color="blue.600" w="100%" textAlign="center">
+                          {users.length} {users.length === 1 
+                            ? intl.formatMessage({ id: 'text.search_results_count' })
+                            : intl.formatMessage({ id: 'text.search_results_count_plural' })
+                          } for "{searchTerm}"
+                        </Text>
+                      )}
+                    </VStack>
+                  </Flex>
+                  
                   <Flex
                     justify="flex-end"
                     flexShrink={0}
-                    flex={{ base: "none", md: "1" }}
+                    flex={{ base: "none", md: "0" }}
                     w={{ base: "100%", md: "auto" }}
-                    ml={{ base: 0, md: "auto" }}
                   >
-                                        <HStack spacing={3} flexWrap="wrap">
+                    <HStack spacing={3} flexWrap="wrap">
                       <DamButton
                         size="sm"
                         colorScheme="blue"
@@ -380,9 +534,10 @@ export function Component() {
                           <Th><FormattedMessage id='text.first_name' /></Th>
                           <Th><FormattedMessage id='text.last_name' /></Th>
                           <Th><FormattedMessage id='text.email' /></Th>
+                          <Th><FormattedMessage id='text.status' /></Th>
                           <Th><FormattedMessage id='text.approver' /></Th>
                           <Th><FormattedMessage id='text.role' /></Th>
-                          <Th></Th>
+                          <Th><FormattedMessage id='text.actions' /></Th>
                         </Tr>
                       </Thead>
                       <Tbody>
@@ -396,6 +551,15 @@ export function Component() {
                               <Td>{user.firstName}</Td>
                               <Td>{user.lastName}</Td>
                               <Td>{user.email}</Td>
+                              <Td>
+                                <Text
+                                  color={user.isActive ? 'green.500' : 'red.500'}
+                                  fontWeight="bold"
+                                  fontSize="sm"
+                                >
+                                  {user.isActive ? 'Active' : 'Inactive'}
+                                </Text>
+                              </Td>
                               <Td>
                                 {user.approver ?
                                   <Flex
@@ -431,15 +595,47 @@ export function Component() {
                                 {user.roles?.map(role => role.name).join(', ') || '-'}
                               </Td>
                               <Td>
-                                <Button colorScheme="red" onClick={() => askDelete(user.id)}>
-                                  <FormattedMessage id="text.delete" />
-                                </Button>
+                                <Flex gap={2}>
+                                  {user.isActive ? (
+                                    <Button 
+                                      size="sm" 
+                                      colorScheme="orange" 
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        handleDeactivateUser(user);
+                                      }}
+                                    >
+                                      <FormattedMessage id="text.deactivate" />
+                                    </Button>
+                                  ) : (
+                                    <Button 
+                                      size="sm" 
+                                      colorScheme="green" 
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        handleActivateUser(user);
+                                      }}
+                                    >
+                                      <FormattedMessage id="text.activate" />
+                                    </Button>
+                                  )}
+                                  <Button 
+                                    size="sm" 
+                                    colorScheme="red" 
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      askDelete(user.id);
+                                    }}
+                                  >
+                                    <FormattedMessage id="text.delete" />
+                                  </Button>
+                                </Flex>
                               </Td>
                             </Tr>
                           ))
                         ) : (
                           <Tr>
-                            <Td colSpan={6} textAlign="center">
+                            <Td colSpan={8} textAlign="center">
                               <FormattedMessage id="text.noUsers" defaultMessage="No users are registered" />
                             </Td>
                           </Tr>

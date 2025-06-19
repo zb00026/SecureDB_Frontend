@@ -254,5 +254,21 @@
   "text.invalid_file": "Invalid file",
   "text.no_file_selected": "No file selected",
   "text.new_user": "New User",
-  "text.download_failed": "Failed to download"
+  "text.download_failed": "Failed to download",
+  "text.activate": "Activate",
+  "text.deactivate": "Deactivate",
+  "text.user_activated": "User Activated",
+  "text.user_activation_success": "User has been activated successfully.",
+  "text.user_activation_failed": "Failed to activate user.",
+  "text.user_deactivated": "User Deactivated",
+  "text.user_deactivation_success": "User has been deactivated successfully.",
+  "text.user_deactivation_failed": "Failed to deactivate user.",
+  "text.user_status_active": "Active",
+  "text.user_status_inactive": "Inactive",
+  "text.search_users_placeholder": "Search users by ID, name, email, status, or role...",
+  "text.search_suggestions_try": "Try:",
+  "text.search_results_count": "user found",
+  "text.search_results_count_plural": "users found",
+  "text.search_clear": "Clear search",
+  "text.search_examples": "Examples: john, admin, active, 123"
 }

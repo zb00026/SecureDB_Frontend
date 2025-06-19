@@ -27,13 +27,23 @@ export default function KeycloakLogin({
 
   const { keycloak, initialized } = useKeycloak();
 
-  const params = new URLSearchParams(window.location.hash);
-  const state = params.get('state');
-  const session_state = params.get('session_state');
-  const iss = params.get('iss');
-  const code = params.get('code');
+  // Parse Keycloak callback parameters from hash fragment (not query params)
+  const getKeycloakCallbackParams = () => {
+    const hash = window.location.hash.substring(1); // Remove the # at the beginning
+    const params = new URLSearchParams(hash);
+    return {
+      state: params.get('state'),
+      session_state: params.get('session_state'),
+      iss: params.get('iss'),
+      code: params.get('code')
+    };
+  };
+
+  const { state, session_state, iss, code } = getKeycloakCallbackParams();
   const hasSession = state && session_state && iss && code;
   
+  console.log('KeycloakLogin: Callback params check:', { state, session_state, iss, code, hasSession });
+
   useEffect(() => {
     if (initialized) {
       onInitialized();
@@ -45,6 +55,12 @@ export default function KeycloakLogin({
     const redirectUri = inviteCode 
       ? window.location.origin + window.location.pathname 
       : undefined;
+    
+    // Store invite code in state/localStorage before Keycloak redirect if it exists
+    if (inviteCode) {
+      localStorage.setItem('pendingInviteCode', inviteCode);
+      console.log('KeycloakLogin: Stored invite code before redirect:', inviteCode);
+    }
     
     keycloak?.login({
       redirectUri: redirectUri
@@ -60,11 +76,20 @@ export default function KeycloakLogin({
 
   useEffect(() => {
     if (keycloak?.authenticated && keycloak?.token) {
+      // User is authenticated with a valid token
       onAuthenticated(keycloak?.token);
-    } else if (inviteCode && !hasSession) {
-      doLogin();
+    } else if (!keycloak?.authenticated && !hasSession) {
+      // User is not authenticated AND there's no active Keycloak session
+      // Check if there's an invite code that should trigger login
+      const storedInviteCode = localStorage.getItem('pendingInviteCode');
+      if (inviteCode || storedInviteCode) {
+        console.log('KeycloakLogin: Triggering login due to invite code');
+        doLogin();
+      }
     }
-  }, [keycloak?.authenticated, keycloak?.token, inviteCode]);
+    // If hasSession is true, we're in the middle of Keycloak callback processing
+    // so we should wait for Keycloak to complete authentication
+  }, [keycloak?.authenticated, keycloak?.token, inviteCode, hasSession]);
   useEffect(() => {
   }, [authenticating]);
   return (
