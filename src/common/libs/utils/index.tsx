@@ -184,6 +184,5 @@ export function validatePassword(password: string): {
   });
   
   const isValid = Object.values(requirements).every(Boolean);
-  console.log(isValid);
   return { isValid, requirements };
 }

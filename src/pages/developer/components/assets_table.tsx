@@ -91,6 +91,8 @@ export function AssetsTable({
       onQueryAsset={onQueryAsset}
       showAccessRequestStatus={true}
       onViewAccess={onViewAccess}
+      showLockAsset={false}
+      lockActions={() => null}
     />
   );
 } 

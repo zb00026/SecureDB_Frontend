@@ -19,6 +19,7 @@ import { FilteredUsers } from "./components/filtered_users";
 import { AssetsTable } from "./components/assets_table";
 import { DamViewAccessModal } from "@common/components/DamDialog/DamViewAccessModal";
 import { useViewAccess } from "@common/hooks/useViewAccess";
+import { AssetLockDialog, LockType, LockAction } from "./components/asset_lock_dialog";
 
 export const isSearchable = true;
 export const displayName = 'Assets Management Page';
@@ -31,6 +32,12 @@ export function Component() {
   const [isFormShow, setIsFormShow] = useState(false);
   const [isDelDlgOpen, setIsDelDlgOpen] = useState(false);
   const [deleteAssetId, setDeleteAssetId] = useState<number | null>(null);
+  
+  // Lock/Unlock states
+  const [isLockDialogOpen, setIsLockDialogOpen] = useState(false);
+  const [lockDialogAsset, setLockDialogAsset] = useState<Asset | null>(null);
+  const [lockDialogAction, setLockDialogAction] = useState<LockAction>(LockAction.LOCK);
+  const [isLockLoading, setIsLockLoading] = useState(false);
 
   // Form states
   const [formState, setFormState] = useState({
@@ -129,7 +136,68 @@ export function Component() {
   const deleteAsset = (asset: Asset) => {
     setDeleteAssetId(asset.id ?? null);
     setIsDelDlgOpen(true);
-  }
+  };
+
+  // Lock/Unlock handlers
+  const handleLockAsset = (asset: Asset) => {
+    setLockDialogAsset(asset);
+    setLockDialogAction(LockAction.LOCK);
+    setIsLockDialogOpen(true);
+  };
+
+  const handleUnlockAsset = (asset: Asset) => {
+    setLockDialogAsset(asset);
+    setLockDialogAction(LockAction.UNLOCK);
+    setIsLockDialogOpen(true);
+  };
+
+  const closeLockDialog = () => {
+    if (!isLockLoading) {
+      setIsLockDialogOpen(false);
+      setLockDialogAsset(null);
+      setLockDialogAction(LockAction.LOCK);
+    }
+  };
+
+  const handleLockConfirm = async (asset: Asset, lockAction: LockAction, lockType: LockType) => {
+    setIsLockLoading(true);
+    
+    try {
+      // Defensive implementation - this is a critical operation
+      if (!asset?.id) {
+        throw new Error('Invalid asset selected');
+      }
+
+      const endpoint = lockDialogAction === LockAction.LOCK 
+        ? `/api/admin/assets/${asset.id}/lockout`
+        : `/api/admin/assets/${asset.id}/unlock`;
+
+      const requestData = {
+        lockAllUsers: lockAction == LockAction.LOCK && lockType == LockType.LOCK_ALL_DB_USERS
+      };
+      if (lockAction == LockAction.UNLOCK && asset.lockType == LockType.LOCK_ALL_DB_USERS) {
+        requestData.lockAllUsers = true;
+      }
+      handleRequest(endpoint, 'POST', requestData, {
+        onSuccess: () => {
+          getAssetsList({});
+          closeLockDialog();
+        },
+        successTitleId: lockDialogAction === LockAction.LOCK ? 'text.asset_locked' : 'text.asset_unlocked',
+        successDescriptionId: lockDialogAction === LockAction.LOCK ? 'text.asset_lock_success' : 'text.asset_unlock_success',
+        errorDescriptionId: lockDialogAction === LockAction.LOCK ? 'text.asset_lock_failed' : 'text.asset_unlock_failed'
+      });
+      
+      
+    } catch (error: any) {
+      console.error(`${lockDialogAction} operation failed:`, error);
+      showError({
+        description: error.message ?? `Failed to ${lockDialogAction.toLowerCase()} asset access. Please try again.`
+      });
+    } finally {
+      setIsLockLoading(false);
+    }
+  };
 
   const checkAssetOwner = (user: User) => {
     if (!selectedAsset) return false;
@@ -398,6 +466,8 @@ export function Component() {
               onSelectAsset={handleSelectAsset}
               onDeleteAsset={deleteAsset}
               onViewAccess={viewAssetAccess}
+              onLockAsset={handleLockAsset}
+              onUnlockAsset={handleUnlockAsset}
             />
           </Flex>
           <Flex w={{ base: "full", sm: "full", md: "49%", lg: "39%" }}>
@@ -437,6 +507,14 @@ export function Component() {
         assetAccessData={assetAccessData}
         isLoading={isLoadingAccess}
         error={accessError}
+      />
+      <AssetLockDialog
+        isOpen={isLockDialogOpen}
+        onClose={closeLockDialog}
+        asset={lockDialogAsset}
+        action={lockDialogAction}
+        onConfirm={handleLockConfirm}
+        isLoading={isLockLoading}
       />
     </DamBasePage>
   );

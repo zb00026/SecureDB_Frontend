@@ -79,6 +79,15 @@ const adminNavItems = [
     colorScheme: 'teal',
     href: '/admin/assets'
   },
+
+  {
+    id: 'assets_owner',
+    titleId: 'text.asset_owner',
+    description: 'Manage your assets',
+    icon: FiHardDrive,
+    colorScheme: 'teal',
+    href: '/asset_owner'
+  },
   {
     id: 'license',
     titleId: 'text.license',

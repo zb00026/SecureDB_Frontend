@@ -42,7 +42,7 @@ export function Component() {
   const [deleteUserId, setDeleteUserId] = useState<number | null>(null);
   const [roleOptions, setRoleOptions] = useState<Array<Option>>([]);
   const defauleDark = useColorModeValue("ant", "antdark");
-  const selectedRowBg = useColorModeValue('gray.100', 'gray.700');
+  const selectedRowBg = useColorModeValue('gray.200', 'gray.700');
   const [approvers, setApprovers] = useState<Array<User>>([]);
   const [isApproversDlgOpen, setIsApproversDlgOpen] = useState<boolean>(false);
   const [isUnsetApproverDlgOpen, setIsUnsetApproverDlgOpen] = useState<boolean>(false);

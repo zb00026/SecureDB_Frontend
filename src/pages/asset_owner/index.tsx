@@ -1,5 +1,6 @@
 import {
-  Button, Flex, Tr, Tbody, Table, TableContainer, Td, Th, Thead
+  Button, Flex, Tr, Tbody, Table, TableContainer, Td, Th, Thead,
+  useColorModeValue
 } from "@chakra-ui/react";
 import { DamBasePage } from "@common/components/DamBasePage";
 import { DamCardBody, DamCard, request, useDamToast, TextCardHeader, DamCardDivider, stateActions } from "@common/index";
@@ -22,6 +23,7 @@ export function Component() {
   const [selectedCredential, setSelectedCredential] = useState<AssetCredential | null>(null);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [isDelDlgOpen, setIsDelDlgOpen] = useState(false);
+  const selectedRowBg = useColorModeValue('gray.200', 'gray.700');
 
   // Use the shared view access hook
   const {
@@ -126,7 +128,7 @@ export function Component() {
                   <>
                     {credentials.map((credential) => (
                       <Tr key={credential.id}
-                        backgroundColor={credential.id === selectedCredential?.id ? 'gray.80' : 'transparent'}
+                        backgroundColor={credential.id === selectedCredential?.id ? selectedRowBg : 'transparent'}
                         onClick={() => setSelectedCredential(credential)}>
                         <Td>{credential.asset?.name}</Td>
                         <Td>{credential.asset?.type}</Td>
@@ -144,6 +146,7 @@ export function Component() {
                                 colorScheme="green"
                                 onClick={(e) => {
                                   e.stopPropagation();
+                                  setSelectedCredential(credential);
                                   setIsDialogOpen(true);
                                 }}
                               >
@@ -157,6 +160,7 @@ export function Component() {
                                 colorScheme="yellow"
                                 onClick={(e) => {
                                   e.stopPropagation();
+                                  setSelectedCredential(credential);
                                   setIsDialogOpen(true);
                                 }}
                               >

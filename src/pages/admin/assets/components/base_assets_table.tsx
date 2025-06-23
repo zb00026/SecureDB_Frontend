@@ -16,6 +16,8 @@ interface BaseAssetsTableProps {
   readonly onQueryAsset?: (asset: Asset) => void;
   readonly showAccessRequestStatus?: boolean;
   readonly onViewAccess?: (asset: Asset) => void;
+  readonly showLockAsset?: boolean;
+  readonly lockActions: (asset: Asset) => React.ReactNode;
 }
 
 const getStatusColor = (status: string | undefined): string => {
@@ -41,6 +43,8 @@ export function BaseAssetsTable({
   renderActions,
   onQueryAsset,
   showAccessRequestStatus,
+  showLockAsset,
+  lockActions,
   onViewAccess
 }: BaseAssetsTableProps) {
   return (
@@ -77,6 +81,9 @@ export function BaseAssetsTable({
                 )}
                 {onViewAccess && (
                   <Th><FormattedMessage id='text.view_access' /></Th>
+                )}
+                {showLockAsset && (
+                  <Th><FormattedMessage id='text.lock_asset' /></Th>
                 )}
               </Tr>
             </Thead>
@@ -159,6 +166,11 @@ export function BaseAssetsTable({
                           <PrimaryButton variant='outline' size='sm' onClick={() => onViewAccess?.(asset)}>
                             <FormattedMessage id='text.view_access' />
                           </PrimaryButton>
+                        </Td>
+                      )}
+                      {showLockAsset && (
+                        <Td>
+                          {lockActions(asset)}
                         </Td>
                       )}
                     </Tr>

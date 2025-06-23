@@ -8,7 +8,8 @@ import {
   Button,
   VStack,
   Text,
-  TableContainer
+  TableContainer,
+  useColorModeValue
 } from "@chakra-ui/react";
 
 import { FormattedMessage, useIntl } from "react-intl";
@@ -39,6 +40,7 @@ export function AssetRequestApprovals() {
   const [isAccessRejectDlgOpen, setIsAccessRejectDlgOpen] = useState(false);
   const [selectedRequest, setSelectedRequest] = useState<AccessRequest | null>(null);
   const { handleRequest } = useApiRequest();
+  const selectedRowBg = useColorModeValue('gray.200', 'gray.700');
 
   useEffect(() => {
     fetchApprovals();
@@ -112,7 +114,7 @@ export function AssetRequestApprovals() {
                 </Tr>
               )}
               {assetRequestApprovals.map((request) => (
-                <Tr key={request.id}>
+                <Tr key={request.id} backgroundColor={request.id === selectedRequest?.id ? selectedRowBg : 'transparent'}>
                   <Td>{request.assetDTO.name}</Td>
                   <Td>{request.assetDTO.description}</Td>
                   <Td>{`${request.requestor.firstName} ${request.requestor.lastName}`}</Td>

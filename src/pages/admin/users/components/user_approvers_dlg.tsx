@@ -45,7 +45,7 @@ export function UserApproversDlg({
   const cancelRef = useRef(null);
   const borderColor = useColorModeValue('gray.200', 'gray.600');
   const tableBg = useColorModeValue('white', 'gray.800');
-  const selectedRowBg = useColorModeValue('gray.100', 'gray.700');
+  const selectedRowBg = useColorModeValue('gray.200', 'gray.700');
 
   const checkUserCriteria = (user: User) => {
     if (selectedUser?.id == user.id) return false;
