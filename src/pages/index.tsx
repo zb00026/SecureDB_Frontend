@@ -111,13 +111,9 @@ export function Component() {
     'linear(to-r, brand.600, brand.700)'
   );
 
-  if (!user?.roles?.length) {
-    navigate('/error/forbidden');
-    return;
-  }
 
   // Filter out admin role for regular role display since we handle admin separately
-  const nonAdminRoles = user.roles.filter((role: Role) => role.name.toLowerCase() !== 'admin');
+  const nonAdminRoles = user.roles.filter((role: Role) => (role.name.toLowerCase() !== 'admin' && role.name.toLowerCase() !== 'none'));
   const isAdmin = userHasRole(user, USER_ROLE.ADMIN);
 
   // Helper function to get audit trail description based on user role

@@ -4,11 +4,11 @@ import { Role } from "@models/Role";
 import { User } from "@models/User";
 
 export function isAuthorizedPath(path: string, user?: User): boolean {
-  if (!user?.roles.length) return false;
+  if (!user?.roles.length && path != '/') return false;
   let hasRole: boolean = false;
   if (path == '/') return true;
 
-  user.roles.forEach((role: Role) => {
+  user?.roles.forEach((role: Role) => {
     const userRole = role.name;
     if (!userRole) return;
 

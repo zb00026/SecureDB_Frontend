@@ -499,7 +499,7 @@ export function Component() {
                     flex={{ base: "none", md: "0" }}
                     w={{ base: "100%", md: "auto" }}
                   >
-                    <HStack spacing={3} flexWrap="wrap">
+                    <HStack spacing={3}>
                       <DamButton
                         size="sm"
                         colorScheme="blue"
@@ -592,7 +592,7 @@ export function Component() {
                                 }
                               </Td>
                               <Td>
-                                {user.roles?.map(role => role.name).join(', ') || '-'}
+                                {user.roles?.map(role => role.name).join(', ') ?? 'NONE'}
                               </Td>
                               <Td>
                                 <Flex gap={2}>

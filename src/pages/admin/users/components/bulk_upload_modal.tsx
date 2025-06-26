@@ -106,7 +106,7 @@ export const BulkUploadModal = ({ isOpen, onClose, onUploadSuccess }: BulkUpload
     request('/api/admin/users/bulk-upload', {
       method: 'POST',
       body: formData,
-    }, false, 900000).then((result: any) => {
+    }, true, 900000).then((result: any) => {
       setIsUploading(false);
       setUploadResult(result);
       
@@ -122,7 +122,7 @@ export const BulkUploadModal = ({ isOpen, onClose, onUploadSuccess }: BulkUpload
         }
       } else {
         showError({
-          title: intl.formatMessage({ id: 'text.upload_failed' }),
+          title: result.message ?? intl.formatMessage({ id: 'text.upload_failed' }),
           description: result.message
         });
       }
