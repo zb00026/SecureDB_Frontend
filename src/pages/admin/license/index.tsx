@@ -97,6 +97,16 @@ export function Component() {
   const cardBg = useColorModeValue('white', 'gray.800');
   const borderColor = useColorModeValue('gray.200', 'gray.600');
 
+  // Use refs to store toast functions to prevent dependency issues
+  const showErrorRef = useRef(showError);
+  const showSuccessRef = useRef(showSuccess);
+  
+  // Update refs when toast functions change
+  useEffect(() => {
+    showErrorRef.current = showError;
+    showSuccessRef.current = showSuccess;
+  }, [showError, showSuccess]);
+
   const isValidFile = useMemo(() => {
     if (!selectedFile) return false;
     
@@ -112,17 +122,6 @@ export function Component() {
     return !selectedFile || !isValidFile || isUploading;
   }, [selectedFile, isValidFile, isUploading]);
 
-  const debouncedRefresh = useCallback(() => {
-    if (refreshTimeoutRef.current) {
-      clearTimeout(refreshTimeoutRef.current);
-    }
-    
-    refreshTimeoutRef.current = setTimeout(() => {
-      fetchLicenseInfo();
-      setLastRefresh(new Date());
-    }, REFRESH_DEBOUNCE_MS);
-  }, []);
-
   const fetchLicenseInfo = useCallback(async () => {
     try {
       setIsLoading(true);
@@ -137,13 +136,24 @@ export function Component() {
       setSystemInfo(systemInfoResponse);
     } catch (error: any) {
       console.error('Failed to fetch license info:', error);
-      showError({
+      showErrorRef.current({
         description: error.message ?? 'Failed to fetch license information'
       });
     } finally {
       setIsLoading(false);
     }
-  }, [showError]);
+  }, []); // ✅ No dependencies that change frequently
+
+  const debouncedRefresh = useCallback(() => {
+    if (refreshTimeoutRef.current) {
+      clearTimeout(refreshTimeoutRef.current);
+    }
+    
+    refreshTimeoutRef.current = setTimeout(() => {
+      fetchLicenseInfo();
+      setLastRefresh(new Date());
+    }, REFRESH_DEBOUNCE_MS);
+  }, [fetchLicenseInfo]);
 
   useEffect(() => {
     fetchLicenseInfo();
@@ -152,7 +162,7 @@ export function Component() {
         clearTimeout(refreshTimeoutRef.current);
       }
     };
-  }, [fetchLicenseInfo]);
+  }, []); // ✅ Only run once on mount
 
   const validateFile = useCallback((file: File): string | null => {
     if (!file) return 'No file selected';
@@ -183,7 +193,7 @@ export function Component() {
     
     const validationError = validateFile(file);
     if (validationError) {
-      showError({
+      showErrorRef.current({
         description: validationError
       });
       if (fileInputRef.current) {
@@ -193,11 +203,11 @@ export function Component() {
     }
     
     setSelectedFile(file);
-  }, [validateFile, showError]);
+  }, [validateFile]);
 
   const handleUpload = useCallback(async () => {
     if (!selectedFile || !isValidFile) {
-      showError({
+      showErrorRef.current({
         description: 'Please select a valid license file to upload'
       });
       return;
@@ -234,7 +244,7 @@ export function Component() {
       setUploadProgress({ loaded: selectedFile.size, total: selectedFile.size, percentage: 100 });
 
       if (result.success) {
-        showSuccess({
+        showSuccessRef.current({
           description: 'License uploaded successfully'
         });
         
@@ -253,14 +263,14 @@ export function Component() {
       }
     } catch (error: any) {
       console.error('Upload error:', error);
-      showError({
+      showErrorRef.current({
         description: error.message ?? 'Failed to upload license file'
       });
     } finally {
       setIsUploading(false);
       setUploadProgress(null);
     }
-  }, [selectedFile, isValidFile, description, showError, showSuccess, fetchLicenseInfo, refreshLicenseStatus]);
+  }, [selectedFile, isValidFile, description, fetchLicenseInfo, refreshLicenseStatus]);
 
   const handleDelete = useCallback(async () => {
     const confirmed = window.confirm(
@@ -287,16 +297,16 @@ export function Component() {
     
     try {
       await navigator.clipboard.writeText(systemInfo.systemIdentifier);
-      showSuccess({
+      showSuccessRef.current({
         description: 'System identifier copied to clipboard'
       });
     } catch (error) {
       console.error('Failed to copy to clipboard:', error);
-      showError({
+      showErrorRef.current({
         description: 'Unable to copy to clipboard. Please copy manually.'
       });
     }
-  }, [systemInfo?.systemIdentifier, showSuccess, showError]);
+  }, [systemInfo?.systemIdentifier]);
 
   const handleRefreshSystemId = useCallback(async () => {
     try {
@@ -305,7 +315,7 @@ export function Component() {
       });
 
       if (result.success) {
-        showSuccess({
+        showSuccessRef.current({
           description: result.changed 
             ? `System identifier updated: ${result.newIdentifier}`
             : 'System identifier unchanged'
@@ -318,11 +328,11 @@ export function Component() {
       }
     } catch (error: any) {
       console.error('System identifier refresh error:', error);
-      showError({
+      showErrorRef.current({
         description: error.message ?? 'Failed to refresh system identifier'
       });
     }
-  }, [showSuccess, showError, fetchLicenseInfo]);
+  }, [fetchLicenseInfo]);
 
   const formatFileSize = useCallback((bytes: number): string => {
     if (bytes === 0) return '0 Bytes';
@@ -347,7 +357,7 @@ export function Component() {
         <Box display="flex" justifyContent="center" alignItems="center" minH="200px">
           <VStack spacing={4}>
             <Spinner size="xl" />
-            <Text>Loading license information...</Text>
+            <Text mb={0}>Loading license information...</Text>
           </VStack>
         </Box>
       </DamBasePage>
@@ -363,7 +373,7 @@ export function Component() {
               <Heading size="md">Current License Status</Heading>
               <HStack>
                 {lastRefresh && (
-                  <Text fontSize="xs" color="gray.500">
+                  <Text fontSize="xs" color="gray.500" mb={0}>
                     Last updated: {lastRefresh.toLocaleTimeString()}
                   </Text>
                 )}
@@ -421,7 +431,7 @@ export function Component() {
                       {licenseData.license.description && (
                         <Box>
                           <Text fontWeight="medium" mb={2}>Description:</Text>
-                          <Text fontSize="sm" color="gray.600" _dark={{ color: 'gray.400' }}>
+                          <Text fontSize="sm" color="gray.600" _dark={{ color: 'gray.400' }} mb={0}>
                             {licenseData.license.description}
                           </Text>
                         </Box>
@@ -470,16 +480,16 @@ export function Component() {
                       <AlertTitle>License System Mismatch</AlertTitle>
                       <AlertDescription>
                         <VStack align="start" spacing={2}>
-                          <Text>{licenseFeatures.errorMessage}</Text>
+                          <Text mb={0}>{licenseFeatures.errorMessage}</Text>
                           <Box>
-                            <Text fontSize="sm" fontWeight="medium">License System ID:</Text>
-                            <Text fontSize="sm" fontFamily="mono" color="red.600" _dark={{ color: 'red.400' }}>
+                            <Text fontSize="sm" fontWeight="medium" mb={0}>License System ID:</Text>
+                            <Text fontSize="sm" fontFamily="mono" color="red.600" _dark={{ color: 'red.400' }} mb={0}>
                               {licenseFeatures.licenseSystemIdentifier}
                             </Text>
                           </Box>
                           <Box>
-                            <Text fontSize="sm" fontWeight="medium">Current System ID:</Text>
-                            <Text fontSize="sm" fontFamily="mono" color="blue.600" _dark={{ color: 'blue.400' }}>
+                            <Text fontSize="sm" fontWeight="medium" mb={0}>Current System ID:</Text>
+                            <Text fontSize="sm" fontFamily="mono" color="blue.600" _dark={{ color: 'blue.400' }} mb={0}>
                               {licenseFeatures.currentSystemIdentifier}
                             </Text>
                           </Box>
@@ -517,17 +527,17 @@ export function Component() {
                 
                 {Object.keys(licenseFeatures.features).length > 0 && (
                   <Box>
-                    <Text fontWeight="medium" mb={3}>License Features:</Text>
+                    <Text fontWeight="medium" mb={0}>License Features:</Text>
                     <Box p={4} bg="gray.50" borderRadius="md" _dark={{ bg: 'gray.700' }}>
                       <VStack align="stretch" spacing={2}>
                         {Object.entries(licenseFeatures.features)
                           .filter(([key]) => key !== 'signatureDigest' && key !== 'licenseSignature')
                           .map(([key, value]) => (
                           <HStack key={key} justify="space-between">
-                            <Text fontWeight="medium" textTransform="capitalize">
+                            <Text fontWeight="medium" textTransform="capitalize" mb={0}>
                               {key.replace(/([A-Z])/g, ' $1').trim()}:
                             </Text>
-                            <Text fontSize="sm" color="gray.600" _dark={{ color: 'gray.400' }}>
+                            <Text fontSize="sm" color="gray.600" _dark={{ color: 'gray.400' }} mb={0}>
                               {value}
                             </Text>
                           </HStack>
@@ -553,7 +563,7 @@ export function Component() {
               <VStack align="stretch" spacing={4}>
                 <Box p={4} bg="blue.50" borderRadius="md" _dark={{ bg: 'blue.900' }}>
                   <HStack justify="space-between" align="center">
-                    <Text fontWeight="bold" fontSize="lg" color="blue.700" _dark={{ color: 'blue.300' }}>
+                    <Text fontWeight="bold" fontSize="lg" color="blue.700" _dark={{ color: 'blue.300' }} mb={0}>
                       System Identifier:
                     </Text>
                     <HStack>
@@ -568,6 +578,7 @@ export function Component() {
                         borderRadius="md"
                         border="1px solid"
                         borderColor="blue.200"
+                        mb={0}
                         _dark={{ 
                           color: 'blue.200',
                           bg: 'gray.800',
@@ -639,12 +650,12 @@ export function Component() {
                   </Button>
                   {selectedFile && (
                     <VStack align="start" spacing={1} flex={1}>
-                      <Text fontSize="sm" fontWeight="medium">{selectedFile.name}</Text>
-                      <Text fontSize="xs" color="gray.500">
+                      <Text fontSize="sm" fontWeight="medium" mb={0}>{selectedFile.name}</Text>
+                      <Text fontSize="xs" color="gray.500" mb={0}>
                         {formatFileSize(selectedFile.size)}
                       </Text>
                       {getFileValidationMessage() && (
-                        <Text fontSize="xs" color="red.500">
+                        <Text fontSize="xs" color="red.500" mb={0}>
                           {getFileValidationMessage()}
                         </Text>
                       )}
@@ -668,8 +679,8 @@ export function Component() {
               {uploadProgress && (
                 <Box>
                   <HStack justify="space-between" mb={2}>
-                    <Text fontSize="sm">Uploading...</Text>
-                    <Text fontSize="sm">{uploadProgress.percentage}%</Text>
+                    <Text fontSize="sm" mb={0}>Uploading...</Text>
+                    <Text fontSize="sm" mb={0}>{uploadProgress.percentage}%</Text>
                   </HStack>
                   <Progress value={uploadProgress.percentage} colorScheme="blue" />
                 </Box>
