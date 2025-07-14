@@ -82,7 +82,7 @@ export function SetCredentialDialog({ isOpen, titleId, onClose, onSubmit, showPa
             <Button id="btnSaveCredential"
               colorScheme="blue"
               onClick={handleSubmit}
-              disabled={!isPasswordValid}
+              disabled={showPasswordRequirements && !isPasswordValid}
               ml={3}>
               <FormattedMessage id={saveButtonTextId ?? 'text.save'} />
             </Button>

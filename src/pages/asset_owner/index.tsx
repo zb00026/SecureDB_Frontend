@@ -172,6 +172,7 @@ export function Component() {
                                 colorScheme="red"
                                 onClick={(e) => {
                                   e.stopPropagation();
+                                  setSelectedCredential(credential);
                                   setIsDelDlgOpen(true);
                                 }}
                               >

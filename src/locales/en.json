@@ -69,7 +69,7 @@
   "text.from": "From",
   "text.to": "To",
   "text.asset_created": "Asset Created",
-  "text.asset_create_success": "Asset is created successfully.",
+  "text.asset_create_success": "Connection to this asset is not validated. Now login as asset owner and set credentials to validate connection",
   "text.asset_create_failed": "Failed to create asset",
   "text.asset_updated": "Asset Updated",
   "text.asset_update_success": "Asset is updated successfully",

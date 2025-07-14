@@ -94,11 +94,12 @@ export const request = async (url: string, options: RequestInit & { data?: any }
 
     const response = await fetch(`${baseURL}${url}`, fetchOptions);
     clearTimeout(timeoutId);
-
+    
+    stateActions.subLoading();
     if (!responseIsJson) return response;
     
+    
     const data = await response.json();
-    stateActions.subLoading();
     
     if (![200, 201].includes(response.status)) {
       return handleResponseError(response, data);
