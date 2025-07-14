@@ -9,6 +9,7 @@ import {
 import { DamBasePage } from "@common/components/DamBasePage";
 import { DamCard, DamCardBody, DamCardDivider, request, stateActions, useListPage, useDamToast } from "@common/index";
 import { Asset } from "@models/assets/Asset";
+import { AssetDTO } from "@models/assets/AssetDTO";
 import { User } from "@models/User";
 import { useEffect, useState } from "react";
 import { FormattedMessage, useIntl } from "react-intl";
@@ -40,7 +41,7 @@ export function Component() {
   const [isLockLoading, setIsLockLoading] = useState(false);
 
   // Form states
-  const [formState, setFormState] = useState({
+  const [formState, setFormState] = useState<Partial<AssetDTO>>({
     name: '',
     type: '' as AssetType | '',
     databaseType: '' as DatabaseType | '',
