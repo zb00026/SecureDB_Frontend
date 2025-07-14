@@ -2,7 +2,7 @@ import {
   Box, Button, Text, Flex, Input, Table, TableContainer, Tbody, Td, Th, Thead, Tr, useColorModeValue,
   IconButton, useDisclosure, HStack, InputGroup, InputLeftElement, Badge, Tooltip, VStack
 } from "@chakra-ui/react";
-import { DamButton, DamCard, DamCardBody, request, stateActions, useListPage, useDamToast, userHasRole } from "@common/index";
+import { DamButton, DamCard, DamCardBody, request, stateActions, useListPage, useDamToast, userHasRole, BulkUploadModal, BulkUploadConfig } from "@common/index";
 import { DamAlertDialog } from "@common/components/DamDialog/DamAlertDialog";
 import { useApiRequest } from "@common/hooks/useApiRequest";
 import { Role } from "@models/Role";
@@ -16,7 +16,6 @@ import { CloseIcon, SearchIcon } from "@chakra-ui/icons";
 
 import { DamBasePage } from "@common/components/DamBasePage";
 import { UserApproversDlg } from "./components/user_approvers_dlg";
-import { BulkUploadModal } from "./components/bulk_upload_modal";
 
 type Option = {
   label: string;  // The display name of the role
@@ -61,6 +60,21 @@ export function Component() {
     }
   });
   const { handleRequest } = useApiRequest();
+
+  // Bulk upload configuration for users
+  const userBulkUploadConfig: BulkUploadConfig = {
+    type: 'users',
+    titleId: 'text.bulk_user_upload',
+    instructionsId: 'text.upload_instructions',
+    sampleCsvEndpoint: '/api/admin/users/download-sample-csv',
+    uploadEndpoint: '/api/admin/users/bulk-upload',
+    sampleFileName: 'user_bulk_upload_sample.csv',
+    successMessageId: 'text.user_create_success_with_temp_password',
+    errorMessageId: 'text.user_create_failed',
+    createdItemsKey: 'users',
+    createdItemNameKey: 'email',
+    createdItemDisplayKey: 'email'
+  };
 
   // Debounced search function
   const debouncedSearch = useCallback(
@@ -677,10 +691,11 @@ export function Component() {
         confirmButtonId="btnConfirmSaveApprover"
       />
 
-            <BulkUploadModal
+      <BulkUploadModal
         isOpen={isBulkUploadOpen}
         onClose={onBulkUploadClose}
         onUploadSuccess={() => getList({})}
+        config={userBulkUploadConfig}
       />
     </DamBasePage>
   );

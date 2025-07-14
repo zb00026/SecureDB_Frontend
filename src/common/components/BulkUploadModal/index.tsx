@@ -23,13 +23,28 @@ import { DamButton, useDamToast, request, stateActions } from "@common/index";
 import { useState, useRef } from "react";
 import { FormattedMessage, useIntl } from "react-intl";
 
+export interface BulkUploadConfig {
+  type: 'users' | 'assets';
+  titleId: string;
+  instructionsId: string;
+  sampleCsvEndpoint: string;
+  uploadEndpoint: string;
+  sampleFileName: string;
+  successMessageId: string;
+  errorMessageId: string;
+  createdItemsKey: string;
+  createdItemNameKey: string;
+  createdItemDisplayKey: string;
+}
+
 interface BulkUploadModalProps {
   isOpen: boolean;
   onClose: () => void;
   onUploadSuccess: () => void;
+  config: BulkUploadConfig;
 }
 
-export const BulkUploadModal = ({ isOpen, onClose, onUploadSuccess }: BulkUploadModalProps) => {
+export const BulkUploadModal = ({ isOpen, onClose, onUploadSuccess, config }: BulkUploadModalProps) => {
   const { showError, showSuccess } = useDamToast();
   const intl = useIntl();
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
@@ -39,7 +54,7 @@ export const BulkUploadModal = ({ isOpen, onClose, onUploadSuccess }: BulkUpload
 
   const handleDownloadSampleCSV = () => {
     stateActions.addLoading();
-    request('/api/admin/users/download-sample-csv', {
+    request(config.sampleCsvEndpoint, {
       method: 'GET',
       data: {},
     }, false).then(async (response: Response) => {
@@ -53,7 +68,7 @@ export const BulkUploadModal = ({ isOpen, onClose, onUploadSuccess }: BulkUpload
       const url = window.URL.createObjectURL(blob);
       const link = document.createElement('a');
       link.href = url;
-      link.download = 'user_bulk_upload_sample.csv';
+      link.download = config.sampleFileName;
       document.body.appendChild(link);
       link.click();
       link.remove();
@@ -103,7 +118,7 @@ export const BulkUploadModal = ({ isOpen, onClose, onUploadSuccess }: BulkUpload
     const formData = new FormData();
     formData.append('file', selectedFile);
 
-    request('/api/admin/users/bulk-upload', {
+    request(config.uploadEndpoint, {
       method: 'POST',
       body: formData,
     }, true, 900000).then((result: any) => {
@@ -111,11 +126,12 @@ export const BulkUploadModal = ({ isOpen, onClose, onUploadSuccess }: BulkUpload
       setUploadResult(result);
       
       if (result.success) {
+        const successCount = result.successfulItems || result.successfulUsers || 0;
         showSuccess({
           title: intl.formatMessage({ id: 'text.upload_success' }),
-          description: `${result.successfulUsers} ${intl.formatMessage({ id: 'text.users_created' })}. ${intl.formatMessage({ id: 'text.email_invites_sent' })}`
+          description: intl.formatMessage({ id: config.successMessageId }, { count: successCount })
         });
-        onUploadSuccess(); // Refresh the user list in parent component
+        onUploadSuccess(); // Refresh the list in parent component
         setSelectedFile(null);
         if (fileInputRef.current) {
           fileInputRef.current.value = '';
@@ -146,23 +162,41 @@ export const BulkUploadModal = ({ isOpen, onClose, onUploadSuccess }: BulkUpload
     if (!uploadResult) return null;
 
     if (uploadResult.success) {
+      const createdItems = uploadResult[config.createdItemsKey] || [];
+      const successCount = uploadResult.successfulItems || uploadResult.successfulUsers || 0;
+      
       return (
         <Alert status="success" mt={4}>
           <AlertIcon />
           <Box>
             <AlertTitle>{intl.formatMessage({ id: 'text.upload_success' })}</AlertTitle>
             <AlertDescription>
-              {uploadResult.successfulUsers} {intl.formatMessage({ id: 'text.users_created' })}.
-              {uploadResult.users && (
+              {intl.formatMessage({ id: config.successMessageId }, { count: successCount })}
+                             {createdItems.length > 0 && (
+                 <VStack align="start" mt={2}>
+                   <Text fontWeight="bold">Created {config.type}:</Text>
+                   <List spacing={1} fontSize="sm">
+                     {createdItems.slice(0, 5).map((item: any, index: number) => (
+                       <ListItem key={`${item[config.createdItemNameKey]}-${item[config.createdItemDisplayKey] || item.email || index}`}>
+                         • {config.type === 'users' 
+                           ? `${item.firstName} ${item.lastName} (${item.email})`
+                           : item[config.createdItemDisplayKey]
+                         }
+                       </ListItem>
+                     ))}
+                     {createdItems.length > 5 && (
+                       <ListItem key="more-items">... and {createdItems.length - 5} more</ListItem>
+                     )}
+                   </List>
+                 </VStack>
+               )}
+              {uploadResult.warnings && uploadResult.warnings.length > 0 && (
                 <VStack align="start" mt={2}>
-                  <Text fontWeight="bold">Created users:</Text>
-                  <List spacing={1} fontSize="sm">
-                    {uploadResult.users.slice(0, 5).map((user: any) => (
-                      <ListItem key={user.email}>• {user.firstName} {user.lastName} ({user.email})</ListItem>
+                  <Text fontWeight="bold" color="orange.600">Warnings:</Text>
+                  <List spacing={1} fontSize="sm" maxH="200px" overflowY="auto">
+                    {uploadResult.warnings.map((warning: string, index: number) => (
+                      <ListItem key={`warning-${warning.slice(0, 20)}-${index}`} color="orange.600">• {warning}</ListItem>
                     ))}
-                    {uploadResult.users.length > 5 && (
-                      <ListItem key="more-users">... and {uploadResult.users.length - 5} more</ListItem>
-                    )}
                   </List>
                 </VStack>
               )}
@@ -183,7 +217,7 @@ export const BulkUploadModal = ({ isOpen, onClose, onUploadSuccess }: BulkUpload
                   <Text fontWeight="bold">{intl.formatMessage({ id: 'text.validation_errors' })}:</Text>
                   <List spacing={1} fontSize="sm" maxH="200px" overflowY="auto">
                     {uploadResult.errors.map((error: string, index: number) => (
-                      <ListItem key={`error-${index}-${error.slice(0, 20)}`} color="red.600">• {error}</ListItem>
+                      <ListItem key={`error-${error.slice(0, 20)}-${index}`} color="red.600">• {error}</ListItem>
                     ))}
                   </List>
                 </VStack>
@@ -209,7 +243,7 @@ export const BulkUploadModal = ({ isOpen, onClose, onUploadSuccess }: BulkUpload
       <ModalOverlay />
       <ModalContent>
         <ModalHeader>
-          <FormattedMessage id="text.bulk_user_upload" />
+          <FormattedMessage id={config.titleId} />
         </ModalHeader>
         <ModalCloseButton />
         <ModalBody>
@@ -219,7 +253,7 @@ export const BulkUploadModal = ({ isOpen, onClose, onUploadSuccess }: BulkUpload
               <Box>
                 <AlertTitle>Instructions</AlertTitle>
                 <AlertDescription>
-                  <FormattedMessage id="text.upload_instructions" />
+                  <FormattedMessage id={config.instructionsId} />
                 </AlertDescription>
               </Box>
             </Alert>

@@ -337,5 +337,11 @@
   "text.invalid_or_expired_token": "Invalid or expired reset token",
   "text.confirm_new_password": "Confirm new password",
   "text.asset_updated_success": "Asset has been updated successfully",
-  "text.error_occurred_updating_asset": "An error occurred while updating asset information"
+  "text.error_occurred_updating_asset": "An error occurred while updating asset information",
+  "text.bulk_asset_upload": "Bulk Asset Upload",
+  "text.asset_upload_instructions": "Upload a CSV file with asset information to create multiple assets at once. The CSV should include asset details and optionally an asset owner email.",
+  "text.assets_created": "{count} assets created",
+  "text.asset_owners_not_found": "Some asset owners were not found and assets were created without owners",
+  "text.asset_bulk_upload_success": "Bulk asset upload completed successfully! {count} assets were created.",
+  "text.asset_bulk_upload_failed": "Bulk asset upload failed"
 }

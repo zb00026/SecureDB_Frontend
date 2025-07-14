@@ -4,10 +4,11 @@ import {
   Tab,
   TabList,
   TabPanel,
-  TabPanels
+  TabPanels,
+  useDisclosure
 } from "@chakra-ui/react";
 import { DamBasePage } from "@common/components/DamBasePage";
-import { DamCard, DamCardBody, DamCardDivider, request, stateActions, useListPage, useDamToast } from "@common/index";
+import { DamCard, DamCardBody, DamCardDivider, request, stateActions, useListPage, useDamToast, BulkUploadModal, BulkUploadConfig } from "@common/index";
 import { Asset } from "@models/assets/Asset";
 import { AssetDTO } from "@models/assets/AssetDTO";
 import { User } from "@models/User";
@@ -39,6 +40,9 @@ export function Component() {
   const [lockDialogAsset, setLockDialogAsset] = useState<Asset | null>(null);
   const [lockDialogAction, setLockDialogAction] = useState<LockAction>(LockAction.LOCK);
   const [isLockLoading, setIsLockLoading] = useState(false);
+
+  // Bulk upload state
+  const { isOpen: isBulkUploadOpen, onOpen: onBulkUploadOpen, onClose: onBulkUploadClose } = useDisclosure();
 
   // Form states
   const [formState, setFormState] = useState<Partial<AssetDTO>>({
@@ -98,6 +102,21 @@ export function Component() {
   });
 
   const { handleRequest } = useApiRequest();
+
+  // Bulk upload configuration for assets
+  const assetBulkUploadConfig: BulkUploadConfig = {
+    type: 'assets',
+    titleId: 'text.bulk_asset_upload',
+    instructionsId: 'text.asset_upload_instructions',
+    sampleCsvEndpoint: '/api/admin/assets/download-sample-csv',
+    uploadEndpoint: '/api/admin/assets/bulk-upload',
+    sampleFileName: 'asset_bulk_upload_sample.csv',
+    successMessageId: 'text.asset_bulk_upload_success',
+    errorMessageId: 'text.asset_bulk_upload_failed',
+    createdItemsKey: 'assets',
+    createdItemNameKey: 'name',
+    createdItemDisplayKey: 'name'
+  };
 
   useEffect(() => {
     setAssets(Array.isArray(getData) ? getData : getData.content ?? []);
@@ -355,6 +374,14 @@ export function Component() {
         <DamCard>
           <DamCardBody>
             {!isEdit && <Flex alignItems={'center'} w='full' justifyContent={'end'} my={3}>
+              <Button 
+                id="btnBulkUploadAssets" 
+                mr={2} 
+                colorScheme="blue"
+                onClick={onBulkUploadOpen}
+              >
+                <FormattedMessage id="text.bulk_upload" />
+              </Button>
               <Button id="btnCreateAsset" mr={2} colorScheme={isFormShow ? "red" : "green"}
                 onClick={() => {
                   setIsFormShow(!isFormShow);
@@ -516,6 +543,12 @@ export function Component() {
         action={lockDialogAction}
         onConfirm={handleLockConfirm}
         isLoading={isLockLoading}
+      />
+      <BulkUploadModal
+        isOpen={isBulkUploadOpen}
+        onClose={onBulkUploadClose}
+        onUploadSuccess={() => getAssetsList({})}
+        config={assetBulkUploadConfig}
       />
     </DamBasePage>
   );
