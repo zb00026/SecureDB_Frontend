@@ -198,6 +198,7 @@
   "text.save_as_change_request": "Save as change request",
   "text.ticket_reference": "Ticket Reference",
   "text.change_description": "Change Description",
+  "text.weak_password_warning": "Warning: This password may be weak. Consider using a stronger password with at least 8 characters, including uppercase, lowercase, and numbers.",
   "text.change_status": "Change Status",
   "text.change_requests": "Change Requests",
   "text.no_change_requests": "No Change Requests",

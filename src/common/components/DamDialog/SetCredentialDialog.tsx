@@ -8,6 +8,7 @@ import {
   AlertDialogOverlay,
   Button,
   Input,
+  Text,
 } from "@chakra-ui/react";
 import { FormattedMessage } from "react-intl";
 import { DamPasswordInput } from '../DamPasswordInput';
@@ -20,12 +21,14 @@ interface SetCredentialDialogProps {
   readonly isTemporaryPassword?: boolean;
   readonly saveButtonTextId?: string;
   readonly showPasswordRequirements?: boolean;
+  readonly showPasswordWarning?: boolean;
 }
 
-export function SetCredentialDialog({ isOpen, titleId, onClose, onSubmit, showPasswordRequirements = false, isTemporaryPassword = false, saveButtonTextId }: SetCredentialDialogProps) {
+export function SetCredentialDialog({ isOpen, titleId, onClose, onSubmit, showPasswordRequirements = false, showPasswordWarning = false, isTemporaryPassword = false, saveButtonTextId }: SetCredentialDialogProps) {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [isPasswordValid, setIsPasswordValid] = useState(false);
+  const [isPasswordWeak, setIsPasswordWeak] = useState(false);
   const cancelRef = useRef(null);
 
   useEffect(() => {
@@ -39,7 +42,19 @@ export function SetCredentialDialog({ isOpen, titleId, onClose, onSubmit, showPa
     if (!showPasswordRequirements && password.length > 1) {
       setIsPasswordValid(true);
     }
-  }, [password])
+  }, [password, showPasswordRequirements]);
+
+  useEffect(() => {
+    if (showPasswordWarning && password.length > 0) {
+      // Check if password meets basic security requirements
+      const hasMinLength = password.length >= 8;
+      const hasUppercase = /[A-Z]/.test(password);
+      const hasLowercase = /[a-z]/.test(password);
+      const hasDigit = /\d/.test(password);
+      
+      setIsPasswordWeak(!(hasMinLength && hasUppercase && hasLowercase && hasDigit));
+    }
+  }, [password, showPasswordWarning]);
 
   const handleSubmit = () => {
     onSubmit(username, password);
@@ -74,6 +89,11 @@ export function SetCredentialDialog({ isOpen, titleId, onClose, onSubmit, showPa
               showRequirements={showPasswordRequirements}
               onValidationChange={(isValid) => setIsPasswordValid(isValid)}
             />
+            {showPasswordWarning && isPasswordWeak && password.length > 0 && (
+              <Text fontSize="sm" color="orange.500" mt={2} mb={0}>
+                <FormattedMessage id="text.weak_password_warning" />
+              </Text>
+            )}
           </AlertDialogBody>
           <AlertDialogFooter>
             <Button onClick={onClose} id="btnCancelCredential">

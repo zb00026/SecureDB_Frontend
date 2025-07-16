@@ -359,6 +359,7 @@ export function Component() {
         isOpen={isDialogOpen}
         onClose={() => setIsDialogOpen(false)}
         onSubmit={handleSetCredential}
+        showPasswordWarning={true}
       />
 
       <DamAlertDialog

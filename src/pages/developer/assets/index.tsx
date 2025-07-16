@@ -115,6 +115,7 @@ export function Component() {
         isOpen={isPsdDialogOpen}
         onClose={() => setIsPsdDialogOpen(false)}
         onSubmit={handleUpdatePassword}
+        showPasswordWarning={true}
         isTemporaryPassword={true}
       />
       <DamAlertDialog
