@@ -1,14 +1,9 @@
 import {
   Box, Button, Flex, Input, Text, Select,
-  Tabs,
-  Tab,
-  TabList,
-  TabPanel,
-  TabPanels,
   useDisclosure
 } from "@chakra-ui/react";
 import { DamBasePage } from "@common/components/DamBasePage";
-import { DamCard, DamCardBody, DamCardDivider, request, stateActions, useListPage, useDamToast, BulkUploadModal, BulkUploadConfig } from "@common/index";
+import { DamCard, DamCardBody, DamCardDivider, request, useListPage, useDamToast, BulkUploadModal, BulkUploadConfig } from "@common/index";
 import { Asset } from "@models/assets/Asset";
 import { AssetDTO } from "@models/assets/AssetDTO";
 import { User } from "@models/User";
@@ -17,11 +12,12 @@ import { FormattedMessage, useIntl } from "react-intl";
 import { AssetType, DatabaseType, USER_ROLE } from "@/constants/enums";
 import { DamAlertDialog } from "@common/components/DamDialog/DamAlertDialog";
 import { useApiRequest } from "@common/hooks/useApiRequest";
-import { FilteredUsers } from "./components/filtered_users";
 import { AssetsTable } from "./components/assets_table";
 import { DamViewAccessModal } from "@common/components/DamDialog/DamViewAccessModal";
 import { useViewAccess } from "@common/hooks/useViewAccess";
 import { AssetLockDialog, LockType, LockAction } from "./components/asset_lock_dialog";
+import { ManageUsersModal } from "./components/manage_users_modal";
+import { EditAssetModal } from "./components/edit_asset_modal";
 
 export const isSearchable = true;
 export const displayName = 'Assets Management Page';
@@ -41,10 +37,21 @@ export function Component() {
   const [lockDialogAction, setLockDialogAction] = useState<LockAction>(LockAction.LOCK);
   const [isLockLoading, setIsLockLoading] = useState(false);
 
+  // Manage users modal states
+  const [isManageUsersModalOpen, setIsManageUsersModalOpen] = useState(false);
+  const [manageUsersAsset, setManageUsersAsset] = useState<Asset | null>(null);
+  const [manageUsersType, setManageUsersType] = useState<'owners' | 'approvers'>('owners');
+  const [isManageUsersLoading, setIsManageUsersLoading] = useState(false);
+
+  // Edit asset modal states
+  const [isEditAssetModalOpen, setIsEditAssetModalOpen] = useState(false);
+  const [editAsset, setEditAsset] = useState<Asset | null>(null);
+  const [isEditAssetLoading, setIsEditAssetLoading] = useState(false);
+
   // Bulk upload state
   const { isOpen: isBulkUploadOpen, onOpen: onBulkUploadOpen, onClose: onBulkUploadClose } = useDisclosure();
 
-  // Form states
+  // Form states for create asset
   const [formState, setFormState] = useState<Partial<AssetDTO>>({
     name: '',
     type: '' as AssetType | '',
@@ -66,16 +73,7 @@ export function Component() {
     closeViewAccessModal
   } = useViewAccess({ apiEndpoint: '/api/admin/assets' });
 
-  const UsersTabs = [
-    {
-      title: intl.formatMessage({ id: 'text.asset_owner_users' }),
-      key: 'owners'
-    },
-    {
-      title: intl.formatMessage({ id: 'text.approver_users' }),
-      key: 'approvers'
-    }
-  ]
+  // Remove the UsersTabs as we're moving to a modal approach
 
   const { getData, getList: getAssetsList } = useListPage<Asset>({
     baseUri: "/api/admin/assets",
@@ -83,8 +81,8 @@ export function Component() {
     usePagination: false
   });
 
-  // Use useListPage for asset owners
-  const { getData: getAssetOwners, getList: getAssetOwnersList } = useListPage<User>({
+  // User lists for manage users modal
+  const { getData: getAssetOwners } = useListPage<User>({
     baseUri: '/api/admin/users',
     defaultParams: {
       roles: [USER_ROLE.ASSET_OWNER, USER_ROLE.ADMIN]
@@ -92,8 +90,7 @@ export function Component() {
     usePagination: false
   });
 
-  // Use useListPage for asset owners
-  const { getData: getApprovers, getList: getApproversList } = useListPage<User>({
+  const { getData: getApprovers } = useListPage<User>({
     baseUri: '/api/admin/users',
     defaultParams: {
       roles: [USER_ROLE.APPROVER]
@@ -140,17 +137,6 @@ export function Component() {
 
   const handleSelectAsset = (asset: Asset) => {
     setSelectedAsset(asset);
-    setFormState({
-      name: asset.name,
-      type: asset.type,
-      databaseType: asset.databaseType ?? '',
-      description: asset.description,
-      hostAddress: asset.hostAddress,
-      portNumber: asset.portNumber,
-      databaseName: asset.databaseName
-    });
-    setIsEdit(true);
-    setIsFormShow(true);
   };
 
   const deleteAsset = (asset: Asset) => {
@@ -219,74 +205,83 @@ export function Component() {
     }
   };
 
-  const checkAssetOwner = (user: User) => {
-    if (!selectedAsset) return false;
-    return selectedAsset.owners?.some(owner => owner.id === user.id);
+  // Remove old user management functions as we're using the modal approach
+  // Manage users handlers
+  const handleManageUsers = (asset: Asset, userType: 'owners' | 'approvers') => {
+    setManageUsersAsset(asset);
+    setManageUsersType(userType);
+    setIsManageUsersModalOpen(true);
   };
 
-  const checkApprover = (user: User) => {
-    if (!selectedAsset) return false;
-    return selectedAsset.approvers?.some(approver => approver.id === user.id);
+  const closeManageUsersModal = () => {
+    setIsManageUsersModalOpen(false);
+    setManageUsersAsset(null);
+    setManageUsersType('owners');
   };
 
-  const updateUserList = (userRoleKey: string) => {
-    const roleMap = {
-      'owners': { roles: [USER_ROLE.ASSET_OWNER, USER_ROLE.ADMIN], getter: getAssetOwnersList },
-      'approvers': { roles: [USER_ROLE.APPROVER], getter: getApproversList }
-    };
-
-    const config = roleMap[userRoleKey as keyof typeof roleMap];
-    if (config) {
-      config.getter({ roles: config.roles });
-    }
-  };
-
-  const updateAssetUsers = (userRoleKey: string, user: User, isOwner: boolean, isSuccess: boolean) => {
-    if (!selectedAsset || !isSuccess) return;
-
-    const userListKey = userRoleKey === 'owners' ? 'owners' : 'approvers';
-    const userList = selectedAsset[userListKey];
-
-    if (!userList) return;
-
-    if (isOwner) {
-      userList.push(user);
-    } else {
-      selectedAsset[userListKey] = userList.filter(u => u.id !== user.id);
-    }
-  };
-
-  const refreshOwners = (user: User, isOwner: boolean, isSuccess: boolean, userRoleKey: string) => {
-    updateUserList(userRoleKey);
-    getAssetsList({});
-    if (isSuccess) {
-      updateAssetUsers(userRoleKey, user, isOwner, isSuccess);
-    }
-  }
-  const updateAssetUser = (user: User, isOwner: boolean, userRoleKey: string) => {
-    if (!selectedAsset) return;
-    stateActions.addLoading();
-    request(`/api/admin/assets/${selectedAsset.id}/${userRoleKey}`, {
+  const handleUpdateUser = (user: User, method: 'Add' | 'Remove') => {
+    if (!manageUsersAsset) return;
+  
+    setIsManageUsersLoading(true);
+    request(`/api/admin/assets/${manageUsersAsset.id}/${manageUsersType}`, {
       method: 'POST',
       data: {
         userIds: [user.id],
-        method: isOwner ? 'Add' : 'Remove'
-      }
+        method,
+      },
     })
       .then(() => {
-        refreshOwners(user, isOwner, true, userRoleKey);
+        getAssetsList({});
         showSuccess({
-          title: intl.formatMessage({ id: userRoleKey == 'owners' ? 'text.asset_owner_updated' : 'text.approver_updated' }),
-          description: intl.formatMessage({ id: userRoleKey == 'owners' ? 'text.asset_owner_update_success' : 'text.approver_update_success' })
+          title: intl.formatMessage({ id: manageUsersType === 'owners' ? 'text.asset_owner_updated' : 'text.approver_updated' }),
+          description: intl.formatMessage({ id: manageUsersType === 'owners' ? 'text.asset_owner_update_success' : 'text.approver_update_success' }),
         });
       })
       .catch((e) => {
-        refreshOwners(user, isOwner, false, userRoleKey);
         showError({
-          description: e?.response?.data?.error ?? intl.formatMessage({ id: userRoleKey == 'owners' ? 'text.asset_owner_update_failed' : 'text.approver_update_failed' })
+          description:
+            e?.response?.data?.error ??
+            intl.formatMessage({
+              id:
+                manageUsersType === 'owners'
+                  ? 'text.asset_owner_update_failed'
+                  : 'text.approver_update_failed',
+            }),
         });
+      })
+      .finally(() => {
+        setIsManageUsersLoading(false);
       });
-  }
+  };
+  
+  const handleAddUser = (user: User) => handleUpdateUser(user, 'Add');
+  const handleRemoveUser = (user: User) => handleUpdateUser(user, 'Remove');
+
+  // Edit asset handlers
+  const handleEditAsset = (asset: Asset) => {
+    setEditAsset(asset);
+    setIsEditAssetModalOpen(true);
+  };
+
+  const closeEditAssetModal = () => {
+    setIsEditAssetModalOpen(false);
+    setEditAsset(null);
+  };
+
+  const handleSaveAsset = (assetData: Partial<AssetDTO>) => {
+    if (!editAsset) return;
+    
+    setIsEditAssetLoading(true);
+    handleRequest(`/api/admin/assets/${editAsset.id}`, 'PUT', assetData, {
+      onSuccess: () => {
+        getAssetsList({});
+        closeEditAssetModal();
+      },
+      successTitleId: 'text.asset_updated',
+      successDescriptionId: 'text.asset_update_success',
+      errorDescriptionId: 'text.asset_update_failed'
+    });
+  };
 
   const closeAskDialog = () => {
     setDeleteAssetId(null);
@@ -338,26 +333,7 @@ export function Component() {
     });
   };
 
-  const getTabContent = (key: string) => {
-    const userData = key === 'owners' ? getAssetOwners : getApprovers;
-    const users = Array.isArray(userData) ? userData : userData.content ?? [];
-    const checkFunction = key === 'owners' ? checkAssetOwner : checkApprover;
-    const titleMessageId = key === 'owners' ? 'text.asset_owner_users' : 'text.approver_users';
-    const noDataMessageId = key === 'owners' ? 'text.no_asset_owners' : 'text.no_approver_users';
-
-    return (
-      <FilteredUsers
-        users={users}
-        selectedAsset={selectedAsset}
-        isFormShow={isFormShow}
-        checkAvailability={checkFunction}
-        updateAvailability={(user: User, checked: boolean, filterKey: string) => updateAssetUser(user, checked, key)}
-        titleMessageId={titleMessageId}
-        noDataMessageId={noDataMessageId}
-        filterKey={key}
-      />
-    );
-  };
+  // Remove getTabContent function as we're using the modal approach
 
   const getButtonMessageId = (isFormShow: boolean, isEdit: boolean): string => {
     if (isFormShow) {
@@ -373,7 +349,7 @@ export function Component() {
       <Flex flexDir="column" w="full" px={0} pt={3}>
         <DamCard>
           <DamCardBody>
-            {!isEdit && <Flex alignItems={'center'} w='full' justifyContent={'end'} my={3}>
+            <Flex alignItems={'center'} w='full' justifyContent={'end'} my={3}>
               <Button 
                 id="btnBulkUploadAssets" 
                 mr={2} 
@@ -390,7 +366,7 @@ export function Component() {
                 <FormattedMessage
                   id={getButtonMessageId(isFormShow, isEdit)} />
               </Button>
-            </Flex>}
+            </Flex>
             {(isFormShow && !isEdit) && <DamCardDivider />}
 
             {isFormShow &&
@@ -467,56 +443,29 @@ export function Component() {
                   <Flex justify="flex-end" gap={4}>
                     <Button
                       id="btnSaveAsset"
-                      colorScheme={isEdit ? "green" : "blue"}
-                      onClick={isEdit ? handleUpdate : handleCreate}
+                      colorScheme="blue"
+                      onClick={handleCreate}
                       disabled={!formState.name}
                     >
                       {intl.formatMessage({ id: 'text.save' })}
                     </Button>
-                    {isEdit && (
-                      <Button id="btnClearAsset" onClick={clearForm} colorScheme="red">
-                        <FormattedMessage id='text.cancel_update' />
-                      </Button>
-                    )}
                   </Flex>
                 </Flex>
               </Flex>
             )}
           </DamCardBody>
         </DamCard>
-        <Flex flexDirection={'row'}
-          gap={'2%'}
-          flexWrap="wrap">
-          <Flex w={{ base: "full", sm: "full", md: "49%", lg: "59%" }}>
-            <AssetsTable
-              assets={assets}
-              selectedAsset={selectedAsset}
-              onSelectAsset={handleSelectAsset}
-              onDeleteAsset={deleteAsset}
-              onViewAccess={viewAssetAccess}
-              onLockAsset={handleLockAsset}
-              onUnlockAsset={handleUnlockAsset}
-            />
-          </Flex>
-          <Flex w={{ base: "full", sm: "full", md: "49%", lg: "39%" }}>
-            <Tabs w='full'>
-              <TabList>
-                {UsersTabs.map((tab) => (
-                  <Tab key={tab.key}>
-                    {tab.title}
-                  </Tab>
-                ))}
-              </TabList>
-              <TabPanels>
-                {UsersTabs.map((tab) => (
-                  <TabPanel key={tab.key} p={0}>
-                    {getTabContent(tab.key)}
-                  </TabPanel>
-                ))}
-              </TabPanels>
-            </Tabs>
-          </Flex>
-        </Flex>
+        <AssetsTable
+          assets={assets}
+          selectedAsset={selectedAsset}
+          onSelectAsset={handleSelectAsset}
+          onDeleteAsset={deleteAsset}
+          onEditAsset={handleEditAsset}
+          onViewAccess={viewAssetAccess}
+          onLockAsset={handleLockAsset}
+          onUnlockAsset={handleUnlockAsset}
+          onManageUsers={handleManageUsers}
+        />
       </Flex>
 
 
@@ -549,6 +498,39 @@ export function Component() {
         onClose={onBulkUploadClose}
         onUploadSuccess={() => getAssetsList({})}
         config={assetBulkUploadConfig}
+      />
+      {(() => {
+        // Extract users list based on management type
+        const ownersData = Array.isArray(getAssetOwners) ? getAssetOwners : getAssetOwners.content ?? [];
+        const approversData = Array.isArray(getApprovers) ? getApprovers : getApprovers.content ?? [];
+        const availableUsers = manageUsersType === 'owners' ? ownersData : approversData;
+        
+        // Extract assigned users based on asset and management type
+        const assetOwners = manageUsersAsset?.owners ?? [];
+        const assetApprovers = manageUsersAsset?.approvers ?? [];
+        const selectedAssignedUsers = manageUsersType === 'owners' ? assetOwners : assetApprovers;
+        const currentAssignedUsers = manageUsersAsset ? selectedAssignedUsers : [];
+
+        return (
+          <ManageUsersModal
+            isOpen={isManageUsersModalOpen}
+            onClose={closeManageUsersModal}
+            asset={manageUsersAsset}
+            users={availableUsers}
+            assignedUsers={currentAssignedUsers}
+            userType={manageUsersType}
+            onAddUser={handleAddUser}
+            onRemoveUser={handleRemoveUser}
+            isLoading={isManageUsersLoading}
+          />
+        );
+      })()}
+      <EditAssetModal
+        isOpen={isEditAssetModalOpen}
+        onClose={closeEditAssetModal}
+        asset={editAsset}
+        onSave={handleSaveAsset}
+        isLoading={isEditAssetLoading}
       />
     </DamBasePage>
   );

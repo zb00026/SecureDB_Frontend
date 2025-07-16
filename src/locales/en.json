@@ -343,5 +343,20 @@
   "text.assets_created": "{count} assets created",
   "text.asset_owners_not_found": "Some asset owners were not found and assets were created without owners",
   "text.asset_bulk_upload_success": "Bulk asset upload completed successfully! {count} assets were created.",
-  "text.asset_bulk_upload_failed": "Bulk asset upload failed"
+  "text.asset_bulk_upload_failed": "Bulk asset upload failed",
+  "text.manage_users": "Manage Users",
+  "text.manage_asset_owners": "Manage Asset Owners",
+  "text.manage_asset_approvers": "Manage Asset Approvers",
+  "text.available_users": "Available Users",
+  "text.assigned_users": "Assigned Users",
+  "text.action": "Action",
+  "text.no_available_users": "No available users",
+  "text.no_assigned_users": "No assigned users",
+  "text.search_users": "Search users...",
+  "text.close": "Close",
+  "text.add_owner": "Add Owner",
+  "text.add_approver": "Add Approver",
+  "text.remove_owner": "Remove Owner",
+  "text.remove_approver": "Remove Approver",
+  "text.edit_asset": "Edit Asset"
 }

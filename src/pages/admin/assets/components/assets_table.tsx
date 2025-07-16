@@ -1,6 +1,7 @@
-import { Button, Flex, IconButton, Tooltip } from "@chakra-ui/react";
+import { Flex, HStack, IconButton, Tooltip } from "@chakra-ui/react";
+import { EditIcon, DeleteIcon, ViewIcon, AtSignIcon } from "@chakra-ui/icons"; // Replace AtSignIcon with a better user icon if available
 import { Asset } from "@models/assets/Asset";
-import { FormattedMessage } from "react-intl";
+import { useIntl } from "react-intl";
 import { BaseAssetsTable } from "./base_assets_table";
 import { useMyState, userHasRole } from "@common/index";
 import { USER_ROLE } from "@/constants/enums";
@@ -11,9 +12,11 @@ interface AssetsTableProps {
   readonly selectedAsset: Asset | null;
   readonly onSelectAsset: (asset: Asset) => void;
   readonly onDeleteAsset: (asset: Asset) => void;
+  readonly onEditAsset?: (asset: Asset) => void;
   readonly onViewAccess?: (asset: Asset) => void;
   readonly onLockAsset?: (asset: Asset) => void;
   readonly onUnlockAsset?: (asset: Asset) => void;
+  readonly onManageUsers?: (asset: Asset, userType: 'owners' | 'approvers') => void;
 }
 
 export function AssetsTable({
@@ -21,13 +24,15 @@ export function AssetsTable({
   selectedAsset,
   onSelectAsset,
   onDeleteAsset,
+  onEditAsset,
   onViewAccess,
   onLockAsset,
-  onUnlockAsset
+  onUnlockAsset,
+  onManageUsers
 }: AssetsTableProps) {
   const { snap } = useMyState();
   const user = snap.session.user;
-
+  const intl = useIntl();
   // Check if user has admin or asset owner role
   const canViewAccess = userHasRole(user, USER_ROLE.ADMIN) || userHasRole(user, USER_ROLE.ASSET_OWNER);
 
@@ -72,33 +77,69 @@ export function AssetsTable({
   )
 
   const renderActions = (asset: Asset) => (
-    <Flex gap={2} flexWrap="wrap">
-
-      {canViewAccess && onViewAccess && (
-        <Button
-          size="sm"
-          colorScheme="blue"
-          variant="outline"
-          onClick={(e) => {
-            e.stopPropagation(); // Prevent row selection when clicking view access
-            onViewAccess(asset);
-          }}
-        >
-          <FormattedMessage id="text.view_access" />
-        </Button>
+    <HStack spacing={2} justify="center">
+      {userHasRole(user, USER_ROLE.ADMIN) && onEditAsset && (
+        <Tooltip label={intl.formatMessage({ id: "text.edit" })}>
+          <IconButton
+            aria-label={intl.formatMessage({ id: "text.edit" })}
+            icon={<EditIcon />}
+            size="sm"
+            colorScheme="green"
+            variant="ghost"
+            onClick={e => {
+              e.stopPropagation();
+              onEditAsset(asset);
+            }}
+          />
+        </Tooltip>
       )}
 
-      <Button
-        size="sm"
-        colorScheme="red"
-        onClick={(e) => {
-          e.stopPropagation(); // Prevent row selection when clicking delete
-          onDeleteAsset(asset);
-        }}
-      >
-        <FormattedMessage id="text.delete" />
-      </Button>
-    </Flex>
+      {canViewAccess && onViewAccess && (
+        <Tooltip label={intl.formatMessage({ id: "text.view_access" })}>
+          <IconButton
+            aria-label={intl.formatMessage({ id: "text.view_access" })}
+            icon={<ViewIcon />}
+            size="sm"
+            colorScheme="blue"
+            variant="ghost"
+            onClick={e => {
+              e.stopPropagation();
+              onViewAccess(asset);
+            }}
+          />
+        </Tooltip>
+      )}
+
+      {userHasRole(user, USER_ROLE.ADMIN) && onManageUsers && (
+        <Tooltip label={intl.formatMessage({ id: "text.manage_users" })}>
+          <IconButton
+            aria-label={intl.formatMessage({ id: "text.manage_users" })}
+            icon={<AtSignIcon />}
+            size="sm"
+            colorScheme="purple"
+            variant="ghost"
+            onClick={e => {
+              e.stopPropagation();
+              onManageUsers(asset, "owners");
+            }}
+          />
+        </Tooltip>
+      )}
+
+      <Tooltip label={intl.formatMessage({ id: "text.delete" })}>
+        <IconButton
+          aria-label={intl.formatMessage({ id: "text.delete" })}
+          icon={<DeleteIcon />}
+          size="sm"
+          colorScheme="red"
+          variant="ghost"
+          onClick={e => {
+            e.stopPropagation();
+            onDeleteAsset(asset);
+          }}
+        />
+      </Tooltip>
+    </HStack>
   );
 
   return (
