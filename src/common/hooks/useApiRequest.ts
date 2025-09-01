@@ -36,7 +36,7 @@ export function useApiRequest() {
       options.onSuccess?.(response);
     } catch (e: any) {
       showError({
-        description: e?.data?.error ?? intl.formatMessage({ id: options.errorDescriptionId ?? 'text.operation_failed' })
+        description: e?.data?.details ?? e?.data?.error ?? intl.formatMessage({ id: options.errorDescriptionId ?? 'text.operation_failed' })
       });
       options.onError?.(e);
     }

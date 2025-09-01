@@ -276,6 +276,10 @@ export function Component() {
       onSuccess: () => {
         getAssetsList({});
         closeEditAssetModal();
+        setIsEditAssetLoading(false);
+      },
+      onError: () => {
+        setIsEditAssetLoading(false);
       },
       successTitleId: 'text.asset_updated',
       successDescriptionId: 'text.asset_update_success',
@@ -319,19 +323,6 @@ export function Component() {
     });
   };
 
-  const handleUpdate = async () => {
-    if (!selectedAsset) return;
-
-    handleRequest(`/api/admin/assets/${selectedAsset.id}`, 'PUT', formState, {
-      onSuccess: () => {
-        getAssetsList({});
-        clearForm();
-      },
-      successTitleId: 'text.asset_updated',
-      successDescriptionId: 'text.asset_update_success',
-      errorDescriptionId: 'text.asset_update_failed'
-    });
-  };
 
   // Remove getTabContent function as we're using the modal approach
 
@@ -360,6 +351,10 @@ export function Component() {
               </Button>
               <Button id="btnCreateAsset" mr={2} colorScheme={isFormShow ? "red" : "green"}
                 onClick={() => {
+                  if (!isFormShow) {
+                    clearForm();
+                    setSelectedAsset(null);
+                  }
                   setIsFormShow(!isFormShow);
                   setFormState(prev => ({ ...prev, type: AssetType.DATABASE }));
                 }}>
