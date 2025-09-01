@@ -79,12 +79,12 @@ export function getMetaKeyName(): string {
     const nav = navigator as NavigatorWithUserAgentData;
     // Check if userAgentData is available (modern browsers)
     if (nav.userAgentData?.platform) {
-      return nav.userAgentData.platform.toLowerCase().includes('mac') ? "⌘" : "Ctrl";
+      return nav.userAgentData.platform.toLowerCase().includes('mac') ? "⌘" : "⊞";
     }
     // Fallback for older browsers
-    return /Mac|iPod|iPhone|iPad/.test(navigator.userAgent) ? "⌘" : "Ctrl";
+    return /Mac|iPod|iPhone|iPad/.test(navigator.userAgent) ? "⌘" : "⊞";
   }
-  return "Ctrl";
+  return "⊞";
 }
 
 const specialKeyMap: Record<string, string> = {

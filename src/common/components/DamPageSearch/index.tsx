@@ -26,6 +26,7 @@ export function DamPageSearch({ children }: { children: React.ReactNode }) {
         setVisible(true);
       }
       if (e.key === 'Escape') {
+        e.preventDefault();
         resetSearchCriteria(false);
       }
     }

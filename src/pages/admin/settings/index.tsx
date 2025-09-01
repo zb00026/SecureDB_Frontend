@@ -57,7 +57,7 @@ export function Component() {
 
             <Flex flexDir="column" w="full" px={6}>
               <DamCardDivider />
-              <Flex w='full' textAlign={'center'} mt={4} alignItems={'center'} gap={2}>
+              <Flex w='full' textAlign={'center'} mt={4} alignItems={'center'} gap={2} mb={2}>
                 <Text mb={0} minW='150px' textAlign={'right'}>
                   <FormattedMessage id="text.s3_bucket_name" />
                 </Text>
@@ -87,7 +87,7 @@ export function Component() {
 
             <Flex flexDir="column" w="full" px={6}>
               <DamCardDivider />
-              <Flex w='full' textAlign={'center'} mt={4} alignItems={'center'} gap={2}>
+              <Flex w='full' textAlign={'center'} mt={4} alignItems={'center'} gap={2} mb={2}>
                 <ShortKey />
               </Flex>
             </Flex>

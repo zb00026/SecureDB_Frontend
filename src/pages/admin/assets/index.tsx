@@ -455,15 +455,15 @@ export function Component() {
             )}
           </DamCardBody>
         </DamCard>
-        <AssetsTable
-          assets={assets}
-          selectedAsset={selectedAsset}
-          onSelectAsset={handleSelectAsset}
-          onDeleteAsset={deleteAsset}
+            <AssetsTable
+              assets={assets}
+              selectedAsset={selectedAsset}
+              onSelectAsset={handleSelectAsset}
+              onDeleteAsset={deleteAsset}
           onEditAsset={handleEditAsset}
-          onViewAccess={viewAssetAccess}
-          onLockAsset={handleLockAsset}
-          onUnlockAsset={handleUnlockAsset}
+              onViewAccess={viewAssetAccess}
+              onLockAsset={handleLockAsset}
+              onUnlockAsset={handleUnlockAsset}
           onManageUsers={handleManageUsers}
         />
       </Flex>

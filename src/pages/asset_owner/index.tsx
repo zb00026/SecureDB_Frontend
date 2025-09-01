@@ -1,21 +1,23 @@
 import {
   Button, Flex, Tr, Tbody, Table, TableContainer, Td, Th, Thead,
-  useColorModeValue, Input, IconButton, Tooltip
+  useColorModeValue, Input, IconButton, Tooltip, VStack
 } from "@chakra-ui/react";
 import { DamBasePage } from "@common/components/DamBasePage";
 import { DamCardBody, DamCard, request, useDamToast, TextCardHeader, DamCardDivider, stateActions } from "@common/index";
 import { AssetCredential } from "@models/assets/AssetCredential";
 import { Asset } from "@models/assets/Asset";
 import { AssetDTO } from "@models/assets/AssetDTO";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { FormattedMessage, useIntl } from "react-intl";
 import { SetCredentialDialog } from "@common/components/DamDialog/SetCredentialDialog";
 import { DamAlertDialog } from "@common/components/DamDialog/DamAlertDialog";
 import { AssetRequestApprovals } from "./components/asset_request_approvals";
 import { ChangeRequests } from "./components/change_requests";
+import { AIMaskingChat } from "./components/ai_masking_chat";
+import { MaskingPolicies, MaskingPoliciesRef } from "./components/masking_policies";
 import { DamViewAccessModal } from "@common/components/DamDialog/DamViewAccessModal";
 import { useViewAccess } from "@common/hooks/useViewAccess";
-import { FiEdit, FiSave, FiX } from "react-icons/fi";
+import { FiEdit, FiSave, FiX, FiShield, FiDatabase } from "react-icons/fi";
 
 export const isSearchable = true;
 export const displayName = 'Asset Owner Main Page';
@@ -36,7 +38,17 @@ export function Component() {
     type: undefined,
     databaseType: undefined
   });
+  const [activeTab, setActiveTab] = useState<'assets' | 'masking'>('assets');
   const selectedRowBg = useColorModeValue('gray.200', 'gray.700');
+  const borderColor = useColorModeValue('gray.200', 'gray.600');
+
+  // Ref for MaskingPolicies component to call refresh function
+  const maskingPoliciesRef = useRef<MaskingPoliciesRef>(null);
+
+  // Callback function to refresh masking policies
+  const handlePolicyCreated = () => {
+    maskingPoliciesRef.current?.refreshPolicies();
+  };
 
   // Use the shared view access hook
   const {
@@ -128,8 +140,8 @@ export function Component() {
   const handleSaveAsset = () => {
     if (!editingAssetId) return;
     stateActions.addLoading();
-    
-    
+
+
     request(`/api/asset_owner/assets/${editingAssetId}`, {
       method: 'POST',
       data: editFormState
@@ -172,10 +184,10 @@ export function Component() {
 
   const renderAssetCell = (credential: AssetCredential, field: keyof Asset, isEditing: boolean) => {
     if (!credential.asset) return '-';
-    
+
     // Only allow editing of specific fields (type and databaseType are read-only)
     const editableFields = ['name', 'description', 'hostAddress', 'portNumber', 'databaseName'];
-    
+
     if (isEditing && editableFields.includes(field)) {
       const fieldKey = field as keyof AssetDTO;
       return (
@@ -187,7 +199,7 @@ export function Component() {
         />
       );
     }
-    
+
     // For read-only fields (type, databaseType), show the original asset value
     const value = credential.asset[field];
     return typeof value === 'string' || typeof value === 'number' ? String(value) : '-';
@@ -196,190 +208,244 @@ export function Component() {
   return (
     <DamBasePage
       title={intl.formatMessage({ id: 'text.asset_owner' })}>
-      <DamCard mt={4}>
-        <DamCardBody>
-          <TextCardHeader mb={0} id="lblAssetSetting">
+      <VStack spacing={0} align="stretch">
+        {/* Tab Navigation */}
+        <Flex mt={4} borderBottom="1px" borderColor={borderColor}>
+          <Button
+            variant={activeTab === 'assets' ? 'solid' : 'ghost'}
+            colorScheme={activeTab === 'assets' ? 'blue' : 'gray'}
+            onClick={() => setActiveTab('assets')}
+            leftIcon={<FiDatabase />}
+            borderRadius="0"
+            borderBottom={activeTab === 'assets' ? '2px solid' : 'none'}
+            borderBottomColor={activeTab === 'assets' ? 'blue.500' : 'transparent'}
+          >
             <FormattedMessage id="text.assets" />
-          </TextCardHeader>
-          <DamCardDivider />
+          </Button>
+          <Button
+            variant={activeTab === 'masking' ? 'solid' : 'ghost'}
+            colorScheme={activeTab === 'masking' ? 'blue' : 'gray'}
+            onClick={() => setActiveTab('masking')}
+            leftIcon={<FiShield />}
+            borderRadius="0"
+            borderBottom={activeTab === 'masking' ? '2px solid' : 'none'}
+            borderBottomColor={activeTab === 'masking' ? 'blue.500' : 'transparent'}
+          >
+            <FormattedMessage id="text.data_masking" />
+          </Button>
+        </Flex>
 
-          <TableContainer width='100%'>
-            <Table variant='simple' id="tblAssetCredentials">
-              <Thead>
-                <Tr>
-                  <Th><FormattedMessage id='text.name' /></Th>
-                  <Th><FormattedMessage id='text.type' /></Th>
-                  <Th><FormattedMessage id='text.database_type' /></Th>
-                  <Th><FormattedMessage id='text.host_address' /></Th>
-                  <Th><FormattedMessage id='text.port_number' /></Th>
-                  <Th><FormattedMessage id='text.database_name' /></Th>
-                  <Th><FormattedMessage id='text.description' /></Th>
-                  <Th textAlign={'center'}><FormattedMessage id='text.status' /></Th>
-                  <Th textAlign={'center'}><FormattedMessage id='text.actions' /></Th>
-                </Tr>
-              </Thead>
-              <Tbody maxHeight={500}>
-                {credentials.length > 0 ? (
-                  <>
-                    {credentials.map((credential) => {
-                      const isEditing = editingAssetId === credential.asset?.id;
-                      return (
-                        <Tr key={credential.id}
-                          backgroundColor={credential.id === selectedCredential?.id ? selectedRowBg : 'transparent'}
-                          onClick={() => setSelectedCredential(credential)}>
-                          <Td>{renderAssetCell(credential, 'name', isEditing)}</Td>
-                          <Td>{credential.asset?.type}</Td>
-                          <Td>{credential.asset?.databaseType ?? '-'}</Td>
-                          <Td>{renderAssetCell(credential, 'hostAddress', isEditing)}</Td>
-                          <Td>{renderAssetCell(credential, 'portNumber', isEditing)}</Td>
-                          <Td>{renderAssetCell(credential, 'databaseName', isEditing)}</Td>
-                          <Td>{renderAssetCell(credential, 'description', isEditing)}</Td>
-                        <Td textAlign={'center'}>
-                          {credential.username == null && credential.password == null ?
-                            (<Flex gap={2} justifyContent={'center'} w='full'>
-                              <Button
-                                size="sm"
-                                className="btn-set-credential"
-                                colorScheme="green"
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  setSelectedCredential(credential);
-                                  setIsDialogOpen(true);
-                                }}
-                              >
-                                <FormattedMessage id="text.set_credential" />
-                              </Button>
-                            </Flex>) :
-                            (<Flex flexDirection={'row'} gap={2} justifyContent={'center'} w='full'>
-                              <Button
-                                size="sm"
-                                className="btn-update-credential"
-                                colorScheme="yellow"
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  setSelectedCredential(credential);
-                                  setIsDialogOpen(true);
-                                }}
-                              >
-                                <FormattedMessage id="text.update_credential" />
-                              </Button>
-                              <Button
-                                size="sm"
-                                className="btn-relinquish-credential"
-                                colorScheme="red"
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  setSelectedCredential(credential);
-                                  setIsDelDlgOpen(true);
-                                }}
-                              >
-                                <FormattedMessage id="text.relinquish_credential" />
-                              </Button>
-                            </Flex>)}
-                        </Td>
-                        <Td textAlign={'center'}>
-                          <Flex gap={2} justifyContent={'center'}>
-                            <Button
-                              size="sm"
-                              colorScheme="blue"
-                              variant="outline"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                viewAssetAccess(credential);
-                              }}
-                            >
-                              <FormattedMessage id="text.view_access" />
-                            </Button>
-                            {isEditing ? (
-                              <>
-                                <Tooltip label="Save changes" placement="top">
-                                  <IconButton
-                                    size="sm"
-                                    colorScheme="green"
-                                    aria-label="Save asset"
-                                    icon={<FiSave />}
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                      handleSaveAsset();
-                                    }}
-                                  />
-                                </Tooltip>
-                                <Tooltip label="Cancel edit" placement="top">
-                                  <IconButton
-                                    size="sm"
-                                    colorScheme="gray"
-                                    aria-label="Cancel edit"
-                                    icon={<FiX />}
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                      handleCancelEdit();
-                                    }}
-                                  />
-                                </Tooltip>
-                              </>
-                            ) : (
-                              <Tooltip label="Edit asset" placement="top">
-                                <IconButton
-                                  size="sm"
-                                  colorScheme="orange"
-                                  variant="outline"
-                                  aria-label="Edit asset"
-                                  icon={<FiEdit />}
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    handleEditAsset(credential);
-                                  }}
-                                />
-                              </Tooltip>
-                            )}
-                          </Flex>
-                        </Td>
+        {/* Assets Tab */}
+        {activeTab === 'assets' && (
+          <Flex mt={2} flexDirection={'column'} gap={2}>
+            <DamCard mt={0}>
+              <DamCardBody>
+                <TextCardHeader mb={0} id="lblAssetSetting">
+                  <FormattedMessage id="text.assets" />
+                </TextCardHeader>
+                <DamCardDivider />
+
+                <TableContainer width='100%'>
+                  <Table variant='simple' id="tblAssetCredentials">
+                    <Thead>
+                      <Tr>
+                        <Th><FormattedMessage id='text.name' /></Th>
+                        <Th><FormattedMessage id='text.type' /></Th>
+                        <Th><FormattedMessage id='text.database_type' /></Th>
+                        <Th><FormattedMessage id='text.host_address' /></Th>
+                        <Th><FormattedMessage id='text.port_number' /></Th>
+                        <Th><FormattedMessage id='text.database_name' /></Th>
+                        <Th><FormattedMessage id='text.description' /></Th>
+                        <Th textAlign={'center'}><FormattedMessage id='text.status' /></Th>
+                        <Th textAlign={'center'}><FormattedMessage id='text.actions' /></Th>
                       </Tr>
-                    );
-                  })}
-                  </>
-                ) : (
-                  <Tr>
-                    <Td colSpan={9} textAlign={'center'}>
-                      <FormattedMessage id="text.no_asset_credentials" />
-                    </Td>
-                  </Tr>
-                )}
+                    </Thead>
+                    <Tbody maxHeight={500}>
+                      {credentials.length > 0 ? (
+                        <>
+                          {credentials.map((credential) => {
+                            const isEditing = editingAssetId === credential.asset?.id;
+                            return (
+                              <Tr key={credential.id}
+                                backgroundColor={credential.id === selectedCredential?.id ? selectedRowBg : 'transparent'}
+                                onClick={() => setSelectedCredential(credential)}>
+                                <Td>{renderAssetCell(credential, 'name', isEditing)}</Td>
+                                <Td>{credential.asset?.type}</Td>
+                                <Td>{credential.asset?.databaseType ?? '-'}</Td>
+                                <Td>{renderAssetCell(credential, 'hostAddress', isEditing)}</Td>
+                                <Td>{renderAssetCell(credential, 'portNumber', isEditing)}</Td>
+                                <Td>{renderAssetCell(credential, 'databaseName', isEditing)}</Td>
+                                <Td>{renderAssetCell(credential, 'description', isEditing)}</Td>
+                                <Td textAlign={'center'}>
+                                  {credential.username == null && credential.password == null ?
+                                    (<Flex gap={2} justifyContent={'center'} w='full'>
+                                      <Button
+                                        size="sm"
+                                        className="btn-set-credential"
+                                        colorScheme="green"
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          setSelectedCredential(credential);
+                                          setIsDialogOpen(true);
+                                        }}
+                                      >
+                                        <FormattedMessage id="text.set_credential" />
+                                      </Button>
+                                    </Flex>) :
+                                    (<Flex flexDirection={'row'} gap={2} justifyContent={'center'} w='full'>
+                                      <Button
+                                        size="sm"
+                                        className="btn-update-credential"
+                                        colorScheme="yellow"
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          setSelectedCredential(credential);
+                                          setIsDialogOpen(true);
+                                        }}
+                                      >
+                                        <FormattedMessage id="text.update_credential" />
+                                      </Button>
+                                      <Button
+                                        size="sm"
+                                        className="btn-relinquish-credential"
+                                        colorScheme="red"
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          setSelectedCredential(credential);
+                                          setIsDelDlgOpen(true);
+                                        }}
+                                      >
+                                        <FormattedMessage id="text.relinquish_credential" />
+                                      </Button>
+                                    </Flex>)}
+                                </Td>
+                                <Td textAlign={'center'}>
+                                  <Flex gap={2} justifyContent={'center'}>
+                                    <Button
+                                      size="sm"
+                                      colorScheme="blue"
+                                      variant="outline"
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        viewAssetAccess(credential);
+                                      }}
+                                    >
+                                      <FormattedMessage id="text.view_access" />
+                                    </Button>
+                                    {isEditing ? (
+                                      <>
+                                        <Tooltip label="Save changes" placement="top">
+                                          <IconButton
+                                            size="sm"
+                                            colorScheme="green"
+                                            aria-label="Save asset"
+                                            icon={<FiSave />}
+                                            onClick={(e) => {
+                                              e.stopPropagation();
+                                              handleSaveAsset();
+                                            }}
+                                          />
+                                        </Tooltip>
+                                        <Tooltip label="Cancel edit" placement="top">
+                                          <IconButton
+                                            size="sm"
+                                            colorScheme="gray"
+                                            aria-label="Cancel edit"
+                                            icon={<FiX />}
+                                            onClick={(e) => {
+                                              e.stopPropagation();
+                                              handleCancelEdit();
+                                            }}
+                                          />
+                                        </Tooltip>
+                                      </>
+                                    ) : (
+                                      <Tooltip label="Edit asset" placement="top">
+                                        <IconButton
+                                          size="sm"
+                                          colorScheme="orange"
+                                          variant="outline"
+                                          aria-label="Edit asset"
+                                          icon={<FiEdit />}
+                                          onClick={(e) => {
+                                            e.stopPropagation();
+                                            handleEditAsset(credential);
+                                          }}
+                                        />
+                                      </Tooltip>
+                                    )}
+                                  </Flex>
+                                </Td>
+                              </Tr>
+                            );
+                          })}
+                        </>
+                      ) : (
+                        <Tr>
+                          <Td colSpan={9} textAlign={'center'}>
+                            <FormattedMessage id="text.no_asset_credentials" />
+                          </Td>
+                        </Tr>
+                      )}
 
-              </Tbody>
-            </Table>
-          </TableContainer>
-        </DamCardBody>
-      </DamCard>
-      <AssetRequestApprovals />
-      <ChangeRequests />
-      <Flex mt={6} />
+                    </Tbody>
+                  </Table>
+                </TableContainer>
+              </DamCardBody>
+            </DamCard>
+            <AssetRequestApprovals />
+            <ChangeRequests />
+            <Flex mt={6} />
+          </Flex>
+        )}
 
-      <SetCredentialDialog
-        isOpen={isDialogOpen}
-        onClose={() => setIsDialogOpen(false)}
-        onSubmit={handleSetCredential}
-        showPasswordWarning={true}
-      />
+        {/* Data Masking Tab */}
+        {activeTab === 'masking' && (
+          <Flex flexDirection={'column'} gap={2} mt={2}>
+            <DamCard>
+              <DamCardBody>
+                <AIMaskingChat credentials={credentials} onPolicyCreated={handlePolicyCreated} />
+              </DamCardBody>
+            </DamCard>
 
-      <DamAlertDialog
-        isOpen={isDelDlgOpen}
-        onClose={() => setIsDelDlgOpen(false)}
-        onConfirm={handleRelinquish}
-        title="text.relinquish_credential"
-        message="text.are_you_sure_relinquish_credential"
-        confirmButtonId="btnConfirmRelinquish"
-      />
+            <DamCard>
+              <DamCardBody>
+                <TextCardHeader mb={4}>
+                  <FormattedMessage id="text.masking_policies" />
+                </TextCardHeader>
+                <MaskingPolicies ref={maskingPoliciesRef} />
+              </DamCardBody>
+            </DamCard>
 
-      {/* View Access Modal */}
-      <DamViewAccessModal
-        isOpen={isViewAccessModalOpen}
-        onClose={closeViewAccessModal}
-        asset={viewAccessAsset}
-        assetAccessData={assetAccessData}
-        isLoading={isLoadingAccess}
-        error={accessError}
-      />
+          </Flex>
+        )}
+
+        <SetCredentialDialog
+          isOpen={isDialogOpen}
+          onClose={() => setIsDialogOpen(false)}
+          onSubmit={handleSetCredential}
+          showPasswordWarning={true}
+        />
+
+        <DamAlertDialog
+          isOpen={isDelDlgOpen}
+          onClose={() => setIsDelDlgOpen(false)}
+          onConfirm={handleRelinquish}
+          title="text.relinquish_credential"
+          message="text.are_you_sure_relinquish_credential"
+          confirmButtonId="btnConfirmRelinquish"
+        />
+
+        {/* View Access Modal */}
+        <DamViewAccessModal
+          isOpen={isViewAccessModalOpen}
+          onClose={closeViewAccessModal}
+          asset={viewAccessAsset}
+          assetAccessData={assetAccessData}
+          isLoading={isLoadingAccess}
+          error={accessError}
+        />
+      </VStack>
     </DamBasePage>
   );
 }

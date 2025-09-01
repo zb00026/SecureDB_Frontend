@@ -17,7 +17,7 @@ import { CloseIcon, SearchIcon } from "@chakra-ui/icons";
 import { DamBasePage } from "@common/components/DamBasePage";
 import { UserApproversDlg } from "./components/user_approvers_dlg";
 
-type Option = {
+export type RoleOption = {
   label: string;  // The display name of the role
   value: string;  // The ID of the role
 };
@@ -39,13 +39,18 @@ export function Component() {
   const [isDelDlgOpen, setIsDelDlgOpen] = useState(false);
   const [roles, setRoles] = useState<Array<Role>>([]);
   const [deleteUserId, setDeleteUserId] = useState<number | null>(null);
-  const [roleOptions, setRoleOptions] = useState<Array<Option>>([]);
+  const [roleOptions, setRoleOptions] = useState<Array<RoleOption>>([]);
   const defauleDark = useColorModeValue("ant", "antdark");
   const selectedRowBg = useColorModeValue('gray.200', 'gray.700');
   const [approvers, setApprovers] = useState<Array<User>>([]);
   const [isApproversDlgOpen, setIsApproversDlgOpen] = useState<boolean>(false);
   const [isUnsetApproverDlgOpen, setIsUnsetApproverDlgOpen] = useState<boolean>(false);
   const [isShowEditForm, setIsShowEditForm] = useState<boolean>(false);
+  
+  // Validation states
+  const [firstNameError, setFirstNameError] = useState<string>('');
+  const [lastNameError, setLastNameError] = useState<string>('');
+  const [emailError, setEmailError] = useState<string>('');
   
   // Search state
   const [searchTerm, setSearchTerm] = useState('');
@@ -171,6 +176,10 @@ export function Component() {
     setSelectedRoles([]);
     setSelectedUser(null);
     setIsEdit(false);
+    // Clear validation errors
+    setFirstNameError('');
+    setLastNameError('');
+    setEmailError('');
   }
 
   const handleSelectUser = (user: User) => {
@@ -185,6 +194,11 @@ export function Component() {
   const handleUpdate = async () => {
     if (!selectedUser) return;
 
+    // Validate uniqueness before updating (exclude current user from check)
+    if (!validateUserUniqueness(firstName, lastName, email, selectedUser.id)) {
+      return;
+    }
+
     handleRequest(`/api/admin/users/${selectedUser.id}`, 'PUT',
       { firstName, lastName, email, roles: selectedRoles },
       {
@@ -198,8 +212,94 @@ export function Component() {
       }
     );
   };
+  // Validation function to check for duplicate names and emails
+  const validateUserUniqueness = (firstName: string, lastName: string, email: string, excludeUserId?: number) => {
+    const trimmedFirstName = firstName.trim();
+    const trimmedLastName = lastName.trim();
+    const trimmedEmail = email.trim().toLowerCase();
+    
+    // Clear previous errors
+    setFirstNameError('');
+    setLastNameError('');
+    setEmailError('');
+    
+    let hasErrors = false;
+    
+    // Basic field validation
+    if (!trimmedFirstName) {
+      setFirstNameError(intl.formatMessage({ id: 'text.first_name_required' }));
+      hasErrors = true;
+    }
+    
+    if (!trimmedLastName) {
+      setLastNameError(intl.formatMessage({ id: 'text.last_name_required' }));
+      hasErrors = true;
+    }
+    
+    if (!trimmedEmail) {
+      setEmailError(intl.formatMessage({ id: 'text.email_required' }));
+      hasErrors = true;
+    } else {
+      // Basic email format validation using string operations to prevent ReDoS
+      const isValidEmail = (email: string): boolean => {
+        const trimmedEmail = email.trim();
+        const atIndex = trimmedEmail.indexOf('@');
+        const dotIndex = trimmedEmail.lastIndexOf('.');
+        
+        return atIndex > 0 && 
+               dotIndex > atIndex + 1 && 
+               dotIndex < trimmedEmail.length - 1 &&
+               !trimmedEmail.includes(' ') &&
+               !trimmedEmail.includes('\t') &&
+               !trimmedEmail.includes('\n');
+      };
+      
+      if (!isValidEmail(trimmedEmail)) {
+        setEmailError(intl.formatMessage({ id: 'text.please_enter_valid_email' }));
+        hasErrors = true;
+      }
+    }
+    
+    // If there are basic validation errors, don't check for duplicates
+    if (hasErrors) {
+      return false;
+    }
+    
+    // Check for duplicate email
+    const existingUserWithEmail = users.find(user => 
+      user.email.toLowerCase() === trimmedEmail && 
+      (!excludeUserId || user.id !== excludeUserId)
+    );
+    
+    if (existingUserWithEmail) {
+      setEmailError(intl.formatMessage({ id: 'text.email_already_exists' }));
+      hasErrors = true;
+    }
+    
+    // Check for duplicate name combination (firstName + lastName)
+    const existingUserWithName = users.find(user => 
+      user.firstName.trim().toLowerCase() === trimmedFirstName.toLowerCase() &&
+      user.lastName.trim().toLowerCase() === trimmedLastName.toLowerCase() &&
+      (!excludeUserId || user.id !== excludeUserId)
+    );
+    
+    if (existingUserWithName) {
+      setFirstNameError(intl.formatMessage({ id: 'text.name_already_exists' }));
+      setLastNameError(intl.formatMessage({ id: 'text.name_already_exists' }));
+      hasErrors = true;
+    }
+    
+    return !hasErrors;
+  };
+
   const handleCreate = async () => {
     if (selectedUser) return;
+    
+    // Validate uniqueness before creating
+    if (!validateUserUniqueness(firstName, lastName, email)) {
+      return;
+    }
+    
     const auth_provider = import.meta.env.VITE_AUTH_PROVIDER || AUTH_PROVIDER.GOOGLE;
 
     // Always use the invite endpoint for new user creation
@@ -225,7 +325,7 @@ export function Component() {
     });
   };
 
-  const handleRoleChange = (selectedOptions: MultiValue<Option>) => {
+  const handleRoleChange = (selectedOptions: MultiValue<RoleOption>) => {
     const selectedRoles: Array<Role> = selectedOptions
       .map(roleOption => {
         // Find the role object by id
@@ -334,29 +434,59 @@ export function Component() {
           <Flex pt={5} w="100%">
             <Flex id="flexUserForm" direction={'column'} w='full' pr={4}>
               <Flex gap={4}>
-                <Flex w='full'>
+                <Flex w='full' direction="column">
                   <Input
                     id="inputFirstName"
                     value={firstName}
-                    onChange={(e) => setFirstName(e.target.value)}
+                    onChange={(e) => {
+                      setFirstName(e.target.value);
+                      setFirstNameError(''); // Clear error when user types
+                    }}
                     placeholder={intl.formatMessage({ id: 'text.first_name' })}
+                    isInvalid={!!firstNameError}
+                    borderColor={firstNameError ? 'red.300' : undefined}
                   />
+                  {firstNameError && (
+                    <Text fontSize="xs" color="red.500" mt={1}>
+                      {firstNameError}
+                    </Text>
+                  )}
                 </Flex>
-                <Flex w='full'>
+                <Flex w='full' direction="column">
                   <Input
                     id="inputLastName"
                     value={lastName}
-                    onChange={(e) => setLastName(e.target.value)}
+                    onChange={(e) => {
+                      setLastName(e.target.value);
+                      setLastNameError(''); // Clear error when user types
+                    }}
                     placeholder={intl.formatMessage({ id: 'text.last_name' })}
+                    isInvalid={!!lastNameError}
+                    borderColor={lastNameError ? 'red.300' : undefined}
                   />
+                  {lastNameError && (
+                    <Text fontSize="xs" color="red.500" mt={1}>
+                      {lastNameError}
+                    </Text>
+                  )}
                 </Flex>
-                <Flex w='full'>
+                <Flex w='full' direction="column">
                   <Input
                     id="inputEmail"
                     value={email}
-                    onChange={(e) => setEmail(e.target.value)}
+                    onChange={(e) => {
+                      setEmail(e.target.value);
+                      setEmailError(''); // Clear error when user types
+                    }}
                     placeholder={intl.formatMessage({ id: 'text.email' })}
+                    isInvalid={!!emailError}
+                    borderColor={emailError ? 'red.300' : undefined}
                   />
+                  {emailError && (
+                    <Text fontSize="xs" color="red.500" mt={1}>
+                      {emailError}
+                    </Text>
+                  )}
                 </Flex>
               </Flex>
               <Flex gap={4} mt={4}>
@@ -389,6 +519,11 @@ export function Component() {
                   </Text>
                 </Flex>
               )}
+              <Flex mt={2}>
+                <Text fontSize="xs" color="gray.500">
+                  <FormattedMessage id="text.user_validation_rules" />
+                </Text>
+              </Flex>
             </Flex>
             <Flex direction={'column'} gap={4} alignItems={'center'} w='110px'>
               <Button

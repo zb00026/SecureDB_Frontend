@@ -6,7 +6,14 @@ import { request } from '../common/libs/request';
 console.log(getApps().length);
 // Initialize Firebase
 const firebaseApp = getApps().length === 0 ? initializeApp(getFirebaseConfig()) : getApps()[0];
-const messaging = getMessaging(firebaseApp);
+
+// Check if messaging is supported
+let messaging: any = null;
+try {
+  messaging = getMessaging(firebaseApp);
+} catch (error) {
+  console.warn('Firebase messaging is not supported in this browser:', error);
+}
 
 // Listen for service worker requests for Firebase config
 if ('serviceWorker' in navigator) {
@@ -41,6 +48,12 @@ export const requestNotificationPermission = async () => {
 // Get FCM token
 export const getFCMToken = async () => {
   try {
+    // Check if messaging is supported
+    if (!messaging) {
+      console.warn('Firebase messaging is not supported in this browser');
+      return null;
+    }
+
     // Register service worker first
     if ('serviceWorker' in navigator) {
       const registration = await navigator.serviceWorker.register('/firebase-messaging-sw.js');
@@ -67,6 +80,13 @@ export const getFCMToken = async () => {
 
 // Handle foreground messages
 export const onForegroundMessage = (callback: (payload: any) => void) => {
+  // Check if messaging is supported
+  if (!messaging) {
+    console.warn('Firebase messaging is not supported in this browser');
+    // Return a no-op unsubscribe function
+    return () => {};
+  }
+
   // Ensure service worker is registered before setting up message handler
   if ('serviceWorker' in navigator) {
     navigator.serviceWorker.register('/firebase-messaging-sw.js')

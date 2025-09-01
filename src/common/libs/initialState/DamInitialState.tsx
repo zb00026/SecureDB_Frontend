@@ -48,37 +48,46 @@ export function DamInitialState() {
 
       requestNotificationPermission().then((granted) => {
         if (granted) {
-          subscribeToTopic("dam_notification");
+          subscribeToTopic("dam_notification").catch((error) => {
+            console.warn('Failed to subscribe to notification topic:', error);
+          });
         }
+      }).catch((error) => {
+        console.warn('Failed to request notification permission:', error);
       });
     }
     // Set up foreground message handler
-    const unsubscribe = onForegroundMessage((payload) => {
-      // Handle the message
-      console.log('Received foreground message:', payload);
+    let unsubscribe: (() => void) | null = null;
+    try {
+      unsubscribe = onForegroundMessage((payload) => {
+        // Handle the message
+        console.log('Received foreground message:', payload);
 
-      // Example: Show notification using your app's notification system
-      if (payload.notification &&
-        payload.data?.receiverId == user?.id) {
-        if (payload.data?.messageType == '1') {
-          showSuccess({
-            title: payload.notification.title,
-            description: payload.notification.body
-          });
-        } else {
-          showError({
-            title: payload.notification.title,
-            description: payload.notification.body
-          });
+        // Example: Show notification using your app's notification system
+        if (payload.notification &&
+          payload.data?.receiverId == user?.id) {
+          if (payload.data?.messageType == '1') {
+            showSuccess({
+              title: payload.notification.title,
+              description: payload.notification.body
+            });
+          } else {
+            showError({
+              title: payload.notification.title,
+              description: payload.notification.body
+            });
+          }
         }
-
-
-      }
-    });
+      });
+    } catch (error) {
+      console.warn('Failed to set up foreground message handler:', error);
+    }
 
     // Clean up
     return () => {
-      unsubscribe();
+      if (unsubscribe) {
+        unsubscribe();
+      }
     };
   }, [snap.session.ready, user?.id]);
   
