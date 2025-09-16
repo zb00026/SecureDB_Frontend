@@ -7,7 +7,7 @@ import { FormattedMessage, useIntl } from "react-intl";
 import { DatePicker } from "antd";
 import dayjs from "dayjs";
 const { RangePicker } = DatePicker;
-import { PrimaryButton, useMyState } from "@common/index";
+import { PrimaryButton, useMyState, useAssetsForAudit } from "@common/index";
 import { DamTable } from "@common/components/DamTable";
 
 export const isSearchable = true;
@@ -28,6 +28,9 @@ export function Component() {
     availableFilters,
     roleBasedMessage
   } = useRoleBasedAuditTrail({ user });
+
+  // Fetch assets for the dropdown
+  const { assets, loading: assetsLoading, error: assetsError } = useAssetsForAudit({ user });
 
   const columns = [
     {
@@ -86,10 +89,18 @@ export function Component() {
       previousValue: '',
       newValue: '',
       ipAddress: '',
+      assetId: undefined,
     });
     getList({
       page: 1,
       perPage: 20
+    });
+  };
+
+  const handleAssetChange = (assetId: string) => {
+    setFilters({
+      ...filters,
+      assetId: assetId === 'all' ? undefined : parseInt(assetId),
     });
   };
 
@@ -168,6 +179,14 @@ export function Component() {
           <AlertIcon />
           <Text fontSize="sm" mb={0}>{roleBasedMessage}</Text>
         </Alert>
+        
+        {/* Asset loading error */}
+        {assetsError && (
+          <Alert status="error" mb={4}>
+            <AlertIcon />
+            <Text fontSize="sm" mb={0}>{assetsError}</Text>
+          </Alert>
+        )}
         <Box 
           p={4} 
           borderRadius="md" 
@@ -202,6 +221,25 @@ export function Component() {
               </Flex>
             </GridItem>
 
+            {/* Asset Dropdown - only show if user can filter by asset */}
+            {availableFilters.canFilterByAsset && (
+              <GridItem>
+                <Select
+                  value={filters.assetId?.toString() || 'all'}
+                  onChange={(e) => handleAssetChange(e.target.value)}
+                  isDisabled={assetsLoading}
+                >
+                  <option value="all">All Assets</option>
+                  {assets
+                    .map(asset => (
+                      <option key={asset.id} value={asset.id?.toString()}>
+                        {asset.name}
+                      </option>
+                    ))}
+                </Select>
+              </GridItem>
+            )}
+
             {/* Action Dropdown */}
             <GridItem>
               <Select
@@ -209,7 +247,7 @@ export function Component() {
                 value={filters.action}
                 onChange={(e) => setFilters({ ...filters, action: e.target.value })}
               >
-                {availableFilters.availableActions.map(action => (
+                {availableFilters.availableActions.map((action: string) => (
                   <option key={action} value={action}>{action}</option>
                 ))}
               </Select>

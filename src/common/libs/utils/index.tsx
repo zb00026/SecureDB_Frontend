@@ -3,49 +3,141 @@ import { passwordRequirements } from "@common/components/DamPasswordInput";
 import { Role } from "@models/Role";
 import { User } from "@models/User";
 
+/**
+ * Maps character codes to DOM key codes for terminal input
+ * @param char - The character to map
+ * @returns The corresponding DOM key code as a string
+ */
+// Helper function to get special key codes
+function getSpecialKeyCode(char: string): string | null {
+  const specialKeys: Record<string, string> = {
+    '\r': '13',    // Enter
+    '\n': '13',    // Enter
+    '\u007f': '8', // Backspace
+    '\b': '8',     // Backspace
+    '\t': '9',     // Tab
+    '\u0003': '3'  // Ctrl+C
+  };
+  
+  return specialKeys[char] || null;
+}
+
+// Helper function to get printable character key codes
+function getPrintableCharKeyCode(charCode: number): string {
+  // Special character mappings (non-pattern based)
+  const specialMappings: Record<number, string> = {
+    32: '32',   // Space
+    33: '49',   // !
+    34: '222',  // "
+    35: '51',   // #
+    36: '52',   // $
+    37: '53',   // %
+    38: '55',   // &
+    39: '222',  // '
+    40: '57',   // (
+    41: '48',   // )
+    42: '56',   // *
+    43: '187',  // +
+    44: '188',  // ,
+    45: '189',  // -
+    46: '190',  // .
+    47: '191',  // /
+    58: '186',  // :
+    59: '186',  // ';'
+    60: '188',  // <
+    61: '187',  // =
+    62: '190',  // >
+    63: '191',  // '?'
+    64: '50',   // @
+    91: '219',  // [
+    92: '220',  // \
+    93: '221',  // ]
+    94: '54',   // ^
+    95: '189',  // _
+    96: '192',  // `
+    123: '219', // '{'
+    124: '220', // |
+    125: '221', // }
+    126: '192'  // ~
+  };
+  
+  // Check special mappings first
+  if (specialMappings[charCode]) {
+    return specialMappings[charCode];
+  }
+  
+  // Numbers (48-57): same as charCode
+  if (charCode >= 48 && charCode <= 57) {
+    return charCode.toString();
+  }
+  
+  // Uppercase letters (65-90): same as charCode
+  if (charCode >= 65 && charCode <= 90) {
+    return charCode.toString();
+  }
+  
+  // Lowercase letters (97-122): same as uppercase
+  if (charCode >= 97 && charCode <= 122) {
+    return (charCode - 32).toString();
+  }
+  
+  // Fallback
+  return charCode.toString();
+}
+
+export function getKeyCode(char: string): string {
+  // Handle special keys first
+  const specialKeyCode = getSpecialKeyCode(char);
+  if (specialKeyCode) {
+    return specialKeyCode;
+  }
+  
+  // Handle printable characters
+  if (char >= ' ' && char <= '~') {
+    return getPrintableCharKeyCode(char.charCodeAt(0));
+  }
+  
+  // Other special characters
+  return char.charCodeAt(0).toString();
+}
+
 export function isAuthorizedPath(path: string, user?: User): boolean {
-  if (!user?.roles.length && path != '/') return false;
-  let hasRole: boolean = false;
-  if (path == '/') return true;
+  if (!user?.roles.length && path !== '/') return false;
+  if (path === '/') return true;
 
-  user?.roles.forEach((role: Role) => {
+  // Define path-role mappings to reduce cognitive complexity
+  const pathRoleMappings: Array<{
+    pathPrefix: string;
+    allowedRoles: string[];
+  }> = [
+    { pathPrefix: '/admin', allowedRoles: [USER_ROLE.ADMIN] },
+    { pathPrefix: '/developer', allowedRoles: [USER_ROLE.DEVELOPER] },
+    { pathPrefix: '/approver', allowedRoles: [USER_ROLE.APPROVER] },
+    { pathPrefix: '/auditor', allowedRoles: [USER_ROLE.AUDITOR] },
+    { 
+      pathPrefix: '/auditor/audit-trail', 
+      allowedRoles: [USER_ROLE.ADMIN, USER_ROLE.AUDITOR, USER_ROLE.ASSET_OWNER, USER_ROLE.APPROVER] 
+    },
+    { 
+      pathPrefix: '/auditor/terminal-audit', 
+      allowedRoles: [USER_ROLE.ADMIN, USER_ROLE.AUDITOR] 
+    },
+    { 
+      pathPrefix: '/asset_owner', 
+      allowedRoles: [USER_ROLE.ADMIN, USER_ROLE.ASSET_OWNER] 
+    }
+  ];
+
+  // Check if user has any role that matches the path requirements
+  return user?.roles.some((role: Role) => {
     const userRole = role.name;
-    if (!userRole) return;
+    if (!userRole) return false;
 
-    if (path.startsWith('/admin') && userRole == USER_ROLE.ADMIN) {
-      hasRole = true;
-    }
-
-    if (path.startsWith('/developer') && userRole == USER_ROLE.DEVELOPER) {
-      hasRole = true;
-    }
-    if (path.startsWith('/asset_owner') && userRole == USER_ROLE.ASSET_OWNER) {
-      hasRole = true;
-    }
-    if (path.startsWith('/approver') && userRole == USER_ROLE.APPROVER) {
-      hasRole = true;
-    }
-    if (path.startsWith('/auditor') && userRole == USER_ROLE.AUDITOR) {
-      hasRole = true;
-    }
-
-    // Add audit trail access for multiple roles with different restrictions
-    if (path.startsWith('/auditor/audit-trail') && 
-        (userRole === USER_ROLE.ADMIN || 
-         userRole === USER_ROLE.AUDITOR || 
-         userRole === USER_ROLE.ASSET_OWNER || 
-         userRole === USER_ROLE.APPROVER)) {
-      hasRole = true;
-    }
-
-    if (path.startsWith('/asset_owner') && 
-        (userRole === USER_ROLE.ADMIN || userRole === USER_ROLE.ASSET_OWNER)) {
-      hasRole = true;
-    }
-  })
-
-
-  return hasRole;
+    return pathRoleMappings.some(mapping => 
+      path.startsWith(mapping.pathPrefix) && 
+      mapping.allowedRoles.includes(userRole)
+    );
+  }) || false;
 }
 
 export function userHasRole(user?: User, roleName?: string): boolean {

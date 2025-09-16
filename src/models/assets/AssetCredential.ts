@@ -7,9 +7,10 @@ export interface AssetCredential {
     userId: number;
     username: string;
     password: string;
-    createdAt?: Date;
-    updatedAt?: Date;
+    userAccessType?: string;
+    isDeleted?: boolean;
     isTemporaryPassword?: boolean;
+    sshKeyFile?: string; // For Unix Server assets
     
     // Optional references to related entities
     asset?: Asset;

@@ -1,4 +1,4 @@
-import { AssetType, DatabaseType } from "@/constants/enums";
+import { AssetType, DatabaseType, UnixServerType } from "@/constants/enums";
 import { AssetCredential } from "./AssetCredential";
 import { User } from "../User";
 import { AccessRequest } from "./AccessRequest";
@@ -9,7 +9,8 @@ export interface Asset {
     name: string;
     description: string;
     type: AssetType | '';
-    databaseType?: DatabaseType | '';
+    databaseType?: DatabaseType | null;
+    unixServerType?: UnixServerType | null;
     hostAddress: string;
     portNumber: string;
     databaseName: string;

@@ -40,7 +40,7 @@ export function EditAssetModal({
   const [formState, setFormState] = useState<Partial<AssetDTO>>({
     name: '',
     type: '' as AssetType | '',
-    databaseType: '' as DatabaseType | '',
+    databaseType: null,
     description: '',
     hostAddress: '',
     portNumber: '',
@@ -53,7 +53,7 @@ export function EditAssetModal({
       setFormState({
         name: asset.name,
         type: asset.type,
-        databaseType: asset.databaseType ?? '',
+        databaseType: asset.databaseType ?? null,
         description: asset.description,
         hostAddress: asset.hostAddress,
         portNumber: asset.portNumber,
@@ -66,7 +66,7 @@ export function EditAssetModal({
     setFormState({
       name: '',
       type: '' as AssetType | '',
-      databaseType: '' as DatabaseType | '',
+      databaseType: null,
       description: '',
       hostAddress: '',
       portNumber: '',
@@ -117,8 +117,8 @@ export function EditAssetModal({
                   <FormattedMessage id="text.database_type" />
                 </Text>
                 <Select
-                  value={formState.databaseType}
-                  onChange={(e) => setFormState(prev => ({ ...prev, databaseType: e.target.value as DatabaseType }))}
+                  value={formState.databaseType || ''}
+                  onChange={(e) => setFormState(prev => ({ ...prev, databaseType: e.target.value as DatabaseType || null }))}
                   placeholder={intl.formatMessage({ id: 'text.select_db_type' })}
                 >
                   {Object.values(DatabaseType).map((type: DatabaseType) => (

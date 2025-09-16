@@ -32,7 +32,8 @@ import {
   FiCheckCircle,
   FiUser,
   FiHardDrive,
-  FiKey
+  FiKey,
+  FiTerminal
 } from 'react-icons/fi';
 
 export const name = 'Dashboard';
@@ -74,7 +75,7 @@ const adminNavItems = [
   {
     id: 'assets',
     titleId: 'text.assets',
-    description: 'Manage database assets',
+    description: 'Manage assets',
     icon: FiHardDrive,
     colorScheme: 'teal',
     href: '/admin/assets'
@@ -118,7 +119,7 @@ export function Component() {
 
   // Helper function to get audit trail description based on user role
   const getAuditTrailDescription = () => {
-    if (userHasRole(user, USER_ROLE.ADMIN) || userHasRole(user, USER_ROLE.AUDITOR)) {
+    if (userHasRole(user, USER_ROLE.ADMIN)) {
       return 'View all system audit logs';
     }
     if (userHasRole(user, USER_ROLE.ASSET_OWNER)) {
@@ -305,8 +306,8 @@ export function Component() {
           ))}
           
           {/* Audit Trail Card (if user has permission) */}
-          {(userHasRole(user, USER_ROLE.AUDITOR) || 
-            userHasRole(user, USER_ROLE.ADMIN) || 
+          {(userHasRole(user, USER_ROLE.ADMIN) || 
+            userHasRole(user, USER_ROLE.AUDITOR) || 
             userHasRole(user, USER_ROLE.ASSET_OWNER) || 
             userHasRole(user, USER_ROLE.APPROVER)) && (
             <GridItem>
@@ -353,6 +354,59 @@ export function Component() {
                       rightIcon={<Icon as={FiClock} />}
                     >
                       View Logs
+                    </Button>
+                  </VStack>
+                </CardBody>
+              </Card>
+            </GridItem>
+          )}
+
+          {/* Terminal Audit Card (if user has permission) */}
+          {(userHasRole(user, USER_ROLE.ADMIN) || userHasRole(user, USER_ROLE.AUDITOR)) && (
+            <GridItem>
+              <Card
+                variant="elevated"
+                bg={cardBg}
+                borderColor={cardBorderColor}
+                transition="all 0.2s ease-in-out"
+                _hover={{
+                  transform: 'translateY(-4px)',
+                  boxShadow: 'xl',
+                  borderColor: 'green.300',
+                }}
+                cursor="pointer"
+                as={Link}
+                to="/auditor/terminal-audit"
+              >
+                <CardBody>
+                  <VStack spacing={4} align="center" py={4}>
+                    <Box
+                      p={4}
+                      bg="green.50"
+                      borderRadius="2xl"
+                      _dark={{ bg: 'green.900' }}
+                    >
+                      <Icon
+                        as={FiTerminal}
+                        boxSize={8}
+                        color="green.500"
+                      />
+                    </Box>
+                    <VStack spacing={2} textAlign="center">
+                      <Heading size="sm">
+                        <FormattedMessage id="terminal.audit.title" />
+                      </Heading>
+                      <Text fontSize="sm" color="gray.600" _dark={{ color: 'gray.400' }}>
+                        Monitor and review terminal sessions and commands
+                      </Text>
+                    </VStack>
+                    <Button
+                      variant="ghost"
+                      colorScheme="green"
+                      size="sm"
+                      rightIcon={<Icon as={FiTerminal} />}
+                    >
+                      View Terminal Logs
                     </Button>
                   </VStack>
                 </CardBody>

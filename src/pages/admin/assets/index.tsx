@@ -9,7 +9,7 @@ import { AssetDTO } from "@models/assets/AssetDTO";
 import { User } from "@models/User";
 import { useEffect, useState } from "react";
 import { FormattedMessage, useIntl } from "react-intl";
-import { AssetType, DatabaseType, USER_ROLE } from "@/constants/enums";
+import { AssetType, DatabaseType, UnixServerType, USER_ROLE } from "@/constants/enums";
 import { DamAlertDialog } from "@common/components/DamDialog/DamAlertDialog";
 import { useApiRequest } from "@common/hooks/useApiRequest";
 import { AssetsTable } from "./components/assets_table";
@@ -55,7 +55,8 @@ export function Component() {
   const [formState, setFormState] = useState<Partial<AssetDTO>>({
     name: '',
     type: '' as AssetType | '',
-    databaseType: '' as DatabaseType | '',
+    databaseType: null,
+    unixServerType: null,
     description: '',
     hostAddress: '',
     portNumber: '',
@@ -124,7 +125,8 @@ export function Component() {
     setFormState({
       name: '',
       type: AssetType.DATABASE,
-      databaseType: '',
+      databaseType: null,
+      unixServerType: null,
       description: '',
       hostAddress: '',
       portNumber: '',
@@ -308,8 +310,7 @@ export function Component() {
   };
 
   const handleCreate = async () => {
-    if (selectedAsset) return;
-
+    setSelectedAsset(null);
 
     handleRequest('/api/admin/assets', 'POST', formState, {
       onSuccess: () => {
@@ -376,12 +377,13 @@ export function Component() {
                   placeholder={intl.formatMessage({ id: 'text.select_asset_type' })}
                 >
                   <option value={AssetType.DATABASE}>{AssetType.DATABASE}</option>
+                  <option value={AssetType.UNIX_SERVER}>{AssetType.UNIX_SERVER}</option>
                 </Select>
 
                 {formState.type === AssetType.DATABASE && (
                   <Box>
                     <Select
-                      value={formState.databaseType}
+                      value={formState.databaseType || ''}
                       id="selectDBType"
                       onChange={(e) => setFormState(prev => ({ ...prev, databaseType: e.target.value as DatabaseType }))}
                       placeholder={intl.formatMessage({ id: 'text.select_db_type' })}
@@ -392,9 +394,24 @@ export function Component() {
                     </Select>
                   </Box>
                 )}
+
+                {formState.type === AssetType.UNIX_SERVER && (
+                  <Box>
+                    <Select
+                      value={formState.unixServerType || ''}
+                      id="selectUnixServerType"
+                      onChange={(e) => setFormState(prev => ({ ...prev, unixServerType: e.target.value as UnixServerType }))}
+                      placeholder={intl.formatMessage({ id: 'text.select_unix_server_type' })}
+                    >
+                      {Object.values(UnixServerType).map((type: UnixServerType) => (
+                        <option className="dropdown-unix-option" key={type} value={type}>{type}</option>
+                      ))}
+                    </Select>
+                  </Box>
+                )}
               </Flex>
             }
-            {isFormShow && formState.type != '' && formState.databaseType != '' && (
+            {isFormShow && formState.type != '' && (formState.databaseType != null || formState.unixServerType != null) && (
               <Flex
                 my={4}
                 px={4}
@@ -421,12 +438,14 @@ export function Component() {
                     id="inputPortNumber"
                     placeholder={intl.formatMessage({ id: 'text.port_number' })}
                   />
-                  <Input
-                    value={formState.databaseName}
-                    onChange={(e) => setFormState(prev => ({ ...prev, databaseName: e.target.value }))}
-                    id="inputDatabaseName"
-                    placeholder={intl.formatMessage({ id: 'text.database_name' })}
-                  />
+                  {formState.type === AssetType.DATABASE && (
+                    <Input
+                      value={formState.databaseName}
+                      onChange={(e) => setFormState(prev => ({ ...prev, databaseName: e.target.value }))}
+                      id="inputDatabaseName"
+                      placeholder={intl.formatMessage({ id: 'text.database_name' })}
+                    />
+                  )}
                 </Flex>
                 <Flex flexDirection={'row'} gap={4} w='full'>
                   <Input

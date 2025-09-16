@@ -14,7 +14,8 @@ export const AUTH_PROVIDER = {
 
 
 export enum AssetType {
-  DATABASE = "DATABASE"
+  DATABASE = "DATABASE",
+  UNIX_SERVER = "UNIX_SERVER"
   // Add more asset types here as needed
 }
 
@@ -24,6 +25,14 @@ export enum DatabaseType {
   ORACLE = "ORACLE",
   SQLSERVER = "SQLSERVER"
   // Add more database types here as needed
+}
+
+export enum UnixServerType {
+  LINUX = "LINUX",
+  UNIX = "UNIX",
+  FREEBSD = "FREEBSD",
+  SOLARIS = "SOLARIS"
+  // Add more Unix server types here as needed
 } 
 
 export enum ChangeRequestStatus {

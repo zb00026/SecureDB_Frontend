@@ -10,14 +10,16 @@ import { AssetDTO } from "@models/assets/AssetDTO";
 import { useEffect, useState, useRef } from "react";
 import { FormattedMessage, useIntl } from "react-intl";
 import { SetCredentialDialog } from "@common/components/DamDialog/SetCredentialDialog";
+import { SetSSHCredentialDialog } from "@common/components/DamDialog/SetSSHCredentialDialog";
 import { DamAlertDialog } from "@common/components/DamDialog/DamAlertDialog";
+import { DamTerminalModal } from "@common/components/DamTerminal";
 import { AssetRequestApprovals } from "./components/asset_request_approvals";
 import { ChangeRequests } from "./components/change_requests";
 import { AIMaskingChat } from "./components/ai_masking_chat";
 import { MaskingPolicies, MaskingPoliciesRef } from "./components/masking_policies";
 import { DamViewAccessModal } from "@common/components/DamDialog/DamViewAccessModal";
 import { useViewAccess } from "@common/hooks/useViewAccess";
-import { FiEdit, FiSave, FiX, FiShield, FiDatabase } from "react-icons/fi";
+import { FiEdit, FiSave, FiX, FiShield, FiDatabase, FiTerminal } from "react-icons/fi";
 
 export const isSearchable = true;
 export const displayName = 'Asset Owner Main Page';
@@ -27,7 +29,10 @@ export function Component() {
   const [credentials, setCredentials] = useState<AssetCredential[]>([]);
   const [selectedCredential, setSelectedCredential] = useState<AssetCredential | null>(null);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [isSSHDialogOpen, setIsSSHDialogOpen] = useState(false);
   const [isDelDlgOpen, setIsDelDlgOpen] = useState(false);
+  const [isTerminalModalOpen, setIsTerminalModalOpen] = useState(false);
+  const [terminalAsset, setTerminalAsset] = useState<Asset | null>(null);
   const [editingAssetId, setEditingAssetId] = useState<number | null>(null);
   const [editFormState, setEditFormState] = useState<AssetDTO>({
     name: '',
@@ -36,7 +41,8 @@ export function Component() {
     portNumber: '',
     databaseName: '',
     type: undefined,
-    databaseType: undefined
+    databaseType: undefined,
+    unixServerType: undefined
   });
   const [activeTab, setActiveTab] = useState<'assets' | 'masking'>('assets');
   const selectedRowBg = useColorModeValue('gray.200', 'gray.700');
@@ -75,9 +81,11 @@ export function Component() {
         showError({
           description: intl.formatMessage({ id: 'text.error_occurred_get_asset_credentials' }),
         });
+      })
+      .finally(() => {
+        stateActions.subLoading();
       });
   }
-
   useEffect(() => {
     fetchAssignedCredentials();
   }, []);
@@ -86,41 +94,103 @@ export function Component() {
   const handleSetCredential = (username: string, password: string) => {
     if (!selectedCredential) return;
     stateActions.addLoading();
-    request(`/api/asset_owner/assets/credentials/${selectedCredential.id}`, {
-      method: 'POST',
-      data: { username, password }
-    })
-      .then(() => {
-        showSuccess({
-          description: intl.formatMessage({ id: 'text.credentials_set_success' }),
-        });
-        fetchAssignedCredentials();
+    
+    // Determine if it's a database or SSH credential based on asset type
+    const isDatabase = selectedCredential.asset?.type === 'DATABASE';
+    
+    if (isDatabase) {
+      // For database credentials, set username and password
+      request(`/api/asset_owner/assets/credentials/${selectedCredential.id}`, {
+        method: 'POST',
+        data: { username, password }
       })
-      .catch((e) => {
-        showError({
-          description: e.data?.error ?? intl.formatMessage({ id: 'text.error_occurred_setting_credentials' }),
+        .then(() => {
+          showSuccess({
+            description: intl.formatMessage({ id: 'text.credentials_set_success' }),
+          });
+          fetchAssignedCredentials();
+        })
+        .catch((e) => {
+          showError({
+            description: e.data?.error ?? intl.formatMessage({ id: 'text.error_occurred_setting_credentials' }),
+          });
         });
-      });
+    }
+  };
+
+  const handleSetSSHCredential = (username: string, sshPrivateKey: string) => {
+    if (!selectedCredential) return;
+    stateActions.addLoading();
+    
+    // Determine if it's a Unix Server credential based on asset type
+    const isUnixServer = selectedCredential.asset?.type === 'UNIX_SERVER';
+    
+    if (isUnixServer) {
+      
+      
+      // Update existing SSH credentials
+      request(`/api/asset_owner/assets/ssh-credentials/${selectedCredential.id}`, {
+        method: 'PUT',
+        data: { username, sshKeyFile: sshPrivateKey }
+      })
+        .then(() => {
+          showSuccess({
+            description: intl.formatMessage({ id: 'text.ssh_credentials_set_success' }),
+          });
+          fetchAssignedCredentials();
+        })
+        .catch((e) => {
+          showError({
+            description: e.data?.error ?? intl.formatMessage({ id: 'text.error_occurred_setting_ssh_credentials' }),
+          });
+        });
+    }
   };
 
   const handleRelinquish = () => {
     if (!selectedCredential) return;
     setIsDelDlgOpen(false);
     stateActions.addLoading();
-    request(`/api/asset_owner/assets/credentials/${selectedCredential.id}`, {
-      method: 'DELETE'
-    })
-      .then(() => {
-        showSuccess({
-          description: intl.formatMessage({ id: 'text.credentials_relinquished_success' }),
-        });
-        fetchAssignedCredentials();
+    
+    // Determine if it's a database or SSH credential based on asset type
+    const isDatabase = selectedCredential.asset?.type === 'DATABASE';
+    const isUnixServer = selectedCredential.asset?.type === 'UNIX_SERVER';
+    
+    if (isDatabase) {
+      // For database credentials, clear username and password
+      request(`/api/asset_owner/assets/credentials/${selectedCredential.id}`, {
+        method: 'POST',
+        data: { username: null, password: null }
       })
-      .catch((e) => {
-        showError({
-          description: e.data?.error ?? intl.formatMessage({ id: 'text.error_occurred_relinquishing_credentials' }),
+        .then(() => {
+          showSuccess({
+            description: intl.formatMessage({ id: 'text.credentials_relinquished_success' }),
+          });
+          fetchAssignedCredentials();
+        })
+        .catch((e) => {
+          showError({
+            description: e.data?.error ?? intl.formatMessage({ id: 'text.error_occurred_relinquishing_credentials' }),
+          });
         });
-      });
+    } else if (isUnixServer) {
+      // For SSH credentials, clear username and sshKeyFile using the SSH credentials endpoint
+      request(`/api/asset_owner/assets/ssh-credentials/${selectedCredential.id}`, {
+        method: 'PUT',
+        data: { username: null, sshKeyFile: null }
+      })
+        .then(() => {
+          showSuccess({
+            description: intl.formatMessage({ id: 'text.ssh_credentials_relinquished_success' }),
+          });
+          fetchAssignedCredentials();
+        })
+        .catch((e) => {
+          showError({
+            description: e.data?.error ?? intl.formatMessage({ id: 'text.error_occurred_relinquishing_ssh_credentials' }),
+          });
+        });
+    }
   };
 
   const handleEditAsset = (credential: AssetCredential) => {
@@ -134,6 +204,7 @@ export function Component() {
       databaseName: credential.asset.databaseName,
       type: credential.asset.type,
       databaseType: credential.asset.databaseType,
+      unixServerType: credential.asset.unixServerType,
     });
   };
 
@@ -158,7 +229,8 @@ export function Component() {
           portNumber: '',
           databaseName: '',
           type: undefined,
-          databaseType: undefined
+          databaseType: undefined,
+          unixServerType: undefined
         });
         fetchAssignedCredentials();
       })
@@ -178,14 +250,25 @@ export function Component() {
       portNumber: '',
       databaseName: '',
       type: undefined,
-      databaseType: undefined
+      databaseType: undefined,
+      unixServerType: undefined
     });
   };
 
-  const renderAssetCell = (credential: AssetCredential, field: keyof Asset, isEditing: boolean) => {
-    if (!credential.asset) return '-';
+  const handleOpenTerminal = (asset: Asset) => {
+    setTerminalAsset(asset);
+    setIsTerminalModalOpen(true);
+  };
 
-    // Only allow editing of specific fields (type and databaseType are read-only)
+  const handleCloseTerminal = () => {
+    setIsTerminalModalOpen(false);
+    setTerminalAsset(null);
+  };
+
+  const renderAssetCell = (asset: Asset | undefined, field: keyof Asset, isEditing: boolean) => {
+    if (!asset) return '-';
+
+    // Only allow editing of specific fields (type, databaseType, and unixServerType are read-only)
     const editableFields = ['name', 'description', 'hostAddress', 'portNumber', 'databaseName'];
 
     if (isEditing && editableFields.includes(field)) {
@@ -200,8 +283,8 @@ export function Component() {
       );
     }
 
-    // For read-only fields (type, databaseType), show the original asset value
-    const value = credential.asset[field];
+    // For read-only fields (type, databaseType, unixServerType), show the original asset value
+    const value = asset[field];
     return typeof value === 'string' || typeof value === 'number' ? String(value) : '-';
   };
 
@@ -251,7 +334,7 @@ export function Component() {
                       <Tr>
                         <Th><FormattedMessage id='text.name' /></Th>
                         <Th><FormattedMessage id='text.type' /></Th>
-                        <Th><FormattedMessage id='text.database_type' /></Th>
+                        <Th><FormattedMessage id='text.asset_subtype' /></Th>
                         <Th><FormattedMessage id='text.host_address' /></Th>
                         <Th><FormattedMessage id='text.port_number' /></Th>
                         <Th><FormattedMessage id='text.database_name' /></Th>
@@ -260,135 +343,224 @@ export function Component() {
                         <Th textAlign={'center'}><FormattedMessage id='text.actions' /></Th>
                       </Tr>
                     </Thead>
-                    <Tbody maxHeight={500}>
-                      {credentials.length > 0 ? (
-                        <>
-                          {credentials.map((credential) => {
-                            const isEditing = editingAssetId === credential.asset?.id;
-                            return (
-                              <Tr key={credential.id}
-                                backgroundColor={credential.id === selectedCredential?.id ? selectedRowBg : 'transparent'}
-                                onClick={() => setSelectedCredential(credential)}>
-                                <Td>{renderAssetCell(credential, 'name', isEditing)}</Td>
-                                <Td>{credential.asset?.type}</Td>
-                                <Td>{credential.asset?.databaseType ?? '-'}</Td>
-                                <Td>{renderAssetCell(credential, 'hostAddress', isEditing)}</Td>
-                                <Td>{renderAssetCell(credential, 'portNumber', isEditing)}</Td>
-                                <Td>{renderAssetCell(credential, 'databaseName', isEditing)}</Td>
-                                <Td>{renderAssetCell(credential, 'description', isEditing)}</Td>
-                                <Td textAlign={'center'}>
-                                  {credential.username == null && credential.password == null ?
-                                    (<Flex gap={2} justifyContent={'center'} w='full'>
-                                      <Button
-                                        size="sm"
-                                        className="btn-set-credential"
-                                        colorScheme="green"
-                                        onClick={(e) => {
-                                          e.stopPropagation();
-                                          setSelectedCredential(credential);
-                                          setIsDialogOpen(true);
-                                        }}
-                                      >
-                                        <FormattedMessage id="text.set_credential" />
-                                      </Button>
-                                    </Flex>) :
-                                    (<Flex flexDirection={'row'} gap={2} justifyContent={'center'} w='full'>
-                                      <Button
-                                        size="sm"
-                                        className="btn-update-credential"
-                                        colorScheme="yellow"
-                                        onClick={(e) => {
-                                          e.stopPropagation();
-                                          setSelectedCredential(credential);
-                                          setIsDialogOpen(true);
-                                        }}
-                                      >
-                                        <FormattedMessage id="text.update_credential" />
-                                      </Button>
-                                      <Button
-                                        size="sm"
-                                        className="btn-relinquish-credential"
-                                        colorScheme="red"
-                                        onClick={(e) => {
-                                          e.stopPropagation();
-                                          setSelectedCredential(credential);
-                                          setIsDelDlgOpen(true);
-                                        }}
-                                      >
-                                        <FormattedMessage id="text.relinquish_credential" />
-                                      </Button>
-                                    </Flex>)}
-                                </Td>
-                                <Td textAlign={'center'}>
-                                  <Flex gap={2} justifyContent={'center'}>
-                                    <Button
-                                      size="sm"
-                                      colorScheme="blue"
-                                      variant="outline"
-                                      onClick={(e) => {
-                                        e.stopPropagation();
-                                        viewAssetAccess(credential);
-                                      }}
-                                    >
-                                      <FormattedMessage id="text.view_access" />
-                                    </Button>
-                                    {isEditing ? (
-                                      <>
-                                        <Tooltip label="Save changes" placement="top">
-                                          <IconButton
-                                            size="sm"
-                                            colorScheme="green"
-                                            aria-label="Save asset"
-                                            icon={<FiSave />}
-                                            onClick={(e) => {
-                                              e.stopPropagation();
-                                              handleSaveAsset();
-                                            }}
-                                          />
-                                        </Tooltip>
-                                        <Tooltip label="Cancel edit" placement="top">
-                                          <IconButton
-                                            size="sm"
-                                            colorScheme="gray"
-                                            aria-label="Cancel edit"
-                                            icon={<FiX />}
-                                            onClick={(e) => {
-                                              e.stopPropagation();
-                                              handleCancelEdit();
-                                            }}
-                                          />
-                                        </Tooltip>
-                                      </>
-                                    ) : (
-                                      <Tooltip label="Edit asset" placement="top">
-                                        <IconButton
-                                          size="sm"
-                                          colorScheme="orange"
-                                          variant="outline"
-                                          aria-label="Edit asset"
-                                          icon={<FiEdit />}
-                                          onClick={(e) => {
-                                            e.stopPropagation();
-                                            handleEditAsset(credential);
-                                          }}
-                                        />
-                                      </Tooltip>
-                                    )}
-                                  </Flex>
-                                </Td>
-                              </Tr>
-                            );
-                          })}
-                        </>
-                      ) : (
-                        <Tr>
-                          <Td colSpan={9} textAlign={'center'}>
-                            <FormattedMessage id="text.no_asset_credentials" />
-                          </Td>
-                        </Tr>
-                      )}
+                                         <Tbody maxHeight={500}>
+                       {credentials.length > 0 ? (
+                         <>
+                           {credentials.map((credential) => {
+                             const isEditing = editingAssetId === credential.asset?.id;
+                             const isDatabase = credential.asset?.type === 'DATABASE';
+                             const isUnixServer = credential.asset?.type === 'UNIX_SERVER';
+                             
+                             return (
+                               <Tr key={credential.id}
+                                 backgroundColor={credential.asset?.id === selectedCredential?.asset?.id ? selectedRowBg : 'transparent'}
+                                 onClick={() => setSelectedCredential(credential)}>
+                                 <Td>{renderAssetCell(credential.asset, 'name', isEditing)}</Td>
+                                 <Td>{credential.asset?.type}</Td>
+                                 <Td>{isDatabase ? (credential.asset?.databaseType ?? '-') : (credential.asset?.unixServerType ?? '-')}</Td>
+                                 <Td>{renderAssetCell(credential.asset, 'hostAddress', isEditing)}</Td>
+                                 <Td>{renderAssetCell(credential.asset, 'portNumber', isEditing)}</Td>
+                                 <Td>{isDatabase ? renderAssetCell(credential.asset, 'databaseName', isEditing) : '-'}</Td>
+                                 <Td>{renderAssetCell(credential.asset, 'description', isEditing)}</Td>
+                                 <Td textAlign={'center'}>
+                                   {(() => {
+                                     // Database credential management
+                                     if (isDatabase) {
+                                       const hasDatabaseCredentials = credential.username && credential.password;
+                                       
+                                       if (!hasDatabaseCredentials) {
+                                         return (
+                                           <Flex gap={2} justifyContent={'center'} w='full'>
+                                             <Button
+                                               size="sm"
+                                               className="btn-set-credential"
+                                               colorScheme="green"
+                                               onClick={(e) => {
+                                                 e.stopPropagation();
+                                                 setSelectedCredential(credential);
+                                                 setIsDialogOpen(true);
+                                               }}
+                                             >
+                                               <FormattedMessage id="text.set_credential" />
+                                             </Button>
+                                           </Flex>
+                                         );
+                                       } else {
+                                         return (
+                                           <Flex flexDirection={'row'} gap={2} justifyContent={'center'} w='full'>
+                                             <Button
+                                               size="sm"
+                                               className="btn-update-credential"
+                                               colorScheme="yellow"
+                                               onClick={(e) => {
+                                                 e.stopPropagation();
+                                                 setSelectedCredential(credential);
+                                                 setIsDialogOpen(true);
+                                               }}
+                                             >
+                                               <FormattedMessage id="text.update_credential" />
+                                             </Button>
+                                             <Button
+                                               size="sm"
+                                               className="btn-relinquish-credential"
+                                               colorScheme="red"
+                                               onClick={(e) => {
+                                                 e.stopPropagation();
+                                                 setSelectedCredential(credential);
+                                                 setIsDelDlgOpen(true);
+                                               }}
+                                             >
+                                               <FormattedMessage id="text.relinquish_credential" />
+                                             </Button>
+                                           </Flex>
+                                         );
+                                       }
+                                     }
+                                     
+                                     // SSH credential management
+                                     if (isUnixServer) {
+                                       const hasSSHCredentials = credential.username && credential.sshKeyFile;
+                                       
+                                       if (!hasSSHCredentials) {
+                                         return (
+                                           <Flex gap={2} justifyContent={'center'} w='full'>
+                                             <Button
+                                               size="sm"
+                                               className="btn-set-ssh-credential"
+                                               colorScheme="green"
+                                               onClick={(e) => {
+                                                 e.stopPropagation();
+                                                 setSelectedCredential(credential);
+                                                 setIsSSHDialogOpen(true);
+                                               }}
+                                             >
+                                               <FormattedMessage id="text.set_ssh_credential" />
+                                             </Button>
+                                           </Flex>
+                                         );
+                                       } else {
+                                         return (
+                                           <Flex flexDirection={'row'} gap={2} justifyContent={'center'} w='full'>
+                                             <Button
+                                               size="sm"
+                                               className="btn-update-ssh-credential"
+                                               colorScheme="yellow"
+                                               onClick={(e) => {
+                                                 e.stopPropagation();
+                                                 setSelectedCredential(credential);
+                                                 setIsSSHDialogOpen(true);
+                                               }}
+                                             >
+                                               <FormattedMessage id="text.update_ssh_credential" />
+                                             </Button>
+                                             <Button
+                                               size="sm"
+                                               className="btn-relinquish-ssh-credential"
+                                               colorScheme="red"
+                                               onClick={(e) => {
+                                                 e.stopPropagation();
+                                                 setSelectedCredential(credential);
+                                                 setIsDelDlgOpen(true);
+                                               }}
+                                             >
+                                               <FormattedMessage id="text.relinquish_ssh_credential" />
+                                             </Button>
+                                           </Flex>
+                                         );
+                                       }
+                                     }
+                                     
+                                     return null;
+                                   })()}
+                                 </Td>
+                                 <Td textAlign={'center'}>
+                                   <Flex gap={2} justifyContent={'center'}>
+                                     {isDatabase && (
+                                       <Button
+                                         size="sm"
+                                         colorScheme="blue"
+                                         variant="outline"
+                                         onClick={(e) => {
+                                           e.stopPropagation();
+                                           viewAssetAccess(credential);
+                                         }}
+                                       >
+                                         <FormattedMessage id="text.view_access" />
+                                       </Button>
+                                     )}
+                                     
+                                     {isUnixServer && credential.username && credential.sshKeyFile && (
+                                       <Button
+                                         size="sm"
+                                         colorScheme="purple"
+                                         variant="outline"
+                                         leftIcon={<FiTerminal />}
+                                         onClick={(e) => {
+                                           e.stopPropagation();
+                                           handleOpenTerminal(credential.asset as Asset);
+                                         }}
+                                       >
+                                         <FormattedMessage id="text.terminal_access" />
+                                       </Button>
+                                     )}
+                                     
+                                     {isEditing ? (
+                                       <>
+                                         <Tooltip label="Save changes" placement="top">
+                                           <IconButton
+                                             size="sm"
+                                             colorScheme="green"
+                                             aria-label="Save asset"
+                                             icon={<FiSave />}
+                                             onClick={(e) => {
+                                               e.stopPropagation();
+                                               handleSaveAsset();
+                                             }}
+                                           />
+                                         </Tooltip>
+                                         <Tooltip label="Cancel edit" placement="top">
+                                           <IconButton
+                                             size="sm"
+                                             colorScheme="gray"
+                                             aria-label="Cancel edit"
+                                             icon={<FiX />}
+                                             onClick={(e) => {
+                                               e.stopPropagation();
+                                               handleCancelEdit();
+                                             }}
+                                           />
+                                         </Tooltip>
+                                       </>
+                                     ) : (
+                                       <Tooltip label="Edit asset" placement="top">
+                                         <IconButton
+                                           size="sm"
+                                           colorScheme="orange"
+                                           variant="outline"
+                                           aria-label="Edit asset"
+                                           icon={<FiEdit />}
+                                           onClick={(e) => {
+                                             e.stopPropagation();
+                                             handleEditAsset(credential);
+                                           }}
+                                         />
+                                       </Tooltip>
+                                     )}
+                                   </Flex>
+                                 </Td>
+                               </Tr>
+                             );
+                           })}
+                         </>
+                       ) : (
+                         <Tr>
+                           <Td colSpan={9} textAlign={'center'}>
+                             <FormattedMessage id="text.no_asset_credentials" />
+                           </Td>
+                         </Tr>
+                       )}
 
-                    </Tbody>
+                     </Tbody>
                   </Table>
                 </TableContainer>
               </DamCardBody>
@@ -427,6 +599,13 @@ export function Component() {
           showPasswordWarning={true}
         />
 
+        <SetSSHCredentialDialog
+          isOpen={isSSHDialogOpen}
+          onClose={() => setIsSSHDialogOpen(false)}
+          onSubmit={handleSetSSHCredential}
+          showSSHKeyWarning={true}
+        />
+
         <DamAlertDialog
           isOpen={isDelDlgOpen}
           onClose={() => setIsDelDlgOpen(false)}
@@ -445,6 +624,15 @@ export function Component() {
           isLoading={isLoadingAccess}
           error={accessError}
         />
+
+        {/* Terminal Modal */}
+        {terminalAsset && (
+          <DamTerminalModal
+            isOpen={isTerminalModalOpen}
+            onClose={handleCloseTerminal}
+            asset={terminalAsset}
+          />
+        )}
       </VStack>
     </DamBasePage>
   );

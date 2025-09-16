@@ -1,4 +1,4 @@
-import { AssetType, DatabaseType } from "@/constants/enums";
+import { AssetType, DatabaseType, UnixServerType } from "@/constants/enums";
 
 // Unified DTO for asset operations
 export interface AssetDTO {
@@ -11,5 +11,6 @@ export interface AssetDTO {
   
   // Read-only fields (for display purposes)
   type?: AssetType | '';
-  databaseType?: DatabaseType | '';
+  databaseType?: DatabaseType | null;
+  unixServerType?: UnixServerType | null;
 } 

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { AuditTrail } from '@models/AuditTrail';
 import { User } from '@models/User';
 import { USER_ROLE } from '@/constants/enums';
@@ -6,44 +6,45 @@ import { userHasRole } from '@common/index';
 import { useListPage } from './useListPage';
 
 export interface AuditTrailFilters {
-  startDate: string;
-  endDate: string;
-  action: string;
-  user: string;
-  previousValue: string;
-  newValue: string;
-  ipAddress: string;
-  assetId?: number;
-  assetName?: string;
-  resourceType?: string;
+  readonly startDate: string;
+  readonly endDate: string;
+  readonly action: string;
+  readonly user: string;
+  readonly previousValue: string;
+  readonly newValue: string;
+  readonly ipAddress: string;
+  readonly assetId?: number;
+  readonly assetName?: string;
+  readonly resourceType?: string;
   // Role-specific filters (applied automatically)
-  restrictToOwnedAssets?: boolean;
-  restrictToApprovalAssets?: boolean;
-  restrictToOwnActions?: boolean;
+  readonly restrictToOwnedAssets?: boolean;
+  readonly restrictToApprovalAssets?: boolean;
+  readonly restrictToOwnActions?: boolean;
 }
 
 export interface UseRoleBasedAuditTrailProps {
-  user: User | null;
+  readonly user: User | null;
+  readonly assetId?: number;
 }
 
 export interface UseRoleBasedAuditTrailReturn {
-  filters: AuditTrailFilters;
-  setFilters: (filters: AuditTrailFilters) => void;
-  getData: AuditTrail[] | { content: AuditTrail[] };
-  getList: (params?: any) => Promise<void>;
-  pagination: any;
-  loading: boolean;
-  availableFilters: {
-    canFilterByAsset: boolean;
-    canViewAllUsers: boolean;
-    canViewAllActions: boolean;
-    availableActions: string[];
-    availableResourceTypes: string[];
+  readonly filters: AuditTrailFilters;
+  readonly setFilters: (filters: AuditTrailFilters) => void;
+  readonly getData: AuditTrail[] | { content: AuditTrail[] };
+  readonly getList: (params?: any) => Promise<void>;
+  readonly pagination: any;
+  readonly loading: boolean;
+  readonly availableFilters: {
+    readonly canFilterByAsset: boolean;
+    readonly canViewAllUsers: boolean;
+    readonly canViewAllActions: boolean;
+    readonly availableActions: string[];
+    readonly availableResourceTypes: string[];
   };
-  roleBasedMessage: string;
+  readonly roleBasedMessage: string;
 }
 
-export const useRoleBasedAuditTrail = ({ user }: UseRoleBasedAuditTrailProps): UseRoleBasedAuditTrailReturn => {
+export const useRoleBasedAuditTrail = ({ user, assetId }: UseRoleBasedAuditTrailProps): UseRoleBasedAuditTrailReturn => {
   const [filters, setFilters] = useState<AuditTrailFilters>({
     startDate: '',
     endDate: '',
@@ -52,6 +53,7 @@ export const useRoleBasedAuditTrail = ({ user }: UseRoleBasedAuditTrailProps): U
     previousValue: '',
     newValue: '',
     ipAddress: '',
+    assetId: assetId || undefined,
     assetName: '',
     resourceType: '',
   });
@@ -78,7 +80,9 @@ export const useRoleBasedAuditTrail = ({ user }: UseRoleBasedAuditTrailProps): U
       return {
         endpoint: '/api/asset_owner/audit-trails',
         restrictions: {
-          restrictToOwnedAssets: true,
+          // Only add assetId restriction if a specific asset is selected
+          ...(filters.assetId && { assetId: filters.assetId }),
+          ...(assetId && !filters.assetId && { assetId })
         },
         message: 'Access limited to audit logs for assets you own'
       };
@@ -107,7 +111,7 @@ export const useRoleBasedAuditTrail = ({ user }: UseRoleBasedAuditTrailProps): U
 
   // Merge role-based restrictions with user filters
   const getEffectiveFilters = () => {
-    return {
+    const effectiveFilters: any = {
       ...filters,
       ...restrictions,
       // For non-admin/auditor users, limit to relevant resource types
@@ -115,12 +119,30 @@ export const useRoleBasedAuditTrail = ({ user }: UseRoleBasedAuditTrailProps): U
         resourceType: filters.resourceType ?? 'ASSET,ACCESS_REQUEST,USER_ACCESS'
       })
     };
+
+    // Remove undefined values to avoid sending them in API requests
+    Object.keys(effectiveFilters).forEach(key => {
+      if (effectiveFilters[key] === undefined || effectiveFilters[key] === '') {
+        delete effectiveFilters[key];
+      }
+    });
+
+    return effectiveFilters;
   };
 
   const { getData, getList, pagination } = useListPage<AuditTrail>({
     baseUri: endpoint,
-    defaultParams: getEffectiveFilters()
+    defaultParams: {} // Don't set default params here, we'll handle them in getList calls
   });
+
+  // Effect to handle filter changes and re-fetch data
+  useEffect(() => {
+    getList({
+      page: 1,
+      perPage: 20,
+      ...getEffectiveFilters()
+    });
+  }, [filters.assetId, filters.startDate, filters.endDate, filters.action, filters.user, filters.previousValue, filters.newValue, filters.ipAddress]);
 
   // Available filters based on role
   const availableFilters = {
@@ -141,12 +163,7 @@ export const useRoleBasedAuditTrail = ({ user }: UseRoleBasedAuditTrailProps): U
 
   const handleSetFilters = (newFilters: AuditTrailFilters) => {
     setFilters(newFilters);
-    // Re-fetch data with new filters
-    getList({
-      page: 1,
-      perPage: 20,
-      ...getEffectiveFilters()
-    });
+    // The useEffect will handle re-fetching data when filters change
   };
 
   return {

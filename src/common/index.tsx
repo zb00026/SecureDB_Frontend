@@ -7,6 +7,7 @@ export * from "./libs/request";
 export * from "./state";
 export * from "./hooks/useDamToast";
 export * from "./hooks/useListPage";
+export * from "./hooks/useAssetsForAudit";
 export * from "./components/DamFullLoading";
 export * from "./components/DamDialog";
 export * from "./components/DamLoading";
