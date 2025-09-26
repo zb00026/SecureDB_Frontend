@@ -35,11 +35,15 @@ export function Component() {
       });
       return;
     }
+
+    let finalAccessLevelObjects = accessLevelObjects;
+
+
     const expHrs = expirationHours + (expirationDays * 24);
     handleRequest(`/api/developer/assets/request`, 'POST', {
       requestId: currentAsset?.accessRequest?.id,
       assetId,
-      accessLevelObjects,
+      accessLevelObjects: finalAccessLevelObjects,
       requestReason,
       expirationHours: expHrs
     },
@@ -140,6 +144,7 @@ export function Component() {
     ));
   }, []);
 
+
   useEffect(() => {
     getAsset();
     getAccessLevels();
@@ -153,12 +158,15 @@ export function Component() {
         <AssetDetailsSection
           asset={currentAsset}
         />
+        
+
         <Flex>
           <AccessLevelManager
             initialData={assetObjects}
             accessLevelObjects={accessLevelObjects}
             onAddPermission={handleAddPermission}
             onRemovePermission={handleRemovePermission}
+            editable={true}
           />
         </Flex>
         <Flex flexDirection={'column'} mt={3} mb={4}>
@@ -183,7 +191,15 @@ export function Component() {
         </Flex>
         <DamCardDivider />
         <Flex w='full' my={4} alignItems={'center'} justifyContent={'center'}>
-          <PrimaryButton onClick={handleRequestAccess} id="btnAccessRequest" isDisabled={assetObjects == null || assetObjects?.length == 0 || accessLevelObjects?.length == 0}>
+          <PrimaryButton 
+            onClick={handleRequestAccess} 
+            id="btnAccessRequest" 
+            isDisabled={
+              assetObjects == null || 
+              assetObjects?.length == 0 || 
+              accessLevelObjects?.length == 0
+            }
+          >
             <FormattedMessage id="text.request_access" />
           </PrimaryButton>
         </Flex>

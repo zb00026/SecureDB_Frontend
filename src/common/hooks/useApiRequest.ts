@@ -7,6 +7,7 @@ interface ApiRequestOptions {
   successTitleId?: string;
   successDescriptionId?: string;
   errorDescriptionId?: string;
+  timeout?: number;
 }
 
 export function useApiRequest() {
@@ -24,7 +25,7 @@ export function useApiRequest() {
       const response = await request(url, {
         method,
         data
-      });
+      }, true, options.timeout);
       
       if (options.successTitleId && options.successDescriptionId) {
         showSuccess({

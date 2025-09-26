@@ -413,6 +413,59 @@ export function Component() {
               </Card>
             </GridItem>
           )}
+
+          {/* Unix Groups Card (if user has asset owner permission) */}
+          {userHasRole(user, USER_ROLE.ASSET_OWNER) && (
+            <GridItem>
+              <Card
+                variant="elevated"
+                bg={cardBg}
+                borderColor={cardBorderColor}
+                transition="all 0.2s ease-in-out"
+                _hover={{
+                  transform: 'translateY(-4px)',
+                  boxShadow: 'xl',
+                  borderColor: 'orange.300',
+                }}
+                cursor="pointer"
+                as={Link}
+                to="/asset_owner/unix-groups"
+              >
+                <CardBody>
+                  <VStack spacing={4} align="center" py={4}>
+                    <Box
+                      p={4}
+                      bg="orange.50"
+                      borderRadius="2xl"
+                      _dark={{ bg: 'orange.900' }}
+                    >
+                      <Icon
+                        as={FiUsers}
+                        boxSize={8}
+                        color="orange.500"
+                      />
+                    </Box>
+                    <VStack spacing={2} textAlign="center">
+                      <Heading size="sm">
+                        <FormattedMessage id="unix_groups.title" />
+                      </Heading>
+                      <Text fontSize="sm" color="gray.600" _dark={{ color: 'gray.400' }}>
+                        <FormattedMessage id="unix_groups.manage_groups" />
+                      </Text>
+                    </VStack>
+                    <Button
+                      variant="ghost"
+                      colorScheme="orange"
+                      size="sm"
+                      rightIcon={<Icon as={FiUsers} />}
+                    >
+                      <FormattedMessage id="unix_groups.manage_groups" />
+                    </Button>
+                  </VStack>
+                </CardBody>
+              </Card>
+            </GridItem>
+          )}
         </Grid>
       </VStack>
     </DamBasePage>

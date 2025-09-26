@@ -16,14 +16,14 @@ export function useDamToast() {
     });
   };
 
-  const showError = ({ id, title, description, onCloseComplete }: { id?: string, title?: string, description: string, onCloseComplete?: () => void }) => {
+  const showError = ({ id, title, description, onCloseComplete, duration }: { id?: string, title?: string, description: string, onCloseComplete?: () => void, duration?: number }) => {
     toast({
       id: id ?? 'toastError',
       title,
       description,
       status: 'error',
       position: "top",
-      duration: 5000,
+      duration: duration ?? 5000,
       isClosable: true,
       onCloseComplete
     });

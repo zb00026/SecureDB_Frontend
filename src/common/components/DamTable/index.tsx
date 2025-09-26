@@ -126,7 +126,7 @@ export const DamTable = ({
       </TableContainer>
 
       {pagination && meta && (
-        <Flex justify="space-between" align="center" mt={4} px={2}>
+        <Flex justify="space-between" align="center" my={2} px={2}>
           <Flex align="center" gap={4} alignItems={'center'}>
             <Text mb={0}>Rows per page:</Text>
             <Select

@@ -682,8 +682,6 @@ export function AIMaskingChat({ credentials, onPolicyCreated }: Readonly<AIMaski
       // Reset session
       setCurrentSessionId(null);
       setIsSessionLoading(true);
-      // Start new session with the new asset
-      await startChatSession();
     }
   };
 

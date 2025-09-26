@@ -1,5 +1,7 @@
-import { USER_ROLE } from "@/constants/enums";
+import { AUTH_PROVIDER, USER_ROLE } from "@/constants/enums";
 import { passwordRequirements } from "@common/components/DamPasswordInput";
+import { getGoogleToken, state } from "@common/index";
+import keycloak from "@common/keycloak/keycloak";
 import { Role } from "@models/Role";
 import { User } from "@models/User";
 
@@ -18,7 +20,7 @@ function getSpecialKeyCode(char: string): string | null {
     '\t': '9',     // Tab
     '\u0003': '3'  // Ctrl+C
   };
-  
+
   return specialKeys[char] || null;
 }
 
@@ -60,27 +62,27 @@ function getPrintableCharKeyCode(charCode: number): string {
     125: '221', // }
     126: '192'  // ~
   };
-  
+
   // Check special mappings first
   if (specialMappings[charCode]) {
     return specialMappings[charCode];
   }
-  
+
   // Numbers (48-57): same as charCode
   if (charCode >= 48 && charCode <= 57) {
     return charCode.toString();
   }
-  
+
   // Uppercase letters (65-90): same as charCode
   if (charCode >= 65 && charCode <= 90) {
     return charCode.toString();
   }
-  
+
   // Lowercase letters (97-122): same as uppercase
   if (charCode >= 97 && charCode <= 122) {
     return (charCode - 32).toString();
   }
-  
+
   // Fallback
   return charCode.toString();
 }
@@ -91,12 +93,12 @@ export function getKeyCode(char: string): string {
   if (specialKeyCode) {
     return specialKeyCode;
   }
-  
+
   // Handle printable characters
   if (char >= ' ' && char <= '~') {
     return getPrintableCharKeyCode(char.charCodeAt(0));
   }
-  
+
   // Other special characters
   return char.charCodeAt(0).toString();
 }
@@ -110,31 +112,31 @@ export function isAuthorizedPath(path: string, user?: User): boolean {
     pathPrefix: string;
     allowedRoles: string[];
   }> = [
-    { pathPrefix: '/admin', allowedRoles: [USER_ROLE.ADMIN] },
-    { pathPrefix: '/developer', allowedRoles: [USER_ROLE.DEVELOPER] },
-    { pathPrefix: '/approver', allowedRoles: [USER_ROLE.APPROVER] },
-    { pathPrefix: '/auditor', allowedRoles: [USER_ROLE.AUDITOR] },
-    { 
-      pathPrefix: '/auditor/audit-trail', 
-      allowedRoles: [USER_ROLE.ADMIN, USER_ROLE.AUDITOR, USER_ROLE.ASSET_OWNER, USER_ROLE.APPROVER] 
-    },
-    { 
-      pathPrefix: '/auditor/terminal-audit', 
-      allowedRoles: [USER_ROLE.ADMIN, USER_ROLE.AUDITOR] 
-    },
-    { 
-      pathPrefix: '/asset_owner', 
-      allowedRoles: [USER_ROLE.ADMIN, USER_ROLE.ASSET_OWNER] 
-    }
-  ];
+      { pathPrefix: '/admin', allowedRoles: [USER_ROLE.ADMIN] },
+      { pathPrefix: '/developer', allowedRoles: [USER_ROLE.DEVELOPER] },
+      { pathPrefix: '/approver', allowedRoles: [USER_ROLE.APPROVER] },
+      { pathPrefix: '/auditor', allowedRoles: [USER_ROLE.AUDITOR] },
+      {
+        pathPrefix: '/auditor/audit-trail',
+        allowedRoles: [USER_ROLE.ADMIN, USER_ROLE.AUDITOR, USER_ROLE.ASSET_OWNER, USER_ROLE.APPROVER]
+      },
+      {
+        pathPrefix: '/auditor/terminal-audit',
+        allowedRoles: [USER_ROLE.ADMIN, USER_ROLE.AUDITOR]
+      },
+      {
+        pathPrefix: '/asset_owner',
+        allowedRoles: [USER_ROLE.ADMIN, USER_ROLE.ASSET_OWNER]
+      }
+    ];
 
   // Check if user has any role that matches the path requirements
   return user?.roles.some((role: Role) => {
     const userRole = role.name;
     if (!userRole) return false;
 
-    return pathRoleMappings.some(mapping => 
-      path.startsWith(mapping.pathPrefix) && 
+    return pathRoleMappings.some(mapping =>
+      path.startsWith(mapping.pathPrefix) &&
       mapping.allowedRoles.includes(userRole)
     );
   }) || false;
@@ -240,7 +242,7 @@ export function generateComplexPassword(length: number = 16): string {
   const lowercase = 'abcdefghijklmnopqrstuvwxyz';
   const digits = '0123456789';
   const specialChars = '!@#$%^&*()-_=+[]{}|;:\'",.<>/?';
-  
+
   // Ensure we have at least one character from each required category
   const requiredChars = [
     uppercase[getSecureRandomInt(uppercase.length)],
@@ -248,15 +250,15 @@ export function generateComplexPassword(length: number = 16): string {
     digits[getSecureRandomInt(digits.length)],
     specialChars[getSecureRandomInt(specialChars.length)]
   ];
-  
+
   // Fill the rest with random characters from all categories
   const allChars = uppercase + lowercase + digits + specialChars;
   const additionalChars = [];
-  
+
   for (let i = 0; i < length - requiredChars.length; i++) {
     additionalChars.push(allChars[getSecureRandomInt(allChars.length)]);
   }
-  
+
   // Combine required and additional characters, then shuffle securely
   const allPasswordChars = [...requiredChars, ...additionalChars];
   return secureArrayShuffle(allPasswordChars).join('');
@@ -270,11 +272,32 @@ export function validatePassword(password: string): {
   requirements: Record<string, boolean>;
 } {
   const requirements: Record<string, boolean> = {};
-  
+
   passwordRequirements.forEach((req) => {
     requirements[req.id] = req.test(password);
   });
-  
+
   const isValid = Object.values(requirements).every(Boolean);
   return { isValid, requirements };
 }
+
+
+export function getAuthToken() {// Get current authentication token and provider
+  // Check for Google token first
+  const googleToken = getGoogleToken();
+  if (googleToken) {
+    return { token: googleToken, provider: AUTH_PROVIDER.GOOGLE };
+  }
+
+  // Check for Keycloak token
+  if (keycloak.token) {
+    return { token: keycloak.token, provider: AUTH_PROVIDER.KEYCLOAK };
+  }
+
+  // Check for stored token in state
+  if (state.storage.token) {
+    return { token: state.storage.token, provider: AUTH_PROVIDER.KEYCLOAK }; // Default to Keycloak for stored tokens
+  }
+
+  return null;
+};

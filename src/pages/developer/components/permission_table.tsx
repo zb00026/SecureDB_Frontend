@@ -57,6 +57,14 @@ export function PermissionTable({
   }
 
   const handleCheckboxChange = useCallback((objectName: string, permission: AccessLevel, isChecked: boolean) => {
+    // Call the appropriate callback
+    if (isChecked) {
+      onAddPermission?.(objectName, permission);
+    } else {
+      onRemovePermission?.(objectName, permission);
+    }
+
+    // Update local state
     setPermissions(prev => {
       const newPermissions = { ...prev };
       newPermissions[objectName] ??= new Set();
@@ -69,13 +77,6 @@ export function PermissionTable({
 
       return newPermissions;
     });
-
-    // Call the appropriate callback outside of the state update
-    if (isChecked) {
-      onAddPermission?.(objectName, permission);
-    } else {
-      onRemovePermission?.(objectName, permission);
-    }
   }, [onAddPermission, onRemovePermission]);
 
   return (
@@ -106,7 +107,7 @@ export function PermissionTable({
                     <Checkbox
                       isChecked={permissions[objectName]?.has(grant.templates ?? '') || alreadyHaveAccess(grant, objectName)}
                       onChange={(e) => handleCheckboxChange(objectName, grant, e.target.checked)}
-                      isDisabled={(grant.object == 'DATABASE' && grant.templates == 'FETCH ACCESS') || !editable}
+                      isDisabled={grant.object == 'DATABASE' && grant.templates == 'FETCH ACCESS'}
                     />
                   </Td>
                 ))}

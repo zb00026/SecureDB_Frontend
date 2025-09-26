@@ -58,7 +58,14 @@ type SessionType = {
   global: any; // global
   isLogin: boolean;
   hotKey: string;
-
+  notification: {
+    show: boolean;
+    title?: string;
+    description?: string;
+    type: 'success' | 'error' | 'warning' | 'info';
+    duration?: number;
+    onClose?: () => void;
+  };
 };
 const session: SessionType = proxy({
   ready: true,
@@ -67,6 +74,14 @@ const session: SessionType = proxy({
   global: {},
   isLogin: false,
   hotKey: "Ctrl+J",
+  notification: {
+    show: false,
+    title: '',
+    description: '',
+    type: 'info',
+    duration: 5000,
+    onClose: undefined
+  }
 });
 
 export type StateType = {

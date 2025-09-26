@@ -107,6 +107,7 @@ export function EditAssetModal({
                 placeholder={intl.formatMessage({ id: 'text.select_asset_type' })}
               >
                 <option value={AssetType.DATABASE}>{AssetType.DATABASE}</option>
+                <option value={AssetType.UNIX_SERVER}>{AssetType.UNIX_SERVER}</option>
               </Select>
             </Box>
 

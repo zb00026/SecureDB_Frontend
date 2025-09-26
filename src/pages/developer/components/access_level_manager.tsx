@@ -1,6 +1,6 @@
 import { Box, VStack } from "@chakra-ui/react";
 import { PermissionTable } from "./permission_table";
-import { useState } from "react";
+import { useState, useCallback } from "react";
 import { AssetObject } from "@models/assets/AssetObject";
 import { AccessLevel } from "@models/assets/AccessLevel";
 import { AccessLevelObject } from "@models/assets/AccessLevelObject";
@@ -27,6 +27,52 @@ export function AccessLevelManager({
 }: AccessLevelManagerProps) {
   const [permissions] = useState<Record<string, Record<string, string[]>>>({});
 
+  const addAllPermissionsForAssetObject = useCallback((assetObject: AssetObject) => {
+    if (!assetObject.data || !assetObject.grants) return;
+    
+    assetObject.data.forEach(objName => {
+      assetObject.grants?.forEach(grant => {
+        if (grant.templates !== 'FULL ACCESS') {
+          onAddPermission?.(objName, grant);
+        }
+      });
+    });
+  }, [onAddPermission]);
+
+  const removeAllPermissionsForAssetObject = useCallback((assetObject: AssetObject) => {
+    if (!assetObject.data || !assetObject.grants) return;
+    
+    assetObject.data.forEach(objName => {
+      assetObject.grants?.forEach(grant => {
+        onRemovePermission?.(objName, grant);
+      });
+    });
+  }, [onRemovePermission]);
+
+  const handleAddPermission = useCallback((objectName: string, permission: AccessLevel) => {
+    // Handle FULL ACCESS master control across all asset objects
+    if (permission.templates === 'FULL ACCESS') {
+      // When FULL ACCESS is checked, add all permissions for all objects
+      initialData?.forEach(assetObject => {
+        addAllPermissionsForAssetObject(assetObject);
+      });
+    }
+    onAddPermission?.(objectName, permission);
+  }, [onAddPermission, initialData, addAllPermissionsForAssetObject]);
+
+  const handleRemovePermission = useCallback((objectName: string, permission: AccessLevel) => {
+    // Handle FULL ACCESS master control across all asset objects
+    if (permission.templates === 'FULL ACCESS') {
+      // When FULL ACCESS is unchecked, remove all permissions for all objects
+      initialData?.forEach(assetObject => {
+        removeAllPermissionsForAssetObject(assetObject);
+      });
+    } else {
+      // If any individual permission is removed, also remove FULL ACCESS
+      onRemovePermission?.(objectName, permission);
+    }
+  }, [onRemovePermission, initialData, removeAllPermissionsForAssetObject]);
+
   return (
     <VStack spacing={8} align="stretch" w='full'>
       {initialData?.map((assetObject) => (
@@ -40,8 +86,8 @@ export function AccessLevelManager({
             data={assetObject.data}
             accessLevelObjects={accessLevelObjects}
             savedPermissions={permissions[assetObject.name]}
-            onAddPermission={onAddPermission}
-            onRemovePermission={onRemovePermission}
+            onAddPermission={handleAddPermission}
+            onRemovePermission={handleRemovePermission}
             editable={editable ?? true}
           />
         </Box>

@@ -2,6 +2,7 @@ import { Flex } from "@chakra-ui/react";
 import { DamBasePage } from "@common/components/DamBasePage";
 import { DamCardDivider, useListPage } from "@common/index";
 import { Asset } from "@models/assets/Asset";
+import { AssetType } from "@/constants/enums";
 import { useEffect, useState } from "react";
 import { useIntl } from "react-intl";
 import { useNavigate } from "react-router-dom";
@@ -92,7 +93,9 @@ export function Component() {
   };
 
   useEffect(() => {
-    setAssets(Array.isArray(getData) ? getData : getData.content ?? []);
+    const allAssets = Array.isArray(getData) ? getData : getData.content ?? [];
+    const databaseAssets = allAssets.filter((asset: Asset) => asset.type === AssetType.DATABASE);
+    setAssets(databaseAssets);
   }, [getData]);
 
   return (

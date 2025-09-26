@@ -23,7 +23,7 @@ import { state } from '@common/state';
 import keycloak from '@common/keycloak/keycloak';
 import { getGoogleToken } from '@common/libs/request';
 import { AUTH_PROVIDER } from '@/constants/enums';
-import { getKeyCode } from '@common/libs/utils';
+import { getAuthToken, getKeyCode } from '@common/libs/utils';
 
 interface DamWebTerminalProps {
   readonly assetId: number;
@@ -127,28 +127,7 @@ export function DamWebTerminal({
     if (stabilizeRafRef.current) cancelAnimationFrame(stabilizeRafRef.current);
     stabilizeRafRef.current = requestAnimationFrame(() => step(maxFrames));
   };
-
-  // Get current authentication token and provider
-  const getAuthToken = () => {
-    // Check for Google token first
-    const googleToken = getGoogleToken();
-    if (googleToken) {
-      return { token: googleToken, provider: AUTH_PROVIDER.GOOGLE };
-    }
-
-    // Check for Keycloak token
-    if (keycloak.token) {
-      return { token: keycloak.token, provider: AUTH_PROVIDER.KEYCLOAK };
-    }
-
-    // Check for stored token in state
-    if (state.storage.token) {
-      return { token: state.storage.token, provider: AUTH_PROVIDER.KEYCLOAK }; // Default to Keycloak for stored tokens
-    }
-
-    return null;
-  };
-
+  
   useEffect(() => {
     initializeTerminal();
     connectToServer();
@@ -265,7 +244,7 @@ export function DamWebTerminal({
       }
 
       const { token, provider } = authData;
-      const wsUrl = `ws://localhost:8080/api/terminal/connect?assetId=${assetId}&host=${hostAddress}&port=${portNumber}&token=${encodeURIComponent(token)}&authProvider=${encodeURIComponent(provider)}`;
+      const wsUrl = `${import.meta.env.VITE_WEBSOCKET_URL || 'ws://127.0.0.1:8080'}/ws/terminal/connect?assetId=${assetId}&host=${hostAddress}&port=${portNumber}&token=${encodeURIComponent(token)}&authProvider=${encodeURIComponent(provider)}`;
       const ws = new WebSocket(wsUrl);
 
       ws.onopen = () => {

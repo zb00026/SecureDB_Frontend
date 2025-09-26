@@ -43,6 +43,10 @@ const prepareHeaders = (options: RequestInit, isFormData: boolean): Headers => {
     headers.set('Authorization', `Bearer ${keycloak.token}`);
   }
 
+  // Add cache management headers - expire in 3 minutes
+  headers.set('Cache-Control', 'max-age=180, must-revalidate');
+  headers.set('Expires', new Date(Date.now() + 180000).toUTCString()); // 3 minutes = 180000ms
+
   return headers;
 };
 
@@ -65,6 +69,33 @@ const handleResponseError = (response: Response, data: any): Promise<never> => {
   error.name = 'ApiError';
   Object.assign(error, { status: response.status, data });
   return Promise.reject(error);
+};
+
+// Helper function to handle 401 unauthorized errors
+const handleUnauthorizedError = (): Promise<never> => {
+  // Clear any stored tokens
+  clearGoogleToken();
+  state.storage.isLogin = false;
+  state.storage.token = '';
+  
+  // Show error notification for 2 seconds using global state
+  stateActions.showNotification({
+    title: 'Session Expired',
+    description: 'Your session has expired. Redirecting to login page...',
+    type: 'error',
+    duration: 2000,
+    onClose: () => {
+      // Redirect to login page when toast is closed
+      globalThis.location.href = '/';
+    }
+  });
+  
+  // Also set a fallback timeout in case toast doesn't close properly
+  setTimeout(() => {
+    globalThis.location.href = '/';
+  }, 2000);
+  
+  return Promise.reject(new Error('Unauthorized - redirecting to login'));
 };
 
 // Helper function to handle data errors
@@ -98,6 +129,10 @@ export const request = async (url: string, options: RequestInit & { data?: any }
     stateActions.subLoading();
     if (!responseIsJson) return response;
     
+    // Check for 401 status before parsing JSON to avoid parsing errors
+    if (response.status === 401) {
+      return handleUnauthorizedError();
+    }
     
     const data = await response.json();
     

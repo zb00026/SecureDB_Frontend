@@ -19,13 +19,15 @@ import { AIMaskingChat } from "./components/ai_masking_chat";
 import { MaskingPolicies, MaskingPoliciesRef } from "./components/masking_policies";
 import { DamViewAccessModal } from "@common/components/DamDialog/DamViewAccessModal";
 import { useViewAccess } from "@common/hooks/useViewAccess";
-import { FiEdit, FiSave, FiX, FiShield, FiDatabase, FiTerminal } from "react-icons/fi";
+import { FiEdit, FiSave, FiX, FiShield, FiDatabase, FiTerminal, FiSearch } from "react-icons/fi";
+import { useNavigate } from "react-router-dom";
 
 export const isSearchable = true;
 export const displayName = 'Asset Owner Main Page';
 
 export function Component() {
   const { showError, showSuccess } = useDamToast();
+  const navigate = useNavigate();
   const [credentials, setCredentials] = useState<AssetCredential[]>([]);
   const [selectedCredential, setSelectedCredential] = useState<AssetCredential | null>(null);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
@@ -45,6 +47,15 @@ export function Component() {
     unixServerType: undefined
   });
   const [activeTab, setActiveTab] = useState<'assets' | 'masking'>('assets');
+
+  // Check for tab preference from dashboard
+  useEffect(() => {
+    const savedTab = sessionStorage.getItem('asset_owner_active_tab');
+    if (savedTab && ['assets', 'masking'].includes(savedTab)) {
+      setActiveTab(savedTab as 'assets' | 'masking');
+      sessionStorage.removeItem('asset_owner_active_tab');
+    }
+  }, []);
   const selectedRowBg = useColorModeValue('gray.200', 'gray.700');
   const borderColor = useColorModeValue('gray.200', 'gray.600');
 
@@ -265,6 +276,10 @@ export function Component() {
     setTerminalAsset(null);
   };
 
+  const handleOpenQuery = (asset: Asset) => {
+    navigate(`/asset_owner/query_asset?assetId=${asset.id}`);
+  };
+
   const renderAssetCell = (asset: Asset | undefined, field: keyof Asset, isEditing: boolean) => {
     if (!asset) return '-';
 
@@ -476,17 +491,31 @@ export function Component() {
                                  <Td textAlign={'center'}>
                                    <Flex gap={2} justifyContent={'center'}>
                                      {isDatabase && (
-                                       <Button
-                                         size="sm"
-                                         colorScheme="blue"
-                                         variant="outline"
-                                         onClick={(e) => {
-                                           e.stopPropagation();
-                                           viewAssetAccess(credential);
-                                         }}
-                                       >
-                                         <FormattedMessage id="text.view_access" />
-                                       </Button>
+                                       <>
+                                         <Button
+                                           size="sm"
+                                           colorScheme="blue"
+                                           variant="outline"
+                                           onClick={(e) => {
+                                             e.stopPropagation();
+                                             viewAssetAccess(credential);
+                                           }}
+                                         >
+                                           <FormattedMessage id="text.view_access" />
+                                         </Button>
+                                         <Button
+                                           size="sm"
+                                           colorScheme="green"
+                                           variant="outline"
+                                           leftIcon={<FiSearch />}
+                                           onClick={(e) => {
+                                             e.stopPropagation();
+                                             handleOpenQuery(credential.asset as Asset);
+                                           }}
+                                         >
+                                           <FormattedMessage id="text.query_database" />
+                                         </Button>
+                                       </>
                                      )}
                                      
                                      {isUnixServer && credential.username && credential.sshKeyFile && (
@@ -592,6 +621,7 @@ export function Component() {
           </Flex>
         )}
 
+
         <SetCredentialDialog
           isOpen={isDialogOpen}
           onClose={() => setIsDialogOpen(false)}
@@ -633,6 +663,7 @@ export function Component() {
             asset={terminalAsset}
           />
         )}
+
       </VStack>
     </DamBasePage>
   );

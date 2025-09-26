@@ -11,6 +11,25 @@ export const stateActions = {
       state.session.count--;
     }
   },
+  showNotification: (notification: {
+    title?: string;
+    description: string;
+    type: 'success' | 'error' | 'warning' | 'info';
+    duration?: number;
+    onClose?: () => void;
+  }) => {
+    state.session.notification = {
+      show: true,
+      title: notification.title,
+      description: notification.description,
+      type: notification.type,
+      duration: notification.duration || 5000,
+      onClose: notification.onClose
+    };
+  },
+  hideNotification: () => {
+    state.session.notification.show = false;
+  },
   setToken(token: string) {
     state.storage.token = token;
   },
