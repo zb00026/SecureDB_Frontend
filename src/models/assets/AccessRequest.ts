@@ -21,4 +21,28 @@ export interface AccessRequest {
   assetApproverStatus: ApprovalStatus;
   isTempPassword?: boolean;
   expiryHours: number;
+  
+  // Unix access request fields
+  requestedUsername?: string;
+  publicKey?: string;
+  encryptedPrivateKey?: string;
+  approvedTime?: string;
+  approvedBy?: User;
+  groupMemberships?: UnixGroupMembership[];
+}
+
+export interface UnixGroupMembership {
+  id: number;
+  accessRequestId: number;
+  unixGroupId: number;
+  unixGroup: UnixGroup;
+  status: ApprovalStatus;
+  approved: boolean;
+}
+
+export interface UnixGroup {
+  id: number;
+  name: string;
+  description?: string;
+  assetId: number;
 } 

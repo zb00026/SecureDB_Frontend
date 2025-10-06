@@ -1,4 +1,4 @@
-import { Box, Flex, Input, Select, Grid, GridItem, useColorMode, Alert, AlertIcon, Text } from "@chakra-ui/react";
+import { Box, Flex, Input, Select, Grid, GridItem, useColorMode, Alert, AlertIcon, Text, Button, useDisclosure } from "@chakra-ui/react";
 import { Global, css } from "@emotion/react";
 import { DamBasePage } from "@common/components/DamBasePage";
 import { useRoleBasedAuditTrail } from "@common/hooks/useRoleBasedAuditTrail";
@@ -9,6 +9,8 @@ import dayjs from "dayjs";
 const { RangePicker } = DatePicker;
 import { PrimaryButton, useMyState, useAssetsForAudit } from "@common/index";
 import { DamTable } from "@common/components/DamTable";
+import { AuditChangesDialog } from "@common/components/DamDialog/AuditChangesDialog";
+import { useState } from "react";
 
 export const isSearchable = true;
 export const displayName = 'Audit Trail';
@@ -18,6 +20,10 @@ export function Component() {
   const { colorMode } = useColorMode();
   const { snap } = useMyState();
   const user = snap.session.user;
+  
+  // State for changes dialog
+  const [selectedAuditRecord, setSelectedAuditRecord] = useState<any>(null);
+  const { isOpen: isChangesDialogOpen, onOpen: onChangesDialogOpen, onClose: onChangesDialogClose } = useDisclosure();
 
   const {
     filters,
@@ -31,6 +37,29 @@ export function Component() {
 
   // Fetch assets for the dropdown
   const { assets, loading: assetsLoading, error: assetsError } = useAssetsForAudit({ user });
+
+  const handleViewChanges = (record: any) => {
+    setSelectedAuditRecord(record);
+    onChangesDialogOpen();
+  };
+
+  const getHumanReadableDescription = (record: any) => {
+    const { action, previousValue, newValue, user } = record;
+    
+    if (!previousValue && !newValue) {
+      return `User ${user} performed ${action}`;
+    }
+
+    if (!previousValue) {
+      return `User ${user} created new record with action ${action}`;
+    }
+
+    if (!newValue) {
+      return `User ${user} deleted record with action ${action}`;
+    }
+
+    return `User ${user} updated record with action ${action}`;
+  };
 
   const columns = [
     {
@@ -50,6 +79,16 @@ export function Component() {
       key: 'action',
     },
     {
+      title: 'Description',
+      dataIndex: 'description',
+      key: 'description',
+      render: (text: any, record: any) => (
+        <Text fontSize="sm" color="gray.600" maxW="300px" isTruncated>
+          {getHumanReadableDescription(record)}
+        </Text>
+      ),
+    },
+    {
       title: 'IP Address',
       dataIndex: 'ipAddress',
       key: 'ipAddress',
@@ -60,16 +99,20 @@ export function Component() {
       key: 'instanceId',
     },
     {
-      title: 'Previous Value',
-      dataIndex: 'previousValue',
-      key: 'previousValue',
-      render: (text: string) => text ? JSON.stringify(text) : '-',
-    },
-    {
-      title: 'New Value',
-      dataIndex: 'newValue',
-      key: 'newValue',
-      render: (text: string) => text ? JSON.stringify(text) : '-',
+      title: 'Changes',
+      dataIndex: 'changes',
+      key: 'changes',
+      render: (text: any, record: any) => (
+        <Button
+          size="sm"
+          variant="outline"
+          colorScheme="blue"
+          onClick={() => handleViewChanges(record)}
+          isDisabled={!record.previousValue && !record.newValue}
+        >
+          <FormattedMessage id="text.view_changes" />
+        </Button>
+      ),
     },
   ];
 
@@ -273,23 +316,6 @@ export function Component() {
               />
             </GridItem>
 
-            {/* Previous Value */}
-            <GridItem>
-              <Input
-                placeholder="Previous Value"
-                value={filters.previousValue}
-                onChange={(e) => setFilters({ ...filters, previousValue: e.target.value })}
-              />
-            </GridItem>
-
-            {/* New Value */}
-            <GridItem>
-              <Input
-                placeholder="New Value"
-                value={filters.newValue}
-                onChange={(e) => setFilters({ ...filters, newValue: e.target.value })}
-              />
-            </GridItem>
           </Grid>
 
           {/* Buttons Row */}
@@ -313,6 +339,19 @@ export function Component() {
           pagination={pagination}
           rowKey="id"
         />
+        
+        {/* Changes Dialog */}
+        {selectedAuditRecord && (
+          <AuditChangesDialog
+            isOpen={isChangesDialogOpen}
+            onClose={onChangesDialogClose}
+            action={selectedAuditRecord.action}
+            previousValue={selectedAuditRecord.previousValue}
+            newValue={selectedAuditRecord.newValue}
+            timestamp={selectedAuditRecord.timestamp}
+            user={selectedAuditRecord.user}
+          />
+        )}
       </Box>
     </DamBasePage>
   );

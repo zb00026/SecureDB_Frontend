@@ -12,6 +12,7 @@ interface AssetsTableProps {
   readonly onRelinquishAccess: (asset: AccessRequest | null) => void;
   readonly onUpdatePassword: (asset: AccessRequest | null) => void;
   readonly onQueryAsset: (asset: Asset) => void;
+  readonly onTerminalAsset?: (asset: Asset) => void;
   readonly onViewAccess: (asset: Asset) => void;
   readonly showQueryButton: boolean;
 }
@@ -25,6 +26,7 @@ export function AssetsTable({
   onRelinquishAccess,
   showQueryButton,
   onQueryAsset,
+  onTerminalAsset,
   onViewAccess
 }: AssetsTableProps) {
   const renderAccessRequestAction = (asset: Asset) => {
@@ -89,6 +91,7 @@ export function AssetsTable({
       showQueryButton={showQueryButton}
       renderActions={renderActions}
       onQueryAsset={onQueryAsset}
+      onTerminalAsset={onTerminalAsset}
       showAccessRequestStatus={true}
       onViewAccess={onViewAccess}
       showLockAsset={false}

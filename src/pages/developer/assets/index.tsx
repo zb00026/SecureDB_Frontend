@@ -14,6 +14,8 @@ import { AssetCredential } from "@models/assets/AssetCredential";
 import { DamAlertDialog } from "@common/components/DamDialog/DamAlertDialog";
 import { DamViewAccessModal } from "@common/components/DamDialog/DamViewAccessModal";
 import { useViewAccess } from "@common/hooks/useViewAccess";
+import { UnixAccessRequestDialog } from "@common/components/DamDialog/UnixAccessRequestDialog";
+import { DamTerminalModal } from "@common/components/DamTerminal";
 
 export const isSearchable = true;
 export const displayName = 'Developer Assets Access Request Page';
@@ -25,6 +27,9 @@ export function Component() {
   const [assets, setAssets] = useState<Array<Asset>>([]);
   const [isPsdDialogOpen, setIsPsdDialogOpen] = useState<boolean>(false);
   const [isRelinquishDialogOpen, setIsRelinquishDialogOpen] = useState<boolean>(false);
+  const [isUnixRequestDialogOpen, setIsUnixRequestDialogOpen] = useState<boolean>(false);
+  const [isTerminalModalOpen, setIsTerminalModalOpen] = useState<boolean>(false);
+  const [terminalAsset, setTerminalAsset] = useState<Asset | null>(null);
   const [selectedAsset, setSelectedAsset] = useState<Asset | null>(null);
   const [selectedAccessRequest, setSelectedAccessRequest] = useState<AccessRequest | null>(null);
 
@@ -50,7 +55,12 @@ export function Component() {
   };
 
   const handleRequestAccess = (asset: Asset) => {
-    navigate(`/developer/assets/request_access_asset?assetId=${asset.id}`);
+    if (asset.type === AssetType.UNIX_SERVER) {
+      setSelectedAsset(asset);
+      setIsUnixRequestDialogOpen(true);
+    } else {
+      navigate(`/developer/assets/request_access_asset?assetId=${asset.id}`);
+    }
   };
 
   const handleUpdatePassword = (username: string, password: string) => {
@@ -92,9 +102,21 @@ export function Component() {
     navigate(`/developer/assets/query_asset?assetId=${asset.id}&accessRequestId=${asset.accessRequest?.id}`);
   };
 
+  const handleOpenTerminal = (asset: Asset) => {
+    setTerminalAsset(asset);
+    setIsTerminalModalOpen(true);
+  };
+
+  const handleCloseTerminal = () => {
+    setIsTerminalModalOpen(false);
+    setTerminalAsset(null);
+  };
+
   useEffect(() => {
     const allAssets = Array.isArray(getData) ? getData : getData.content ?? [];
-    const databaseAssets = allAssets.filter((asset: Asset) => asset.type === AssetType.DATABASE);
+    const databaseAssets = allAssets.filter((asset: Asset) => 
+      asset.type === AssetType.DATABASE || asset.type === AssetType.UNIX_SERVER
+    );
     setAssets(databaseAssets);
   }, [getData]);
 
@@ -110,6 +132,7 @@ export function Component() {
           onUpdatePassword={(accessRequest) => { setIsPsdDialogOpen(true); setSelectedAccessRequest(accessRequest) }}
           onRelinquishAccess={(accessRequest) => { setSelectedAccessRequest(accessRequest); setIsRelinquishDialogOpen(true); }}
           onQueryAsset={handleQueryAsset}
+          onTerminalAsset={handleOpenTerminal}
           onViewAccess={viewAssetAccess}
           showQueryButton={true}
         />
@@ -139,6 +162,32 @@ export function Component() {
         isLoading={isLoadingAccess}
         error={accessError}
       />
+
+      {/* Unix Access Request Dialog */}
+      {selectedAsset && (
+        <UnixAccessRequestDialog
+          isOpen={isUnixRequestDialogOpen}
+          onClose={() => {
+            setIsUnixRequestDialogOpen(false);
+            setSelectedAsset(null);
+          }}
+          asset={selectedAsset}
+          onSuccess={() => {
+            getAssetsList();
+            setIsUnixRequestDialogOpen(false);
+            setSelectedAsset(null);
+          }}
+        />
+      )}
+
+      {/* Terminal Modal */}
+      {terminalAsset && (
+        <DamTerminalModal
+          isOpen={isTerminalModalOpen}
+          onClose={handleCloseTerminal}
+          asset={terminalAsset}
+        />
+      )}
     </DamBasePage>
   );
 }

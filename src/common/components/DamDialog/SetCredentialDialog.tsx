@@ -22,19 +22,23 @@ interface SetCredentialDialogProps {
   readonly saveButtonTextId?: string;
   readonly showPasswordRequirements?: boolean;
   readonly showPasswordWarning?: boolean;
+  readonly showConfirmPassword?: boolean;
 }
 
-export function SetCredentialDialog({ isOpen, titleId, onClose, onSubmit, showPasswordRequirements = false, showPasswordWarning = false, isTemporaryPassword = false, saveButtonTextId }: SetCredentialDialogProps) {
+export function SetCredentialDialog({ isOpen, titleId, onClose, onSubmit, showPasswordRequirements = false, showPasswordWarning = false, isTemporaryPassword = false, saveButtonTextId, showConfirmPassword = false }: SetCredentialDialogProps) {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
   const [isPasswordValid, setIsPasswordValid] = useState(false);
   const [isPasswordWeak, setIsPasswordWeak] = useState(false);
+  const [passwordsMatch, setPasswordsMatch] = useState(false);
   const cancelRef = useRef(null);
 
   useEffect(() => {
     if (isOpen) {
       setUsername('');
       setPassword('');
+      setConfirmPassword('');
     }
   }, [isOpen]);
 
@@ -56,6 +60,12 @@ export function SetCredentialDialog({ isOpen, titleId, onClose, onSubmit, showPa
     }
   }, [password, showPasswordWarning]);
 
+  useEffect(() => {
+    if (showConfirmPassword) {
+      setPasswordsMatch(password === confirmPassword && password.length > 0);
+    }
+  }, [password, confirmPassword, showConfirmPassword]);
+
   const handleSubmit = () => {
     onSubmit(username, password);
     onClose();
@@ -66,6 +76,7 @@ export function SetCredentialDialog({ isOpen, titleId, onClose, onSubmit, showPa
       isOpen={isOpen}
       leastDestructiveRef={cancelRef}
       onClose={onClose}
+      closeOnOverlayClick={false}
     >
       <AlertDialogOverlay>
         <AlertDialogContent>
@@ -82,16 +93,32 @@ export function SetCredentialDialog({ isOpen, titleId, onClose, onSubmit, showPa
                 mb={3}
               />)}
             <DamPasswordInput
-              placeholder="Password"
+              placeholder={showConfirmPassword ? "New Password" : "Password"}
               id="inputCredentialPassword"
               value={password}
               onChange={setPassword}
               showRequirements={showPasswordRequirements}
               onValidationChange={(isValid) => setIsPasswordValid(isValid)}
             />
+            {showConfirmPassword && (
+              <DamPasswordInput
+                placeholder="Confirm Password"
+                id="inputCredentialConfirmPassword"
+                value={confirmPassword}
+                onChange={setConfirmPassword}
+                showRequirements={false}
+                onValidationChange={() => {}} // Not needed for confirm password
+                mt={3}
+              />
+            )}
             {showPasswordWarning && isPasswordWeak && password.length > 0 && (
               <Text fontSize="sm" color="orange.500" mt={2} mb={0}>
                 <FormattedMessage id="text.weak_password_warning" />
+              </Text>
+            )}
+            {showConfirmPassword && confirmPassword.length > 0 && !passwordsMatch && (
+              <Text fontSize="sm" color="red.500" mt={2} mb={0}>
+                <FormattedMessage id="text.passwords_do_not_match" />
               </Text>
             )}
           </AlertDialogBody>
@@ -102,7 +129,10 @@ export function SetCredentialDialog({ isOpen, titleId, onClose, onSubmit, showPa
             <Button id="btnSaveCredential"
               colorScheme="blue"
               onClick={handleSubmit}
-              disabled={showPasswordRequirements && !isPasswordValid}
+              disabled={
+                (showPasswordRequirements && !isPasswordValid) ||
+                (showConfirmPassword && !passwordsMatch)
+              }
               ml={3}>
               <FormattedMessage id={saveButtonTextId ?? 'text.save'} />
             </Button>

@@ -33,6 +33,7 @@ export default function Login({ authProviders, children }: { authProviders: stri
   const intl = useIntl();
   const [searchParams] = useSearchParams();
   const inviteCode = searchParams.get('inviteCode');
+  const usedInviteCode = searchParams.get('usedInviteCode');
   const navigate = useNavigate();
 
   // Store invite code in localStorage when it's found in URL, so it persists through Keycloak redirects
@@ -41,16 +42,34 @@ export default function Login({ authProviders, children }: { authProviders: stri
       localStorage.setItem('pendingInviteCode', inviteCode);
       console.log('Stored invite code for later use:', inviteCode);
     }
-  }, [inviteCode]);
+    if (!usedInviteCode && !inviteCode) {
+      clearStoredInviteCode();
+    }
+  }, [inviteCode, usedInviteCode]);
 
   // Retrieve stored invite code (for use after Keycloak redirects)
   const getStoredInviteCode = () => {
-    return localStorage.getItem('pendingInviteCode');
+    return usedInviteCode ? localStorage.getItem('pendingInviteCode') : null;
+  };
+  const getStoredUsedInviteCode = () => {
+    return localStorage.getItem('usedInviteCode');
   };
 
   // Clear stored invite code after successful authentication
   const clearStoredInviteCode = () => {
     localStorage.removeItem('pendingInviteCode');
+    localStorage.removeItem('usedInviteCode');
+    // Clean up URL parameters
+    const currentUrl = new URL(globalThis.location.href);
+    if (currentUrl.searchParams.has('inviteCode')) {
+      currentUrl.searchParams.delete('inviteCode');
+    }
+    if (currentUrl.searchParams.has('usedInviteCode')) {
+      currentUrl.searchParams.delete('usedInviteCode');
+    }
+    // Navigate to clean URL
+    const cleanPath = currentUrl.pathname + (currentUrl.search ?? '');
+    navigate(cleanPath.endsWith('?') ? cleanPath.slice(0, -1) : cleanPath, { replace: true });
   };
 
   const isAuthProviderAvailable = (provider: string) => {
@@ -243,13 +262,22 @@ export default function Login({ authProviders, children }: { authProviders: stri
     (isAuthProviderAvailable(AUTH_PROVIDER.KEYCLOAK) && keycloakAuthenticated) ||
     (isAuthProviderAvailable(AUTH_PROVIDER.GOOGLE) && getGoogleToken()))) {
     
-    // Clean up the URL by removing the inviteCode parameter
-    const currentUrl = new URL(window.location.href);
-    if (currentUrl.searchParams.has('inviteCode')) {
-      currentUrl.searchParams.delete('inviteCode');
-      // Use navigate to redirect to clean URL without inviteCode
-      const cleanPath = currentUrl.pathname + (currentUrl.search ?? '');
-      navigate(cleanPath.endsWith('?') ? cleanPath.slice(0, -1) : cleanPath, { replace: true });
+    // Only clean up inviteCode from URL if we're NOT in the middle of an invite code flow
+    // Check if we have a stored invite code that hasn't been processed yet
+    const hasPendingInviteCode = getStoredInviteCode();
+    const hasUsedInviteCode = getStoredUsedInviteCode();
+    
+    // Only remove inviteCode from URL if:
+    // 1. There's no pending invite code in localStorage, AND
+    // 2. There's no used invite code in localStorage (meaning it was already processed)
+    if (!hasPendingInviteCode && !hasUsedInviteCode) {
+      const currentUrl = new URL(window.location.href);
+      if (currentUrl.searchParams.has('inviteCode')) {
+        currentUrl.searchParams.delete('inviteCode');
+        // Use navigate to redirect to clean URL without inviteCode
+        const cleanPath = currentUrl.pathname + (currentUrl.search ?? '');
+        navigate(cleanPath.endsWith('?') ? cleanPath.slice(0, -1) : cleanPath, { replace: true });
+      }
     }
     
     return <>{children}</>;
@@ -275,6 +303,7 @@ export default function Login({ authProviders, children }: { authProviders: stri
               <KeycloakLogin
                 authenticating={authenticating}
                 inviteCode={getStoredInviteCode()}
+                usedInviteCode={getStoredUsedInviteCode()}
                 handleKeycloakLogin={handleKeycloakLogin}
                 onInitialized={() => { setKeycloakInitialized(true) }}
                 isLoggedOut={keycloakLoggedOut}

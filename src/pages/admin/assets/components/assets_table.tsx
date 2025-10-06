@@ -17,6 +17,7 @@ interface AssetsTableProps {
   readonly onLockAsset?: (asset: Asset) => void;
   readonly onUnlockAsset?: (asset: Asset) => void;
   readonly onManageUsers?: (asset: Asset, userType: 'owners' | 'approvers') => void;
+  readonly onTerminalAsset?: (asset: Asset) => void;
 }
 
 export function AssetsTable({
@@ -28,7 +29,8 @@ export function AssetsTable({
   onViewAccess,
   onLockAsset,
   onUnlockAsset,
-  onManageUsers
+  onManageUsers,
+  onTerminalAsset
 }: AssetsTableProps) {
   const { snap } = useMyState();
   const user = snap.session.user;
@@ -150,6 +152,7 @@ export function AssetsTable({
       renderActions={renderActions}
       showLockAsset={true}
       lockActions={lockActions}
+      onTerminalAsset={onTerminalAsset}
     />
   );
 } 

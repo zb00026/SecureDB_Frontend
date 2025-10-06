@@ -4,6 +4,8 @@ import { ApprovalStatus } from "@models/assets/AccessRequest";
 import { Asset } from "@models/assets/Asset";
 import { FormattedMessage } from "react-intl";
 import { WarningIcon } from "@chakra-ui/icons";
+import { AssetType } from "@/constants/enums";
+import { FiTerminal } from "react-icons/fi";
 
 interface BaseAssetsTableProps {
   readonly assets: Asset[];
@@ -14,6 +16,7 @@ interface BaseAssetsTableProps {
   readonly renderDetailButton?: (asset: Asset) => React.ReactNode;
   readonly renderActions: (asset: Asset) => React.ReactNode;
   readonly onQueryAsset?: (asset: Asset) => void;
+  readonly onTerminalAsset?: (asset: Asset) => void;
   readonly showAccessRequestStatus?: boolean;
   readonly onViewAccess?: (asset: Asset) => void;
   readonly showLockAsset?: boolean;
@@ -42,6 +45,7 @@ export function BaseAssetsTable({
   renderDetailButton,
   renderActions,
   onQueryAsset,
+  onTerminalAsset,
   showAccessRequestStatus,
   showLockAsset,
   lockActions,
@@ -120,9 +124,9 @@ export function BaseAssetsTable({
                             placement="right"
                             hasArrow
                           >
-                            <Flex 
-                              dir="row" 
-                              alignItems={'center'} 
+                            <Flex
+                              dir="row"
+                              alignItems={'center'}
                               gap={2}
                               display="inline-flex"
                             >
@@ -150,9 +154,22 @@ export function BaseAssetsTable({
                           {asset.accessRequest &&
                             !asset.accessRequest?.assetCredential?.isTemporaryPassword &&
                             asset.accessRequest?.assetApproverStatus === ApprovalStatus.APPROVED && (
-                              <PrimaryButton variant='outline' size='sm' onClick={() => onQueryAsset?.(asset)}>
-                                <FormattedMessage id='text.run_query' />
-                              </PrimaryButton>
+                              <>
+                                {asset.type === AssetType.UNIX_SERVER ? (
+                                  <PrimaryButton 
+                                    variant='outline' 
+                                    size='sm' 
+                                    leftIcon={<FiTerminal />}
+                                    onClick={() => onTerminalAsset?.(asset)}
+                                  >
+                                    <FormattedMessage id='text.terminal_access' />
+                                  </PrimaryButton>
+                                ) : (
+                                  <PrimaryButton variant='outline' size='sm' onClick={() => onQueryAsset?.(asset)}>
+                                    <FormattedMessage id='text.run_query' />
+                                  </PrimaryButton>
+                                )}
+                              </>
                             )}
                         </Td>
                       )}
@@ -161,13 +178,13 @@ export function BaseAssetsTable({
                           {renderDetailButton(asset)}
                         </Td>
                       )}
-                      {onViewAccess && (
+                      {onViewAccess && asset.type !== AssetType.UNIX_SERVER ? (
                         <Td>
                           <PrimaryButton variant='outline' size='sm' onClick={() => onViewAccess?.(asset)}>
                             <FormattedMessage id='text.view_access' />
                           </PrimaryButton>
                         </Td>
-                      )}
+                      ) : (<Td></Td>)}
                       {showLockAsset && (
                         <Td>
                           {lockActions(asset)}
@@ -179,10 +196,10 @@ export function BaseAssetsTable({
               ) : (
                 <Tr>
                   <Td colSpan={
-                    7 + 
-                    (showFetchTemplate ? 1 : 0) + 
+                    7 +
+                    (showFetchTemplate ? 1 : 0) +
                     (showAccessRequestStatus ? 1 : 0) +
-                    (showQueryButton ? 1 : 0) + 
+                    (showQueryButton ? 1 : 0) +
                     (renderDetailButton ? 1 : 0) +
                     (onViewAccess ? 1 : 0)
                   } textAlign={'center'}>

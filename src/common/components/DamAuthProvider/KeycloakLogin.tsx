@@ -1,8 +1,8 @@
-import { 
-  Box, 
-  Button, 
-  Flex, 
-  Icon, 
+import {
+  Box,
+  Button,
+  Flex,
+  Icon,
   Text
 } from "@chakra-ui/react";
 import { useKeycloak } from "@react-keycloak/web";
@@ -15,6 +15,7 @@ export interface KeycloakLoginType {
   onAuthenticated: (token: string) => void,
   isLoggedOut: boolean,
   inviteCode: string | null,
+  usedInviteCode: string | null,
   authenticating: boolean
 }
 export default function KeycloakLogin({
@@ -23,13 +24,14 @@ export default function KeycloakLogin({
   onAuthenticated,
   isLoggedOut,
   inviteCode,
+  usedInviteCode,
   authenticating }: Readonly<KeycloakLoginType>) {
 
   const { keycloak, initialized } = useKeycloak();
 
   // Parse Keycloak callback parameters from hash fragment (not query params)
   const getKeycloakCallbackParams = () => {
-    const hash = window.location.hash.substring(1); // Remove the # at the beginning
+    const hash = globalThis.location.hash.substring(1); // Remove the # at the beginning
     const params = new URLSearchParams(hash);
     return {
       state: params.get('state'),
@@ -41,7 +43,7 @@ export default function KeycloakLogin({
 
   const { state, session_state, iss, code } = getKeycloakCallbackParams();
   const hasSession = state && session_state && iss && code;
-  
+
   console.log('KeycloakLogin: Callback params check:', { state, session_state, iss, code, hasSession });
 
   useEffect(() => {
@@ -52,16 +54,16 @@ export default function KeycloakLogin({
 
   const doLogin = () => {
     // If there's an invite code, redirect to a clean URL after login
-    const redirectUri = inviteCode 
-      ? window.location.origin + window.location.pathname 
-      : undefined;
-    
+    const redirectUri = inviteCode
+      ? globalThis.location.origin + globalThis.location.pathname + '?usedInviteCode=true'
+      : globalThis.location.origin + globalThis.location.pathname;
+
     // Store invite code in state/localStorage before Keycloak redirect if it exists
     if (inviteCode) {
       localStorage.setItem('pendingInviteCode', inviteCode);
       console.log('KeycloakLogin: Stored invite code before redirect:', inviteCode);
     }
-    
+
     keycloak?.login({
       redirectUri: redirectUri
     });
@@ -76,9 +78,13 @@ export default function KeycloakLogin({
 
   useEffect(() => {
     if (keycloak?.authenticated && keycloak?.token) {
-      // User is authenticated with a valid token
-      onAuthenticated(keycloak?.token);
-    } else if (!keycloak?.authenticated && !hasSession) {
+      if (inviteCode) {
+        keycloak?.logout({ logoutMethod: 'POST', redirectUri: globalThis.location.origin + globalThis.location.pathname + '?inviteCode=' + inviteCode });
+      } else {
+        // User is authenticated with a valid token
+        onAuthenticated(keycloak?.token);
+      }
+    } else if (!keycloak?.authenticated && !hasSession && !usedInviteCode) {
       // User is not authenticated AND there's no active Keycloak session
       // Check if there's an invite code that should trigger login
       const storedInviteCode = localStorage.getItem('pendingInviteCode');

@@ -138,6 +138,7 @@ export function DamInitialState() {
         isTemporaryPassword={true}
         saveButtonTextId={'text.update'}
         showPasswordRequirements={true}
+        showConfirmPassword={true}
       />
       <Outlet />
     </>
