@@ -207,7 +207,7 @@ export function DamWebTerminal({
     window.addEventListener('resize', handleWindowResize);
 
     // Handle terminal input
-    terminal.onData((data) => {
+    terminal.onData((data: string) => {
       // Don't process input if there's a connection error
       if (connectionErrorRef.current) {
         return;

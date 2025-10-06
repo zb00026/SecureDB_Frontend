@@ -68,6 +68,9 @@
       ],
       "~theme/*": [
         "src/theme/*"
+      ],
+      "~types/*": [
+        "src/types/*"
       ]
     }
   },
