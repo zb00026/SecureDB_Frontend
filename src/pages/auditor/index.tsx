@@ -1,11 +1,8 @@
-
-import { useEffect } from "react";
-import { useNavigate } from "react-router-dom";
 import React from "react";
 import { Box, VStack, Heading, Text, Grid, GridItem, Card, CardBody, Button } from "@chakra-ui/react";
+import { useNavigate } from "react-router-dom";
 import { FormattedMessage } from "react-intl";
 import { ViewIcon } from "@chakra-ui/icons";
-
 
 export const isSearchable = true;
 export const displayName = 'Auditor Page';

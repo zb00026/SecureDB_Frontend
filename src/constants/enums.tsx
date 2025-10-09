@@ -8,7 +8,8 @@ export const USER_ROLE = {
 
 export const AUTH_PROVIDER = {
   KEYCLOAK: 'keycloak',
-  GOOGLE: 'google'
+  GOOGLE: 'google',
+  KEYCLOAK_SSO: 'keycloak_sso'
 }
 
 

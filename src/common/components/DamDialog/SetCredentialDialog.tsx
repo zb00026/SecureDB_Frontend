@@ -32,6 +32,7 @@ export function SetCredentialDialog({ isOpen, titleId, onClose, onSubmit, showPa
   const [isPasswordValid, setIsPasswordValid] = useState(false);
   const [isPasswordWeak, setIsPasswordWeak] = useState(false);
   const [passwordsMatch, setPasswordsMatch] = useState(false);
+  const [isReadonly, setIsReadonly] = useState(true);
   const cancelRef = useRef(null);
 
   useEffect(() => {
@@ -39,6 +40,14 @@ export function SetCredentialDialog({ isOpen, titleId, onClose, onSubmit, showPa
       setUsername('');
       setPassword('');
       setConfirmPassword('');
+      setIsReadonly(true);
+      
+      // Remove readonly after a brief delay to trick browsers
+      const timer = setTimeout(() => {
+        setIsReadonly(false);
+      }, 100);
+      
+      return () => clearTimeout(timer);
     }
   }, [isOpen]);
 
@@ -84,30 +93,64 @@ export function SetCredentialDialog({ isOpen, titleId, onClose, onSubmit, showPa
             <FormattedMessage id={titleId ?? "text.set_credential"} />
           </AlertDialogHeader>
           <AlertDialogBody id='credentialDialogBody'>
+            <div data-form-type="other" data-lpignore="true" data-1p-ignore="true" data-browser-ignore="true">
             {!isTemporaryPassword && (
               <Input
-                placeholder="Username"
-                id="inputCredentialUsername"
+                placeholder="Enter User Identifier"
+                id="userField"
+                name="user_field"
                 value={username}
                 onChange={(e) => setUsername(e.target.value)}
+                onFocus={(e) => {
+                  if (isReadonly) {
+                    e.target.removeAttribute('readonly');
+                    setIsReadonly(false);
+                  }
+                }}
+                autoComplete="off"
+                readOnly={isReadonly}
+                data-form-type="other"
+                data-lpignore="true"
+                data-1p-ignore="true"
+                data-save="false"
+                data-browser-ignore="true"
+                data-no-autofill="true"
                 mb={3}
               />)}
             <DamPasswordInput
-              placeholder={showConfirmPassword ? "New Password" : "Password"}
-              id="inputCredentialPassword"
+              placeholder={showConfirmPassword ? "Enter New Key" : "Enter Key"}
+              id="keyField"
+              name="key_field"
               value={password}
               onChange={setPassword}
               showRequirements={showPasswordRequirements}
               onValidationChange={(isValid) => setIsPasswordValid(isValid)}
+              autoComplete="off"
+              readOnly={isReadonly}
+              data-form-type="other"
+              data-lpignore="true"
+              data-1p-ignore="true"
+              data-save="false"
+              data-browser-ignore="true"
+              data-no-autofill="true"
             />
             {showConfirmPassword && (
               <DamPasswordInput
-                placeholder="Confirm Password"
-                id="inputCredentialConfirmPassword"
+                placeholder="Re-enter Key"
+                id="confirmKeyField"
+                name="confirm_key_field"
                 value={confirmPassword}
                 onChange={setConfirmPassword}
                 showRequirements={false}
                 onValidationChange={() => {}} // Not needed for confirm password
+                autoComplete="off"
+                readOnly={isReadonly}
+                data-form-type="other"
+                data-lpignore="true"
+                data-1p-ignore="true"
+                data-save="false"
+                data-browser-ignore="true"
+                data-no-autofill="true"
                 mt={3}
               />
             )}
@@ -121,6 +164,7 @@ export function SetCredentialDialog({ isOpen, titleId, onClose, onSubmit, showPa
                 <FormattedMessage id="text.passwords_do_not_match" />
               </Text>
             )}
+            </div>
           </AlertDialogBody>
           <AlertDialogFooter>
             <Button onClick={onClose} id="btnCancelCredential">

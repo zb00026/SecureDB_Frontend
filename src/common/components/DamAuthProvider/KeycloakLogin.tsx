@@ -44,8 +44,6 @@ export default function KeycloakLogin({
   const { state, session_state, iss, code } = getKeycloakCallbackParams();
   const hasSession = state && session_state && iss && code;
 
-  console.log('KeycloakLogin: Callback params check:', { state, session_state, iss, code, hasSession });
-
   useEffect(() => {
     if (initialized) {
       onInitialized();

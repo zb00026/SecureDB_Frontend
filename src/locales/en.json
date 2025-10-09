@@ -151,6 +151,7 @@
   "text.update_request": "Update Request",
   "text.failed_to_fetch_access_level_objects": "Failed to fetch access level objects",
   "text.asset_request_approvals": "Asset Request Approvals",
+  "text.pending_approval_requests_found": "You have pending approval requests that need your attention.",
   "text.requestor": "Requestor",
   "text.request_time": "Request Time",
   "text.approve": "Approve",

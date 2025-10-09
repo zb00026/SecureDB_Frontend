@@ -87,7 +87,7 @@ export default function Login({ authProviders, children }: { authProviders: stri
   }, []);
 
   useEffect(() => {
-    if ((isAuthProviderAvailable(AUTH_PROVIDER.KEYCLOAK) && !keycloakInitialized) ||
+    if (((isAuthProviderAvailable(AUTH_PROVIDER.KEYCLOAK) || isAuthProviderAvailable(AUTH_PROVIDER.KEYCLOAK_SSO)) && !keycloakInitialized) ||
       authenticating || isCheckingLocalToken) {
       setIsLoading(true);
     } else {
@@ -103,57 +103,75 @@ export default function Login({ authProviders, children }: { authProviders: stri
     }
   }, [isCheckingLocalToken]);
 
+  const handleTokenVerificationSuccess = (res: any, token: string, authProvider: string, isLocalToken: boolean) => {
+    setIsValidToken(true);
+    stateActions.setUser(res.user);
+    stateActions.setIsLogin(true);
+    
+    if (!isLocalToken && authProvider === AUTH_PROVIDER.GOOGLE) {
+      setGoogleToken(token);
+    }
+    
+    handleLoginSuccess(res.user);
+    clearStoredInviteCode();
+  };
+
   const verifyUserToken = async (token: string | undefined, authProvider: string, isLocalToken: boolean = false) => {
     if (!token) {
       console.error("No token found.");
       return;
     }
+    
     stateActions.addLoading();
     setAuthenticating(true);
-    request(`/api/auth/verifyToken`, {
-      method: 'POST',
-      data: {
-        token,
-        inviteCode: getStoredInviteCode(),
-        authProvider: authProvider.toUpperCase()
-      }
-    }).then((res: any) => {
-      stateActions.subLoading();
-      if (res.authorized) {
-        setIsValidToken(true);
-        stateActions.setUser(res.user);
-        stateActions.setIsLogin(true);
-        if (!isLocalToken) {
-          if (authProvider === AUTH_PROVIDER.GOOGLE) {
-            setGoogleToken(token);
-          }
+    
+    try {
+      const res = await request(`/api/auth/verifyToken`, {
+        method: 'POST',
+        data: {
+          token,
+          inviteCode: getStoredInviteCode(),
+          authProvider: authProvider.toUpperCase()
         }
-        handleLoginSuccess(res.user);
-        clearStoredInviteCode();
+      });
+      
+      if (res.authorized) {
+        handleTokenVerificationSuccess(res, token, authProvider, isLocalToken);
       } else {
         setIsValidToken(false);
         handleAuthFailure(authProvider);
       }
-    }).catch((e: any) => {
+    } catch (e: any) {
       setIsValidToken(false);
       handleAuthError(e, authProvider);
-    }).finally(() => {
+    } finally {
       setAuthenticating(false);
       setIsCheckingLocalToken(false);
       stateActions.subLoading();
-    });
-  };
-  const logoutToken = (authProvider: string) => {
-    if (isAuthProviderAvailable(AUTH_PROVIDER.KEYCLOAK) &&
-      authProvider === AUTH_PROVIDER.KEYCLOAK) {
-      setKeycloakLoggedOut(true);
-    } else if (isAuthProviderAvailable(AUTH_PROVIDER.GOOGLE) &&
-      authProvider === AUTH_PROVIDER.GOOGLE) {
-      googleLogout();
-      clearGoogleToken();
     }
+  };
+  const logoutKeycloak = () => {
+    setKeycloakLoggedOut(true);
     setIsValidToken(false);
-  }
+  };
+
+  const logoutGoogle = () => {
+    googleLogout();
+    clearGoogleToken();
+    setIsValidToken(false);
+  };
+
+  const logoutToken = (authProvider: string) => {
+    const isKeycloakProvider = (isAuthProviderAvailable(AUTH_PROVIDER.KEYCLOAK) && authProvider === AUTH_PROVIDER.KEYCLOAK) ||
+                              (isAuthProviderAvailable(AUTH_PROVIDER.KEYCLOAK_SSO) && authProvider === AUTH_PROVIDER.KEYCLOAK_SSO);
+    const isGoogleProvider = isAuthProviderAvailable(AUTH_PROVIDER.GOOGLE) && authProvider === AUTH_PROVIDER.GOOGLE;
+    
+    if (isKeycloakProvider) {
+      logoutKeycloak();
+    } else if (isGoogleProvider) {
+      logoutGoogle();
+    }
+  };
   const handleAuthFailure = (authProvider: string) => {
     showError({
       description: "Authentication failed",
@@ -202,6 +220,7 @@ export default function Login({ authProviders, children }: { authProviders: stri
 
   const checkAssetCredential = (user: User) => {
     if (userHasRole(user, USER_ROLE.ASSET_OWNER) ?? userHasRole(user, USER_ROLE.ADMIN)) {
+      // Check for new credentials first
       request('/api/asset_owner/assets/new-credentials', {})
       .then((res) => {
         if(res.length > 0) {
@@ -209,45 +228,76 @@ export default function Login({ authProviders, children }: { authProviders: stri
             description: intl.formatMessage({ id: 'text.new_asset_is_assigned' }),
           });
           navigate('/asset_owner');
+        } else {
+          // If no new credentials, check for pending approval requests
+          checkPendingApprovals();
         }
       })
       .catch((e) => {
         console.log(e);
+        // Even if new credentials check fails, still check for pending approvals
+        checkPendingApprovals();
       })
     }
   }
 
-  const handleLoginSuccess = async (user: User) => {
-    // Check if user is admin
-    if (userHasRole(user, USER_ROLE.ADMIN)) {
-      request('/api/admin/settings/get-current-audit-log-storage', {
+  const checkPendingApprovals = () => {
+    request('/api/asset_owner/assets/approvals', {})
+    .then((res) => {
+      if(res.length > 0) {
+        showSuccess({
+          description: intl.formatMessage({ id: 'text.pending_approval_requests_found' }),
+        });
+        navigate('/asset_owner');
+      }
+    })
+    .catch((e) => {
+      console.log('Failed to check pending approvals:', e);
+    })
+  }
+
+  const handleAdminLogin = async (user: User) => {
+    try {
+      const res = await request('/api/admin/settings/get-current-audit-log-storage', {
         method: 'GET',
-      }).then((res: any) => {
-        if (res.bucketName === '') {
-          showAuditLogStorageNotConfigured();
-        } else {
-          checkAssetCredential(user);
-        }
-      }).catch((e: any) => {
-        showAuditLogStorageNotConfigured();
       });
+      if (res.bucketName === '') {
+        showAuditLogStorageNotConfigured();
+      } else {
+        checkAssetCredential(user);
+      }
+    } catch (error: any) {
+      console.error('Failed to check audit log storage configuration:', error);
+      showAuditLogStorageNotConfigured();
+    }
+  };
+
+  const handleDeveloperLogin = async () => {
+    try {
+      const res = await request('/api/developer/assets/get_newly_approved_requests', {
+        method: 'GET',
+      });
+      if (res.length > 0) {
+        showSuccess({
+          description: intl.formatMessage({ id: 'text.access_request_approved_to_update_psd' }),
+        });
+        navigate('/developer/assets');
+      }
+    } catch (e) {
+      console.log('Failed to check approved requests:', e);
+    }
+  };
+
+  const handleLoginSuccess = async (user: User) => {
+    if (userHasRole(user, USER_ROLE.ADMIN)) {
+      await handleAdminLogin(user);
     }
     if (userHasRole(user, USER_ROLE.ASSET_OWNER)) {
       checkAssetCredential(user);
     }
     if (userHasRole(user, USER_ROLE.DEVELOPER)) {
-      request('/api/developer/assets/get_newly_approved_requests', {
-        method: 'GET',
-      }).then((res: any) => {
-        if (res.length > 0) {
-          showSuccess({
-            description: intl.formatMessage({ id: 'text.access_request_approved_to_update_psd' }),
-          });
-          navigate('/developer/assets');
-        }
-      })
+      await handleDeveloperLogin();
     }
-
   };
   
   const currentUrl = new URL(window.location.href);
@@ -257,29 +307,82 @@ export default function Login({ authProviders, children }: { authProviders: stri
   if (currentUrl.pathname.includes('/auth/forgot-password')) {
     return <ForgotPassword />
   }
-  // Show children if authenticated with either method
-  if (isValidToken && (
-    (isAuthProviderAvailable(AUTH_PROVIDER.KEYCLOAK) && keycloakAuthenticated) ||
-    (isAuthProviderAvailable(AUTH_PROVIDER.GOOGLE) && getGoogleToken()))) {
-    
-    // Only clean up inviteCode from URL if we're NOT in the middle of an invite code flow
-    // Check if we have a stored invite code that hasn't been processed yet
+  const isKeycloakAuthenticated = (isAuthProviderAvailable(AUTH_PROVIDER.KEYCLOAK) || isAuthProviderAvailable(AUTH_PROVIDER.KEYCLOAK_SSO)) && keycloakAuthenticated;
+  const isGoogleAuthenticated = isAuthProviderAvailable(AUTH_PROVIDER.GOOGLE) && getGoogleToken();
+  const isAuthenticated = isValidToken && (isKeycloakAuthenticated || isGoogleAuthenticated);
+
+  const cleanupInviteCodeFromUrl = () => {
     const hasPendingInviteCode = getStoredInviteCode();
     const hasUsedInviteCode = getStoredUsedInviteCode();
     
-    // Only remove inviteCode from URL if:
-    // 1. There's no pending invite code in localStorage, AND
-    // 2. There's no used invite code in localStorage (meaning it was already processed)
     if (!hasPendingInviteCode && !hasUsedInviteCode) {
       const currentUrl = new URL(window.location.href);
       if (currentUrl.searchParams.has('inviteCode')) {
         currentUrl.searchParams.delete('inviteCode');
-        // Use navigate to redirect to clean URL without inviteCode
         const cleanPath = currentUrl.pathname + (currentUrl.search ?? '');
         navigate(cleanPath.endsWith('?') ? cleanPath.slice(0, -1) : cleanPath, { replace: true });
       }
     }
+  };
+
+  const isKeycloakProviderAvailable = isAuthProviderAvailable(AUTH_PROVIDER.KEYCLOAK) || isAuthProviderAvailable(AUTH_PROVIDER.KEYCLOAK_SSO);
+  const isGoogleProviderAvailable = isAuthProviderAvailable(AUTH_PROVIDER.GOOGLE);
+  const showDivider = isGoogleProviderAvailable && isKeycloakProviderAvailable;
+
+  const renderKeycloakLogin = () => {
+    if (!isKeycloakProviderAvailable) return null;
     
+    return (
+      <KeycloakLogin
+        authenticating={authenticating}
+        inviteCode={getStoredInviteCode()}
+        usedInviteCode={getStoredUsedInviteCode()}
+        handleKeycloakLogin={handleKeycloakLogin}
+        onInitialized={() => { setKeycloakInitialized(true) }}
+        isLoggedOut={keycloakLoggedOut}
+        onAuthenticated={(token: string) => {
+          setIsCheckingLocalToken(true);
+          setKeycloakAuthenticated(true);
+          verifyUserToken(token, AUTH_PROVIDER.KEYCLOAK, true);
+        }}
+      />
+    );
+  };
+
+  const renderGoogleLogin = () => {
+    if (!isGoogleProviderAvailable) return null;
+    
+    return (
+      <Box w="full" display="flex" justifyContent="center">
+        <GoogleLogin
+          onSuccess={handleGoogleSuccess}
+          onError={() => {
+            setAuthenticating(false);
+            setIsValidToken(false);
+          }}
+          useOneTap
+        />
+      </Box>
+    );
+  };
+
+  const renderDivider = () => {
+    if (!showDivider) return null;
+    
+    return (
+      <HStack w="full" spacing={4}>
+        <Divider />
+        <Text fontSize="sm" color="gray.500" whiteSpace="nowrap">
+          OR
+        </Text>
+        <Divider />
+      </HStack>
+    );
+  };
+
+  // Show children if authenticated with either method
+  if (isAuthenticated) {
+    cleanupInviteCodeFromUrl();
     return <>{children}</>;
   }
 
@@ -299,45 +402,9 @@ export default function Login({ authProviders, children }: { authProviders: stri
           </VStack>
 
           <VStack spacing={4} w="full">
-            {isAuthProviderAvailable(AUTH_PROVIDER.KEYCLOAK) && (
-              <KeycloakLogin
-                authenticating={authenticating}
-                inviteCode={getStoredInviteCode()}
-                usedInviteCode={getStoredUsedInviteCode()}
-                handleKeycloakLogin={handleKeycloakLogin}
-                onInitialized={() => { setKeycloakInitialized(true) }}
-                isLoggedOut={keycloakLoggedOut}
-                onAuthenticated={(token: string) => {
-                  setIsCheckingLocalToken(true);
-                  setKeycloakAuthenticated(true);
-                  verifyUserToken(token, AUTH_PROVIDER.KEYCLOAK, true);
-                }}
-              />
-            )}
-
-            {isAuthProviderAvailable(AUTH_PROVIDER.GOOGLE) && 
-             isAuthProviderAvailable(AUTH_PROVIDER.KEYCLOAK) && (
-              <HStack w="full" spacing={4}>
-                <Divider />
-                <Text fontSize="sm" color="gray.500" whiteSpace="nowrap">
-                  OR
-                </Text>
-                <Divider />
-              </HStack>
-            )}
-
-            {isAuthProviderAvailable(AUTH_PROVIDER.GOOGLE) && (
-              <Box w="full" display="flex" justifyContent="center">
-                <GoogleLogin
-                  onSuccess={handleGoogleSuccess}
-                  onError={() => {
-                    setAuthenticating(false);
-                    setIsValidToken(false);
-                  }}
-                  useOneTap
-                />
-              </Box>
-            )}
+            {renderKeycloakLogin()}
+            {renderDivider()}
+            {renderGoogleLogin()}
           </VStack>
 
           <Text fontSize="sm" color="gray.500" textAlign="center">

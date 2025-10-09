@@ -25,11 +25,18 @@ interface PasswordRequirement {
   readonly test: (password: string) => boolean;
 }
 
-interface DamPasswordInputProps extends Omit<InputProps, 'type' | 'onChange'> {
+interface DamPasswordInputProps extends Omit<InputProps, 'type' | 'onChange' | 'readOnly'> {
   readonly value: string;
   readonly onChange: (value: string) => void;
   readonly showRequirements?: boolean;
   readonly onValidationChange?: (isValid: boolean) => void;
+  readonly autoComplete?: string;
+  readonly readOnly?: boolean;
+  readonly 'data-lpignore'?: string;
+  readonly 'data-1p-ignore'?: string;
+  readonly 'data-save'?: string;
+  readonly 'data-browser-ignore'?: string;
+  readonly 'data-no-autofill'?: string;
 }
 
 const passwordRequirements: PasswordRequirement[] = [
@@ -66,6 +73,13 @@ export function DamPasswordInput({
   showRequirements = false,
   placeholder = "Enter password",
   onValidationChange,
+  autoComplete = "off",
+  readOnly = false,
+  'data-lpignore': dataLpignore,
+  'data-1p-ignore': data1pIgnore,
+  'data-save': dataSave,
+  'data-browser-ignore': dataBrowserIgnore,
+  'data-no-autofill': dataNoAutofill,
   ...props
 }: DamPasswordInputProps) {
   const [showPassword, setShowPassword] = useState(false);
@@ -116,7 +130,7 @@ export function DamPasswordInput({
       <PopoverTrigger>
         <InputGroup>
           <Input
-            type={showPassword ? "text" : "password"}
+            type="text"
             value={value}
             onChange={(e) => onChange(e.target.value)}
             onFocus={handleFocus}
@@ -124,6 +138,18 @@ export function DamPasswordInput({
             placeholder={placeholder}
             pr="4.5rem"
             borderColor={value && allRequirementsMet ? "green.400" : undefined}
+            autoComplete={autoComplete}
+            readOnly={readOnly}
+            data-form-type="other"
+            data-lpignore={dataLpignore}
+            data-1p-ignore={data1pIgnore}
+            data-save={dataSave}
+            data-browser-ignore={dataBrowserIgnore}
+            data-no-autofill={dataNoAutofill}
+            sx={{
+              WebkitTextSecurity: showPassword ? 'none' : 'disc',
+              ...props.sx
+            }}
             {...props}
           />
           <InputRightElement width="4.5rem">

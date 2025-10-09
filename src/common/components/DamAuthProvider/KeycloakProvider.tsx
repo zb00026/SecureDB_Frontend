@@ -10,7 +10,7 @@ interface KeycloakProviderProps {
 
 const KeycloakProvider: React.FC<KeycloakProviderProps> = ({ children, providers }) => {
   // Check if Keycloak is included in the list of providers
-  const isKeycloakEnabled = providers.includes(AUTH_PROVIDER.KEYCLOAK);
+  const isKeycloakEnabled = providers.includes(AUTH_PROVIDER.KEYCLOAK) || providers.includes(AUTH_PROVIDER.KEYCLOAK_SSO);
 
   return isKeycloakEnabled ? (
     <ReactKeycloakProvider

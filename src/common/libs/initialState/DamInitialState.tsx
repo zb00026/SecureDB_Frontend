@@ -6,6 +6,7 @@ import { ForbiddenPage } from '@pages/error/forbidden'
 import { onForegroundMessage, requestNotificationPermission, subscribeToTopic } from '@/services/firebase';
 import { SetCredentialDialog } from '@common/components/DamDialog/SetCredentialDialog'
 import { useIntl } from 'react-intl'
+import { AUTH_PROVIDER } from '@/constants/enums'
 
 export function DamInitialState() {
   const { snap } = useMyState()
@@ -16,6 +17,10 @@ export function DamInitialState() {
 
   const location = useLocation();
   const user = snap.session.user;
+  
+  // Check if using Keycloak SSO
+  const authProviders = import.meta.env.VITE_AUTH_PROVIDER || AUTH_PROVIDER.GOOGLE;
+  const isKeycloakSSO = authProviders.includes(AUTH_PROVIDER.KEYCLOAK_SSO);
 
   // Protect routes based on user role
   const isAuthorized = () => {
@@ -26,7 +31,8 @@ export function DamInitialState() {
   const [searchParams] = useSearchParams()
   useEffect(() => {
     if (snap.session.ready && user?.id) {
-      if (user.isInitialPassword) {
+      // Only show temporary password dialog if not using Keycloak SSO
+      if (user.isInitialPassword && !isKeycloakSSO) {
         setIsPsdDialogOpen(true);
       }
       // Use localStorage instead of sessionStorage
@@ -46,11 +52,18 @@ export function DamInitialState() {
         store?.put(String(user.id), 'currentUserId');
       };
 
+      // Always try to subscribe to Firebase notifications, regardless of browser permission
+      // Firebase notifications can work even when browser notifications are denied
+      subscribeToTopic("dam_notification").catch((error) => {
+        console.warn('Failed to subscribe to notification topic:', error);
+      });
+      
+      // Also try to request browser notification permission (optional)
       requestNotificationPermission().then((granted) => {
         if (granted) {
-          subscribeToTopic("dam_notification").catch((error) => {
-            console.warn('Failed to subscribe to notification topic:', error);
-          });
+          console.log('Browser notification permission granted');
+        } else {
+          console.log('Browser notification permission denied, but Firebase notifications may still work');
         }
       }).catch((error) => {
         console.warn('Failed to request notification permission:', error);
@@ -130,16 +143,18 @@ export function DamInitialState() {
     return <ForbiddenPage />
   if (snap.session.ready)
     return <>
-      <SetCredentialDialog
-        isOpen={isPsdDialogOpen}
-        titleId={'text.update_temporary_password'}
-        onClose={() => setIsPsdDialogOpen(false)}
-        onSubmit={handleUpdatePassword}
-        isTemporaryPassword={true}
-        saveButtonTextId={'text.update'}
-        showPasswordRequirements={true}
-        showConfirmPassword={true}
-      />
+      {!isKeycloakSSO && (
+        <SetCredentialDialog
+          isOpen={isPsdDialogOpen}
+          titleId={'text.update_temporary_password'}
+          onClose={() => setIsPsdDialogOpen(false)}
+          onSubmit={handleUpdatePassword}
+          isTemporaryPassword={true}
+          saveButtonTextId={'text.update'}
+          showPasswordRequirements={true}
+          showConfirmPassword={true}
+        />
+      )}
       <Outlet />
     </>
   return <DamFullLoading />

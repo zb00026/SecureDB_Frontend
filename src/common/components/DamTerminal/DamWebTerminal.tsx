@@ -207,7 +207,7 @@ export function DamWebTerminal({
     window.addEventListener('resize', handleWindowResize);
 
     // Handle terminal input
-    terminal.onData((data: string) => {
+    terminal.onData((data) => {
       // Don't process input if there's a connection error
       if (connectionErrorRef.current) {
         return;
@@ -361,7 +361,7 @@ export function DamWebTerminal({
     if (!authData) return false;
 
     // For Keycloak, check if token is expired
-    if (authData.provider === AUTH_PROVIDER.KEYCLOAK && keycloak.token && keycloak.isTokenExpired()) {
+    if ((authData.provider === AUTH_PROVIDER.KEYCLOAK || authData.provider === AUTH_PROVIDER.KEYCLOAK_SSO) && keycloak.token && keycloak.isTokenExpired()) {
       return false;
     }
 
