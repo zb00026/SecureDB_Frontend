@@ -1,6 +1,9 @@
 import {
   Button, Flex, Tr, Tbody, Table, TableContainer, Td, Th, Thead,
-  useColorModeValue, Input, IconButton, Tooltip, VStack
+  useColorModeValue, Input, IconButton, Tooltip, VStack,
+  Modal, ModalOverlay, ModalContent, ModalHeader, ModalCloseButton, ModalBody,
+  useDisclosure,
+  Alert, AlertIcon, AlertTitle, AlertDescription, CloseButton, Box
 } from "@chakra-ui/react";
 import { DamBasePage } from "@common/components/DamBasePage";
 import { DamCardBody, DamCard, request, useDamToast, TextCardHeader, DamCardDivider, stateActions } from "@common/index";
@@ -19,7 +22,7 @@ import { AIMaskingChat } from "./components/ai_masking_chat";
 import { MaskingPolicies, MaskingPoliciesRef } from "./components/masking_policies";
 import { DamViewAccessModal } from "@common/components/DamDialog/DamViewAccessModal";
 import { useViewAccess } from "@common/hooks/useViewAccess";
-import { FiEdit, FiSave, FiX, FiShield, FiDatabase, FiTerminal, FiSearch } from "react-icons/fi";
+import { FiEdit, FiSave, FiX, FiShield, FiDatabase, FiTerminal, FiSearch, FiCheckCircle } from "react-icons/fi";
 import { useNavigate } from "react-router-dom";
 
 export const isSearchable = true;
@@ -46,13 +49,15 @@ export function Component() {
     databaseType: undefined,
     unixServerType: undefined
   });
-  const [activeTab, setActiveTab] = useState<'assets' | 'masking'>('assets');
+  const [activeTab, setActiveTab] = useState<'assets' | 'approvals' | 'changes' | 'masking'>('assets');
+  const [newAssetsRequiringCredentials, setNewAssetsRequiringCredentials] = useState<AssetCredential[]>([]);
+  const [showNewAssetsAlert, setShowNewAssetsAlert] = useState(false);
 
   // Check for tab preference from dashboard
   useEffect(() => {
     const savedTab = sessionStorage.getItem('asset_owner_active_tab');
-    if (savedTab && ['assets', 'masking'].includes(savedTab)) {
-      setActiveTab(savedTab as 'assets' | 'masking');
+    if (savedTab && ['assets', 'approvals', 'changes', 'masking'].includes(savedTab)) {
+      setActiveTab(savedTab as 'assets' | 'approvals' | 'changes' | 'masking');
       sessionStorage.removeItem('asset_owner_active_tab');
     }
   }, []);
@@ -61,6 +66,7 @@ export function Component() {
 
   // Ref for MaskingPolicies component to call refresh function
   const maskingPoliciesRef = useRef<MaskingPoliciesRef>(null);
+  const { isOpen: isAIModalOpen, onOpen: openAIModal, onClose: closeAIModal } = useDisclosure();
 
   // Callback function to refresh masking policies
   const handlePolicyCreated = () => {
@@ -84,6 +90,25 @@ export function Component() {
       .then((res) => {
         if (res.length > 0) {
           setCredentials(res);
+          
+          // Check for new assets that need credential setup
+          const newAssets = res.filter((credential: AssetCredential) => 
+            !credential.username && !credential.sshKeyFile
+          );
+          
+          if (newAssets.length > 0) {
+            setNewAssetsRequiringCredentials(newAssets);
+            setShowNewAssetsAlert(true);
+            
+            // Show alert to user about new assets requiring credentials
+            showSuccess({
+              title: intl.formatMessage({ id: 'text.new_assets_require_credentials' }),
+              description: intl.formatMessage(
+                { id: 'text.credential_setup_required' },
+                { count: newAssets.length }
+              )
+            });
+          }
         } else {
           setCredentials([]);
         }
@@ -280,6 +305,128 @@ export function Component() {
     navigate(`/asset_owner/query_asset?assetId=${asset.id}`);
   };
 
+  // Helper function to render credential status buttons
+  const renderCredentialStatus = (credential: AssetCredential) => {
+    const isDatabase = credential.asset?.type === 'DATABASE';
+    const isUnixServer = credential.asset?.type === 'UNIX_SERVER';
+
+    if (isDatabase) {
+      return renderDatabaseCredentialStatus(credential);
+    }
+    
+    if (isUnixServer) {
+      return renderSSHCredentialStatus(credential);
+    }
+    
+    return null;
+  };
+
+  // Helper function for database credential status
+  const renderDatabaseCredentialStatus = (credential: AssetCredential) => {
+    const hasDatabaseCredentials = credential.username && credential.password;
+    
+    if (!hasDatabaseCredentials) {
+      return (
+        <Flex gap={2} justifyContent={'center'} w='full'>
+          <Button
+            size="sm"
+            className="btn-set-credential"
+            colorScheme="green"
+            onClick={(e) => {
+              e.stopPropagation();
+              setSelectedCredential(credential);
+              setIsDialogOpen(true);
+            }}
+          >
+            <FormattedMessage id="text.set_credential" />
+          </Button>
+        </Flex>
+      );
+    }
+    
+    return (
+      <Flex flexDirection={'row'} gap={2} justifyContent={'center'} w='full'>
+        <Button
+          size="sm"
+          className="btn-update-credential"
+          colorScheme="yellow"
+          onClick={(e) => {
+            e.stopPropagation();
+            setSelectedCredential(credential);
+            setIsDialogOpen(true);
+          }}
+        >
+          <FormattedMessage id="text.update_credential" />
+        </Button>
+        <Button
+          size="sm"
+          className="btn-relinquish-credential"
+          colorScheme="red"
+          onClick={(e) => {
+            e.stopPropagation();
+            setSelectedCredential(credential);
+            setIsDelDlgOpen(true);
+          }}
+        >
+          <FormattedMessage id="text.relinquish_credential" />
+        </Button>
+      </Flex>
+    );
+  };
+
+  // Helper function for SSH credential status
+  const renderSSHCredentialStatus = (credential: AssetCredential) => {
+    const hasSSHCredentials = credential.username && credential.sshKeyFile;
+    
+    if (!hasSSHCredentials) {
+      return (
+        <Flex gap={2} justifyContent={'center'} w='full'>
+          <Button
+            size="sm"
+            className="btn-set-ssh-credential"
+            colorScheme="green"
+            onClick={(e) => {
+              e.stopPropagation();
+              setSelectedCredential(credential);
+              setIsSSHDialogOpen(true);
+            }}
+          >
+            <FormattedMessage id="text.set_ssh_credential" />
+          </Button>
+        </Flex>
+      );
+    }
+    
+    return (
+      <Flex flexDirection={'row'} gap={2} justifyContent={'center'} w='full'>
+        <Button
+          size="sm"
+          className="btn-update-ssh-credential"
+          colorScheme="yellow"
+          onClick={(e) => {
+            e.stopPropagation();
+            setSelectedCredential(credential);
+            setIsSSHDialogOpen(true);
+          }}
+        >
+          <FormattedMessage id="text.update_ssh_credential" />
+        </Button>
+        <Button
+          size="sm"
+          className="btn-relinquish-ssh-credential"
+          colorScheme="red"
+          onClick={(e) => {
+            e.stopPropagation();
+            setSelectedCredential(credential);
+            setIsDelDlgOpen(true);
+          }}
+        >
+          <FormattedMessage id="text.relinquish_ssh_credential" />
+        </Button>
+      </Flex>
+    );
+  };
+
   const renderAssetCell = (asset: Asset | undefined, field: keyof Asset, isEditing: boolean) => {
     if (!asset) return '-';
 
@@ -307,6 +454,29 @@ export function Component() {
     <DamBasePage
       title={intl.formatMessage({ id: 'text.asset_owner' })}>
       <VStack spacing={0} align="stretch">
+        {/* New Assets Alert Banner */}
+        {showNewAssetsAlert && newAssetsRequiringCredentials.length > 0 && (
+          <Alert status="warning" mb={4} borderRadius="md">
+            <AlertIcon />
+            <Box flex="1">
+              <AlertTitle fontSize="md">
+                <FormattedMessage id="text.new_assets_require_credentials" />
+              </AlertTitle>
+              <AlertDescription fontSize="sm">
+                <FormattedMessage 
+                  id="text.credential_setup_required" 
+                  values={{ count: newAssetsRequiringCredentials.length }}
+                />
+              </AlertDescription>
+            </Box>
+            <CloseButton
+              position="absolute"
+              right="8px"
+              top="8px"
+              onClick={() => setShowNewAssetsAlert(false)}
+            />
+          </Alert>
+        )}
         {/* Tab Navigation */}
         <Flex mt={4} borderBottom="1px" borderColor={borderColor}>
           <Button
@@ -319,6 +489,28 @@ export function Component() {
             borderBottomColor={activeTab === 'assets' ? 'blue.500' : 'transparent'}
           >
             <FormattedMessage id="text.assets" />
+          </Button>
+          <Button
+            variant={activeTab === 'approvals' ? 'solid' : 'ghost'}
+            colorScheme={activeTab === 'approvals' ? 'blue' : 'gray'}
+            onClick={() => setActiveTab('approvals')}
+            leftIcon={<FiCheckCircle />}
+            borderRadius="0"
+            borderBottom={activeTab === 'approvals' ? '2px solid' : 'none'}
+            borderBottomColor={activeTab === 'approvals' ? 'blue.500' : 'transparent'}
+          >
+            <FormattedMessage id="text.asset_request_approvals" />
+          </Button>
+          <Button
+            variant={activeTab === 'changes' ? 'solid' : 'ghost'}
+            colorScheme={activeTab === 'changes' ? 'blue' : 'gray'}
+            onClick={() => setActiveTab('changes')}
+            leftIcon={<FiEdit />}
+            borderRadius="0"
+            borderBottom={activeTab === 'changes' ? '2px solid' : 'none'}
+            borderBottomColor={activeTab === 'changes' ? 'blue.500' : 'transparent'}
+          >
+            <FormattedMessage id="text.change_requests" />
           </Button>
           <Button
             variant={activeTab === 'masking' ? 'solid' : 'ghost'}
@@ -338,9 +530,6 @@ export function Component() {
           <Flex mt={2} flexDirection={'column'} gap={2}>
             <DamCard mt={0}>
               <DamCardBody>
-                <TextCardHeader mb={0} id="lblAssetSetting">
-                  <FormattedMessage id="text.assets" />
-                </TextCardHeader>
                 <DamCardDivider />
 
                 <TableContainer width='100%'>
@@ -378,115 +567,7 @@ export function Component() {
                                  <Td>{isDatabase ? renderAssetCell(credential.asset, 'databaseName', isEditing) : '-'}</Td>
                                  <Td>{renderAssetCell(credential.asset, 'description', isEditing)}</Td>
                                  <Td textAlign={'center'}>
-                                   {(() => {
-                                     // Database credential management
-                                     if (isDatabase) {
-                                       const hasDatabaseCredentials = credential.username && credential.password;
-                                       
-                                       if (!hasDatabaseCredentials) {
-                                         return (
-                                           <Flex gap={2} justifyContent={'center'} w='full'>
-                                             <Button
-                                               size="sm"
-                                               className="btn-set-credential"
-                                               colorScheme="green"
-                                               onClick={(e) => {
-                                                 e.stopPropagation();
-                                                 setSelectedCredential(credential);
-                                                 setIsDialogOpen(true);
-                                               }}
-                                             >
-                                               <FormattedMessage id="text.set_credential" />
-                                             </Button>
-                                           </Flex>
-                                         );
-                                       } else {
-                                         return (
-                                           <Flex flexDirection={'row'} gap={2} justifyContent={'center'} w='full'>
-                                             <Button
-                                               size="sm"
-                                               className="btn-update-credential"
-                                               colorScheme="yellow"
-                                               onClick={(e) => {
-                                                 e.stopPropagation();
-                                                 setSelectedCredential(credential);
-                                                 setIsDialogOpen(true);
-                                               }}
-                                             >
-                                               <FormattedMessage id="text.update_credential" />
-                                             </Button>
-                                             <Button
-                                               size="sm"
-                                               className="btn-relinquish-credential"
-                                               colorScheme="red"
-                                               onClick={(e) => {
-                                                 e.stopPropagation();
-                                                 setSelectedCredential(credential);
-                                                 setIsDelDlgOpen(true);
-                                               }}
-                                             >
-                                               <FormattedMessage id="text.relinquish_credential" />
-                                             </Button>
-                                           </Flex>
-                                         );
-                                       }
-                                     }
-                                     
-                                     // SSH credential management
-                                     if (isUnixServer) {
-                                       const hasSSHCredentials = credential.username && credential.sshKeyFile;
-                                       
-                                       if (!hasSSHCredentials) {
-                                         return (
-                                           <Flex gap={2} justifyContent={'center'} w='full'>
-                                             <Button
-                                               size="sm"
-                                               className="btn-set-ssh-credential"
-                                               colorScheme="green"
-                                               onClick={(e) => {
-                                                 e.stopPropagation();
-                                                 setSelectedCredential(credential);
-                                                 setIsSSHDialogOpen(true);
-                                               }}
-                                             >
-                                               <FormattedMessage id="text.set_ssh_credential" />
-                                             </Button>
-                                           </Flex>
-                                         );
-                                       } else {
-                                         return (
-                                           <Flex flexDirection={'row'} gap={2} justifyContent={'center'} w='full'>
-                                             <Button
-                                               size="sm"
-                                               className="btn-update-ssh-credential"
-                                               colorScheme="yellow"
-                                               onClick={(e) => {
-                                                 e.stopPropagation();
-                                                 setSelectedCredential(credential);
-                                                 setIsSSHDialogOpen(true);
-                                               }}
-                                             >
-                                               <FormattedMessage id="text.update_ssh_credential" />
-                                             </Button>
-                                             <Button
-                                               size="sm"
-                                               className="btn-relinquish-ssh-credential"
-                                               colorScheme="red"
-                                               onClick={(e) => {
-                                                 e.stopPropagation();
-                                                 setSelectedCredential(credential);
-                                                 setIsDelDlgOpen(true);
-                                               }}
-                                             >
-                                               <FormattedMessage id="text.relinquish_ssh_credential" />
-                                             </Button>
-                                           </Flex>
-                                         );
-                                       }
-                                     }
-                                     
-                                     return null;
-                                   })()}
+                                   {renderCredentialStatus(credential)}
                                  </Td>
                                  <Td textAlign={'center'}>
                                    <Flex gap={2} justifyContent={'center'}>
@@ -594,9 +675,21 @@ export function Component() {
                 </TableContainer>
               </DamCardBody>
             </DamCard>
-            <AssetRequestApprovals />
-            <ChangeRequests />
             <Flex mt={6} />
+          </Flex>
+        )}
+
+        {/* Asset Request Approvals Tab */}
+        {activeTab === 'approvals' && (
+          <Flex mt={2} flexDirection={'column'} gap={2}>
+            <AssetRequestApprovals />
+          </Flex>
+        )}
+
+        {/* Change Requests Tab */}
+        {activeTab === 'changes' && (
+          <Flex mt={2} flexDirection={'column'} gap={2}>
+            <ChangeRequests />
           </Flex>
         )}
 
@@ -605,18 +698,29 @@ export function Component() {
           <Flex flexDirection={'column'} gap={2} mt={2}>
             <DamCard>
               <DamCardBody>
-                <AIMaskingChat credentials={credentials} onPolicyCreated={handlePolicyCreated} />
-              </DamCardBody>
-            </DamCard>
-
-            <DamCard>
-              <DamCardBody>
-                <TextCardHeader mb={4}>
-                  <FormattedMessage id="text.masking_policies" />
-                </TextCardHeader>
+                <Flex alignItems={'center'} mb={4} p={2} justifyContent={'flex-end'} w='full'>
+                  <Button colorScheme="blue" onClick={openAIModal}>
+                    Add Masking Policy
+                  </Button>
+                </Flex>
                 <MaskingPolicies ref={maskingPoliciesRef} />
               </DamCardBody>
             </DamCard>
+
+            {/* AI Data Masking Assistant Modal */}
+            <Modal isOpen={isAIModalOpen} onClose={closeAIModal} size="6xl">
+              <ModalOverlay />
+              <ModalContent maxW="90vw">
+                <ModalHeader>AI Data Masking Assistant</ModalHeader>
+                <ModalCloseButton />
+                <ModalBody>
+                  <AIMaskingChat 
+                    credentials={credentials} 
+                    onPolicyCreated={() => { handlePolicyCreated(); closeAIModal(); }} 
+                  />
+                </ModalBody>
+              </ModalContent>
+            </Modal>
 
           </Flex>
         )}

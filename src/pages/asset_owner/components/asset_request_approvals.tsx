@@ -108,9 +108,6 @@ export function AssetRequestApprovals() {
   return (
     <DamCard mt={4} flex={1}>
       <DamCardBody>
-        <TextCardHeader mb={0} id="lblAssetSetting">
-          <FormattedMessage id="text.asset_request_approvals" />
-        </TextCardHeader>
         <DamCardDivider />
         <TableContainer w='full'>
           <Table variant="simple" mt={4} id="tblRequestApprovals">

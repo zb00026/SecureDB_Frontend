@@ -4,6 +4,7 @@ import { User } from '@models/User';
 import { USER_ROLE } from '@/constants/enums';
 import { userHasRole } from '@common/index';
 import { useListPage } from './useListPage';
+import { request } from '@common/libs/request';
 
 export interface AuditTrailFilters {
   readonly startDate: string;
@@ -42,6 +43,7 @@ export interface UseRoleBasedAuditTrailReturn {
     readonly availableResourceTypes: string[];
   };
   readonly roleBasedMessage: string;
+  readonly downloadAuditLogs: (filters?: AuditTrailFilters) => Promise<void>;
 }
 
 export const useRoleBasedAuditTrail = ({ user, assetId }: UseRoleBasedAuditTrailProps): UseRoleBasedAuditTrailReturn => {
@@ -121,11 +123,11 @@ export const useRoleBasedAuditTrail = ({ user, assetId }: UseRoleBasedAuditTrail
     };
 
     // Remove undefined values to avoid sending them in API requests
-    Object.keys(effectiveFilters).forEach(key => {
+    for (const key of Object.keys(effectiveFilters)) {
       if (effectiveFilters[key] === undefined || effectiveFilters[key] === '') {
         delete effectiveFilters[key];
       }
-    });
+    }
 
     return effectiveFilters;
   };
@@ -166,6 +168,71 @@ export const useRoleBasedAuditTrail = ({ user, assetId }: UseRoleBasedAuditTrail
     // The useEffect will handle re-fetching data when filters change
   };
 
+  // Download audit logs function
+  const downloadAuditLogs = async (downloadFilters?: AuditTrailFilters) => {
+    try {
+      const effectiveFilters = downloadFilters ? {
+        ...downloadFilters,
+        ...restrictions,
+        // Remove undefined values
+        ...Object.fromEntries(
+          Object.entries({
+            ...downloadFilters,
+            ...restrictions
+          }).filter(([_, value]) => value !== undefined && value !== '')
+        )
+      } : getEffectiveFilters();
+
+      // Build query string from filters
+      const queryParams = new URLSearchParams();
+      for (const [key, value] of Object.entries(effectiveFilters)) {
+        if (value !== undefined && value !== '' && value !== null) {
+          // Ensure proper string conversion for different value types
+          const stringValue = typeof value === 'object' ? JSON.stringify(value) : String(value);
+          queryParams.append(key, stringValue);
+        }
+      }
+
+      const queryString = queryParams.toString();
+      const downloadUrl = queryString ? `${endpoint}/download?${queryString}` : `${endpoint}/download`;
+
+      // Make the download request
+      const response = await request(downloadUrl, { method: 'GET' }, false);
+      
+      if (!response.ok) {
+        throw new Error(`Download failed: ${response.status} ${response.statusText}`);
+      }
+
+      // Get the filename from the response headers or create a default one
+      const contentDisposition = response.headers.get('Content-Disposition');
+      let filename = 'audit-logs.csv';
+      
+      if (contentDisposition) {
+        const filenameMatch = contentDisposition.match(/filename[^;=\n]*=((['"]).*?\2|[^;\n]*)/);
+        if (filenameMatch?.[1]) {
+          filename = filenameMatch[1].replaceAll(/['"]/g, '');
+        }
+      }
+
+      // Create a blob from the response
+      const blob = await response.blob();
+      
+      // Create a download link and trigger the download
+      const url = globalThis.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = filename;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      globalThis.URL.revokeObjectURL(url);
+      
+    } catch (error) {
+      console.error('Error downloading audit logs:', error);
+      throw error;
+    }
+  };
+
   return {
     filters,
     setFilters: handleSetFilters,
@@ -174,6 +241,7 @@ export const useRoleBasedAuditTrail = ({ user, assetId }: UseRoleBasedAuditTrail
     pagination,
     loading: false, // useListPage doesn't provide loading state, handle it separately if needed
     availableFilters,
-    roleBasedMessage: message
+    roleBasedMessage: message,
+    downloadAuditLogs
   };
 }; 

@@ -18,6 +18,7 @@ import { useViewAccess } from "@common/hooks/useViewAccess";
 import { AssetLockDialog, LockType, LockAction } from "./components/asset_lock_dialog";
 import { ManageUsersModal } from "./components/manage_users_modal";
 import { EditAssetModal } from "./components/edit_asset_modal";
+import { AssetOwnerSelectionModal } from "./components/asset_owner_selection_modal";
 
 export const isSearchable = true;
 export const displayName = 'Assets Management Page';
@@ -47,6 +48,10 @@ export function Component() {
   const [isEditAssetModalOpen, setIsEditAssetModalOpen] = useState(false);
   const [editAsset, setEditAsset] = useState<Asset | null>(null);
   const [isEditAssetLoading, setIsEditAssetLoading] = useState(false);
+
+  // Asset owner selection modal states
+  const [isAssetOwnerModalOpen, setIsAssetOwnerModalOpen] = useState(false);
+  const [isCreatingAsset, setIsCreatingAsset] = useState(false);
 
   // Bulk upload state
   const { isOpen: isBulkUploadOpen, onOpen: onBulkUploadOpen, onClose: onBulkUploadClose } = useDisclosure();
@@ -132,7 +137,6 @@ export function Component() {
       portNumber: '',
       databaseName: ''
     });
-    setSelectedAsset(null);
     setIsEdit(false);
     setIsFormShow(false);
   };
@@ -310,16 +314,58 @@ export function Component() {
   };
 
   const handleCreate = async () => {
-    setSelectedAsset(null);
+    // Instead of directly creating the asset, show the asset owner selection modal
+    setIsCreatingAsset(false); // Ensure loading state is reset when opening modal
+    setIsAssetOwnerModalOpen(true);
+  };
 
-    handleRequest('/api/admin/assets', 'POST', formState, {
-      onSuccess: () => {
-        getAssetsList({});
-        clearForm();
-        setIsFormShow(false);
+  // Helper function to show asset owner instructions
+  const showAssetOwnerInstructions = (owners: User[]) => {
+    const ownerNames = owners.map(owner => `${owner.firstName} ${owner.lastName}`).join(', ');
+    showSuccess({
+      title: intl.formatMessage({ id: 'text.asset_owner_instructions' }),
+      description: intl.formatMessage(
+        { id: 'text.asset_owner_credentials_required' },
+        { owners: ownerNames }
+      )
+    });
+  };
+
+  // Helper function to handle successful asset creation
+  const handleAssetCreationSuccess = (owners: User[]) => {
+    getAssetsList({});
+    clearForm();
+    setIsFormShow(false);
+    setIsAssetOwnerModalOpen(false);
+    setIsCreatingAsset(false);
+    
+    // Show success message with instructions for asset owners
+    showSuccess({
+      title: intl.formatMessage({ id: 'text.asset_created' }),
+      description: intl.formatMessage(
+        { id: 'text.asset_created_success_message' },
+        { assetName: formState.name }
+      )
+    });
+    
+    // Show additional message about asset owner instructions
+    setTimeout(() => showAssetOwnerInstructions(owners), 2000);
+  };
+
+  const handleAssetOwnerSelection = async (owners: User[]) => {
+    setIsCreatingAsset(true);
+    
+    // Create the asset with the selected owners
+    const assetData = {
+      ...formState,
+      owners: owners
+    };
+
+    handleRequest('/api/admin/assets', 'POST', assetData, {
+      onSuccess: () => handleAssetCreationSuccess(owners),
+      onError: () => {
+        setIsCreatingAsset(false);
       },
-      successTitleId: 'text.asset_created',
-      successDescriptionId: 'text.asset_create_success',
       errorDescriptionId: 'text.asset_create_failed'
     });
   };
@@ -367,9 +413,6 @@ export function Component() {
 
             {isFormShow &&
               <Flex gap={4} my={4} ml={4} alignItems="center" id="flexAssetTypeForm">
-                <Text mb={0}>
-                  <FormattedMessage id="text.asset_type" />
-                </Text>
                 <Select
                   value={formState.type}
                   onChange={(e) => setFormState(prev => ({ ...prev, type: e.target.value as AssetType }))}
@@ -545,6 +588,17 @@ export function Component() {
         asset={editAsset}
         onSave={handleSaveAsset}
         isLoading={isEditAssetLoading}
+      />
+      <AssetOwnerSelectionModal
+        isOpen={isAssetOwnerModalOpen}
+        onClose={() => {
+          setIsAssetOwnerModalOpen(false);
+          setIsCreatingAsset(false);
+        }}
+        onConfirm={handleAssetOwnerSelection}
+        users={Array.isArray(getAssetOwners) ? getAssetOwners : getAssetOwners?.content || []}
+        isLoading={isCreatingAsset}
+        assetName={formState.name}
       />
     </DamBasePage>
   );

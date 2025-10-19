@@ -7,6 +7,7 @@ import {
   AlertDialogHeader,
   AlertDialogOverlay,
   Button,
+  Flex,
   Input,
   Text,
 } from "@chakra-ui/react";
@@ -41,12 +42,12 @@ export function SetCredentialDialog({ isOpen, titleId, onClose, onSubmit, showPa
       setPassword('');
       setConfirmPassword('');
       setIsReadonly(true);
-      
+
       // Remove readonly after a brief delay to trick browsers
       const timer = setTimeout(() => {
         setIsReadonly(false);
       }, 100);
-      
+
       return () => clearTimeout(timer);
     }
   }, [isOpen]);
@@ -64,7 +65,7 @@ export function SetCredentialDialog({ isOpen, titleId, onClose, onSubmit, showPa
       const hasUppercase = /[A-Z]/.test(password);
       const hasLowercase = /[a-z]/.test(password);
       const hasDigit = /\d/.test(password);
-      
+
       setIsPasswordWeak(!(hasMinLength && hasUppercase && hasLowercase && hasDigit));
     }
   }, [password, showPasswordWarning]);
@@ -94,55 +95,37 @@ export function SetCredentialDialog({ isOpen, titleId, onClose, onSubmit, showPa
           </AlertDialogHeader>
           <AlertDialogBody id='credentialDialogBody'>
             <div data-form-type="other" data-lpignore="true" data-1p-ignore="true" data-browser-ignore="true">
-            {!isTemporaryPassword && (
-              <Input
-                placeholder="Enter User Identifier"
-                id="userField"
-                name="user_field"
-                value={username}
-                onChange={(e) => setUsername(e.target.value)}
-                onFocus={(e) => {
-                  if (isReadonly) {
-                    e.target.removeAttribute('readonly');
-                    setIsReadonly(false);
-                  }
-                }}
-                autoComplete="off"
-                readOnly={isReadonly}
-                data-form-type="other"
-                data-lpignore="true"
-                data-1p-ignore="true"
-                data-save="false"
-                data-browser-ignore="true"
-                data-no-autofill="true"
-                mb={3}
-              />)}
-            <DamPasswordInput
-              placeholder={showConfirmPassword ? "Enter New Key" : "Enter Key"}
-              id="keyField"
-              name="key_field"
-              value={password}
-              onChange={setPassword}
-              showRequirements={showPasswordRequirements}
-              onValidationChange={(isValid) => setIsPasswordValid(isValid)}
-              autoComplete="off"
-              readOnly={isReadonly}
-              data-form-type="other"
-              data-lpignore="true"
-              data-1p-ignore="true"
-              data-save="false"
-              data-browser-ignore="true"
-              data-no-autofill="true"
-            />
-            {showConfirmPassword && (
+              {!isTemporaryPassword && (
+                <Input
+                  placeholder="Enter User Identifier"
+                  id="userField"
+                  name="user_field"
+                  value={username}
+                  onChange={(e) => setUsername(e.target.value)}
+                  onFocus={(e) => {
+                    if (isReadonly) {
+                      e.target.removeAttribute('readonly');
+                      setIsReadonly(false);
+                    }
+                  }}
+                  autoComplete="off"
+                  readOnly={isReadonly}
+                  data-form-type="other"
+                  data-lpignore="true"
+                  data-1p-ignore="true"
+                  data-save="false"
+                  data-browser-ignore="true"
+                  data-no-autofill="true"
+                  mb={3}
+                />)}
               <DamPasswordInput
-                placeholder="Re-enter Key"
-                id="confirmKeyField"
-                name="confirm_key_field"
-                value={confirmPassword}
-                onChange={setConfirmPassword}
-                showRequirements={false}
-                onValidationChange={() => {}} // Not needed for confirm password
+                placeholder={showConfirmPassword ? "Enter New Key" : "Enter Key"}
+                id="keyField"
+                name="key_field"
+                value={password}
+                onChange={setPassword}
+                showRequirements={showPasswordRequirements}
+                onValidationChange={(isValid) => setIsPasswordValid(isValid)}
                 autoComplete="off"
                 readOnly={isReadonly}
                 data-form-type="other"
@@ -151,19 +134,39 @@ export function SetCredentialDialog({ isOpen, titleId, onClose, onSubmit, showPa
                 data-save="false"
                 data-browser-ignore="true"
                 data-no-autofill="true"
-                mt={3}
               />
-            )}
-            {showPasswordWarning && isPasswordWeak && password.length > 0 && (
-              <Text fontSize="sm" color="orange.500" mt={2} mb={0}>
-                <FormattedMessage id="text.weak_password_warning" />
-              </Text>
-            )}
-            {showConfirmPassword && confirmPassword.length > 0 && !passwordsMatch && (
-              <Text fontSize="sm" color="red.500" mt={2} mb={0}>
-                <FormattedMessage id="text.passwords_do_not_match" />
-              </Text>
-            )}
+              {showConfirmPassword && (
+                <Flex pt={2}>
+                  <DamPasswordInput
+                    placeholder="Re-enter Key"
+                    id="confirmKeyField"
+                    name="confirm_key_field"
+                    value={confirmPassword}
+                    onChange={setConfirmPassword}
+                    showRequirements={false}
+                    onValidationChange={() => { }} // Not needed for confirm password
+                    autoComplete="off"
+                    readOnly={isReadonly}
+                    data-form-type="other"
+                    data-lpignore="true"
+                    data-1p-ignore="true"
+                    data-save="false"
+                    data-browser-ignore="true"
+                    data-no-autofill="true"
+                  />
+                </Flex>
+
+              )}
+              {showPasswordWarning && isPasswordWeak && password.length > 0 && (
+                <Text fontSize="sm" color="orange.500" mt={2} mb={0}>
+                  <FormattedMessage id="text.weak_password_warning" />
+                </Text>
+              )}
+              {showConfirmPassword && confirmPassword.length > 0 && !passwordsMatch && (
+                <Text fontSize="sm" color="red.500" mt={2} mb={0}>
+                  <FormattedMessage id="text.passwords_do_not_match" />
+                </Text>
+              )}
             </div>
           </AlertDialogBody>
           <AlertDialogFooter>

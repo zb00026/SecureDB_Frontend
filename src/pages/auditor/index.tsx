@@ -1,22 +1,21 @@
 import React from "react";
-import { Box, VStack, Heading, Text, Grid, GridItem, Card, CardBody, Button } from "@chakra-ui/react";
+import { VStack, Heading, Text, Grid, GridItem, Card, CardBody, Button } from "@chakra-ui/react";
 import { useNavigate } from "react-router-dom";
-import { FormattedMessage } from "react-intl";
+import { FormattedMessage, useIntl } from "react-intl";
 import { ViewIcon } from "@chakra-ui/icons";
+import { DamBasePage } from "@common/components/DamBasePage";
 
 export const isSearchable = true;
 export const displayName = 'Auditor Page';
 
 export function Component() {
   const navigate = useNavigate();
+  const intl = useIntl();
   
   return (
-    <Box p={6}>
+    <DamBasePage title={intl.formatMessage({ id: 'text.auditor' })}>
       <VStack spacing={6} align="stretch">
         <VStack align="start" spacing={2}>
-          <Heading size="lg">
-            <FormattedMessage id="text.auditor" />
-          </Heading>
           <Text color="gray.500">
             <FormattedMessage id="text.audit_log_storage" />
           </Text>
@@ -74,6 +73,6 @@ export function Component() {
           </GridItem>
         </Grid>
       </VStack>
-    </Box>
+    </DamBasePage>
   );
 }

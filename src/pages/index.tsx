@@ -1,131 +1,121 @@
 import { USER_ROLE } from "@/constants/enums";
 import { 
   Box, 
-  Grid, 
-  GridItem, 
   Heading, 
   Text, 
   Icon, 
   useColorModeValue,
   VStack,
   HStack,
-  Badge,
-  Button,
-  Card,
-  CardBody,
-  Avatar,
-  AvatarBadge
+  Input,
+  InputGroup,
+  InputLeftElement,
+  List,
+  ListItem,
+  Kbd,
+  Flex
 } from "@chakra-ui/react";
 import { DamBasePage } from "@common/components/DamBasePage";
-import { useMyState, userHasRole } from "@common/index";
-import { Role } from "@models/Role";
-import { FormattedMessage, useIntl } from "react-intl";
-import { Link, useNavigate } from 'react-router-dom';
+import { useMyState, isAuthorizedPath } from "@common/index";
+import { useIntl } from "react-intl";
+import { useNavigate } from 'react-router-dom';
 import { 
-  FiDatabase, 
-  FiUsers, 
-  FiShield, 
-  FiSettings, 
-  FiActivity, 
-  FiBarChart,
-  FiClock,
-  FiCheckCircle,
-  FiUser,
-  FiHardDrive,
-  FiKey,
-  FiTerminal
+  FiSearch,
+  FiCommand
 } from 'react-icons/fi';
+import { useState, useEffect, useRef } from 'react';
+import { PageRoute } from "@models/PageRoute";
 
 export const name = 'Dashboard';
 
-// Role icon mapping for better visual identification
-const roleIcons: Record<string, any> = {
-  'developer': FiDatabase,
-  'auditor': FiShield,
-  'approver': FiCheckCircle,
-  'asset_owner': FiUsers,
-};
-
-// Role color mapping for consistent theming
-const roleColors: Record<string, string> = {
-  'developer': 'blue',
-  'auditor': 'purple',
-  'approver': 'green',
-  'asset_owner': 'orange',
-};
-
-// Admin navigation items
-const adminNavItems = [
-  {
-    id: 'users',
-    titleId: 'text.users',
-    description: 'Manage user accounts and permissions',
-    icon: FiUser,
-    colorScheme: 'red',
-    href: '/admin/users'
-  },
-  {
-    id: 'settings',
-    titleId: 'text.settings', 
-    description: 'Configure system settings',
-    icon: FiSettings,
-    colorScheme: 'gray',
-    href: '/admin/settings'
-  },
-  {
-    id: 'assets',
-    titleId: 'text.assets',
-    description: 'Manage assets',
-    icon: FiHardDrive,
-    colorScheme: 'teal',
-    href: '/admin/assets'
-  },
-
-  {
-    id: 'assets_owner',
-    titleId: 'text.asset_owner',
-    description: 'Manage your assets',
-    icon: FiHardDrive,
-    colorScheme: 'teal',
-    href: '/asset_owner'
-  },
-  {
-    id: 'license',
-    titleId: 'text.license',
-    description: 'Manage license files and settings',
-    icon: FiKey,
-    colorScheme: 'purple',
-    href: '/admin/license'
-  }
-];
+// These constants are no longer needed since we removed the card-based layout
 
 export function Component() {
-  const { snap } = useMyState()
+  const { snap } = useMyState();
   const navigate = useNavigate();
   const intl = useIntl();
+  const inputRef = useRef<HTMLInputElement>(null);
 
   const user = snap.session.user;
+  const pageRoutes = snap.storage.pageRoutes;
+  
+  const [query, setQuery] = useState('');
+  const [filteredItems, setFilteredItems] = useState<PageRoute[]>([]);
+  const [selectedIndex, setSelectedIndex] = useState(0);
+
+  // Color mode values
   const cardBg = useColorModeValue('white', 'gray.800');
-  const cardBorderColor = useColorModeValue('gray.200', 'gray.700');
-  const gradientBg = useColorModeValue(
-    'linear(to-r, brand.500, brand.600)',
-    'linear(to-r, brand.600, brand.700)'
-  );
+  const borderColor = useColorModeValue('gray.200', 'gray.700');
+  const selectedBg = useColorModeValue('brand.50', 'brand.900');
+  const selectedBorderColor = useColorModeValue('brand.500', 'brand.400');
+  const textColor = useColorModeValue('gray.800', 'gray.100');
+  const subtleTextColor = useColorModeValue('gray.600', 'gray.400');
+  const kbdBg = useColorModeValue('gray.100', 'gray.700');
 
+  // Helper function to filter searchable routes
+  const getFilteredRoutes = (searchQuery: string) => {
+    return pageRoutes
+      .filter((route: PageRoute) => {
+        // Only show searchable routes that user has access to
+        return route.isSearchable && 
+               isAuthorizedPath(route.path, user) &&
+               route.title.toLowerCase().includes(searchQuery);
+      })
+      .slice(0, 8); // Limit to 8 results
+  };
 
-  // Filter out admin role for regular role display since we handle admin separately
-  const nonAdminRoles = user.roles.filter((role: Role) => (role.name.toLowerCase() !== 'admin' && role.name.toLowerCase() !== 'none'));
-  const isAdmin = userHasRole(user, USER_ROLE.ADMIN);
-
-  // Helper function to get audit trail description based on user role
-  const getAuditTrailDescription = () => {
-    if (userHasRole(user, USER_ROLE.ADMIN)) {
-      return 'View all system audit logs';
+  // Filter and search pages
+  useEffect(() => {
+    if (!query.trim()) {
+      setFilteredItems([]);
+      setSelectedIndex(0);
+      return;
     }
-    if (userHasRole(user, USER_ROLE.ASSET_OWNER)) {
-      return 'View audit logs for your assets';
+
+    const searchQuery = query.toLowerCase();
+    const filtered = getFilteredRoutes(searchQuery);
+    setFilteredItems(filtered);
+    setSelectedIndex(0);
+  }, [query, pageRoutes, user]);
+
+  // Helper function to handle keyboard navigation
+  const handleKeyboardNavigation = (e: KeyboardEvent) => {
+    if (e.key === 'Escape') {
+      e.preventDefault();
+      setQuery('');
+      setSelectedIndex(0);
+      return;
     }
-    return 'View audit logs for approved assets';
+
+    if (!filteredItems.length) return;
+
+    if (e.key === 'ArrowDown') {
+      e.preventDefault();
+      setSelectedIndex((prev) => (prev + 1) % filteredItems.length);
+    } else if (e.key === 'ArrowUp') {
+      e.preventDefault();
+      setSelectedIndex((prev) => (prev - 1 + filteredItems.length) % filteredItems.length);
+    } else if (e.key === 'Enter' && filteredItems[selectedIndex]) {
+      e.preventDefault();
+      navigate(filteredItems[selectedIndex].path);
+      setQuery('');
+    }
+  };
+
+  // Keyboard navigation
+  useEffect(() => {
+    globalThis.addEventListener('keydown', handleKeyboardNavigation);
+    return () => globalThis.removeEventListener('keydown', handleKeyboardNavigation);
+  }, [filteredItems, selectedIndex, navigate, query]);
+
+  // Focus input on mount
+  useEffect(() => {
+    inputRef.current?.focus();
+  }, []);
+
+  const handleItemClick = (path: string) => {
+    navigate(path);
+    setQuery('');
   };
 
   return (
@@ -133,340 +123,130 @@ export function Component() {
       title={intl.formatMessage({ id: 'text.dashboard' })}
       hasBody={false}>
       
-      {/* Hero Section */}
-      <Box
-        bgGradient={gradientBg}
-        borderRadius="2xl"
-        p={8}
-        mb={8}
-        color="white"
-        position="relative"
-        overflow="hidden"
-        _before={{
-          content: '""',
-          position: 'absolute',
-          top: 0,
-          left: 0,
-          right: 0,
-          bottom: 0,
-          bgGradient: 'linear(45deg, transparent 0%, rgba(255,255,255,0.1) 50%, transparent 100%)',
-          animation: 'shimmer 3s ease-in-out infinite',
-        }}
-      >
-        <HStack spacing={6} align="center">
-          <Avatar size="xl" name={user.name ?? user.email}>
-            <AvatarBadge boxSize="1.25em" bg="green.500" />
-          </Avatar>
-          <VStack align="start" spacing={2}>
-            <Heading size="lg" fontWeight="700">
-              Welcome back, {user.name ?? user.email}
-            </Heading>
-            <Text fontSize="lg" opacity={0.9}>
-              Database Access Management System
-            </Text>
-            <HStack spacing={2}>
-              {user.roles.map((role: Role) => {
-                const roleKey = role.name.toLowerCase().replace(" ", "_");
-                return (
-                  <Badge
-                    key={role.id}
-                    colorScheme={roleColors[roleKey] ?? 'blue'}
-                    variant="subtle"
-                    px={3}
-                    py={1}
-                    borderRadius="full"
-                    textTransform="capitalize"
-                  >
-                    {role.name}
-                  </Badge>
-                );
-              })}
-            </HStack>
-          </VStack>
-        </HStack>
-      </Box>
+      {/* Spotlight Search */}
+      <VStack spacing={4} align="stretch" maxW="800px" mx="auto" mt={20} minH="100vh" position="relative" overflow="visible">
+        <Box position="relative" overflow="visible">
+          <InputGroup size="lg">
+            <InputLeftElement pointerEvents="none" height="100%">
+              <Icon as={FiSearch} color={subtleTextColor} boxSize={6} />
+            </InputLeftElement>
+            <Input
+              ref={inputRef}
+              placeholder="Search for pages, dashboards, and settings..."
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              bg={cardBg}
+              borderColor={borderColor}
+              borderWidth="2px"
+              borderRadius="xl"
+              fontSize="lg"
+              height="70px"
+              pl="60px"
+              pr="120px"
+              color={textColor}
+              _hover={{
+                borderColor: 'brand.400',
+              }}
+              _focus={{
+                borderColor: 'brand.500',
+                boxShadow: '0 0 0 3px rgba(66, 153, 225, 0.15)',
+              }}
+              _placeholder={{
+                color: subtleTextColor,
+              }}
+            />
+            <Box
+              position="absolute"
+              right={4}
+              top="50%"
+              transform="translateY(-50%)"
+              display="flex"
+              alignItems="center"
+              gap={2}
+            >
+              <Flex align="center" gap={1}>
+                <Kbd fontSize="sm" bg={kbdBg}>
+                  <Icon as={FiCommand} boxSize={3} />
+                </Kbd>
+                <Kbd fontSize="sm" bg={kbdBg}>K</Kbd>
+              </Flex>
+            </Box>
+          </InputGroup>
 
-      {/* Role-based Actions */}
-      <VStack spacing={6} align="stretch">
-        <Heading size="md" color="gray.700" _dark={{ color: 'gray.300' }}>
-          Quick Actions
-        </Heading>
-        
-        <Grid templateColumns={{ base: '1fr', md: 'repeat(2, 1fr)', lg: 'repeat(3, 1fr)' }} gap={6}>
-          {/* Non-Admin Role Cards */}
-          {nonAdminRoles.map((role: Role) => {
-            const roleName = role.name.toLowerCase().replace(" ", "_");
-            const IconComponent = roleIcons[roleName] ?? FiDatabase;
-            const colorScheme = roleColors[roleName] ?? 'blue';
-            
-            return (
-              <GridItem key={role.id}>
-                <Card
-                  variant="elevated"
-                  bg={cardBg}
-                  borderColor={cardBorderColor}
-                  transition="all 0.2s ease-in-out"
-                  _hover={{
-                    transform: 'translateY(-4px)',
-                    boxShadow: 'xl',
-                    borderColor: `${colorScheme}.300`,
-                  }}
-                  cursor="pointer"
-                  as={Link}
-                  to={"/" + roleName}
-                >
-                  <CardBody>
-                    <VStack spacing={4} align="center" py={4}>
-                      <Box
-                        p={4}
-                        bg={`${colorScheme}.50`}
-                        borderRadius="2xl"
-                        _dark={{ bg: `${colorScheme}.900` }}
-                      >
-                        <Icon
-                          as={IconComponent}
-                          boxSize={8}
-                          color={`${colorScheme}.500`}
-                        />
-                      </Box>
-                      <VStack spacing={2} textAlign="center">
-                        <Heading size="sm" textTransform="capitalize">
-                          <FormattedMessage id={"text." + roleName} />
-                        </Heading>
-                        <Text fontSize="sm" color="gray.600" _dark={{ color: 'gray.400' }}>
-                          Access {role.name.toLowerCase()} dashboard
+          {/* Search Results */}
+          {filteredItems.length > 0 && (
+            <Box
+              position="absolute"
+              top="calc(100% + 8px)"
+              left={0}
+              right={0}
+              bg={cardBg}
+              borderRadius="xl"
+              borderWidth="2px"
+              borderColor={borderColor}
+              boxShadow="2xl"
+              overflow="hidden"
+              zIndex={9999}
+            >
+              <List spacing={0}>
+                {filteredItems.map((item, index) => (
+                  <ListItem
+                    key={item.path}
+                    onClick={() => handleItemClick(item.path)}
+                    cursor="pointer"
+                    px={6}
+                    py={4}
+                    bg={index === selectedIndex ? selectedBg : 'transparent'}
+                    borderLeftWidth="4px"
+                    borderLeftColor={index === selectedIndex ? selectedBorderColor : 'transparent'}
+                    transition="all 0.15s ease"
+                    _hover={{
+                      bg: selectedBg,
+                      borderLeftColor: selectedBorderColor,
+                    }}
+                  >
+                    <Flex justify="space-between" align="center">
+                      <VStack align="start" spacing={0}>
+                        <Text fontSize="md" fontWeight="600" color={textColor} mb={0}>
+                          {item.title}
+                        </Text>
+                        <Text fontSize="sm" color={subtleTextColor} mb={0}>
+                          {item.path}
                         </Text>
                       </VStack>
-                      <Button
-                        variant="ghost"
-                        colorScheme={colorScheme}
-                        size="sm"
-                        rightIcon={<Icon as={FiActivity} />}
-                      >
-                        Open Dashboard
-                      </Button>
-                    </VStack>
-                  </CardBody>
-                </Card>
-              </GridItem>
-            );
-          })}
-
-          {/* Admin Navigation Cards */}
-          {isAdmin && adminNavItems.map((item) => (
-            <GridItem key={item.id}>
-              <Card
-                variant="elevated"
-                bg={cardBg}
-                borderColor={cardBorderColor}
-                transition="all 0.2s ease-in-out"
-                _hover={{
-                  transform: 'translateY(-4px)',
-                  boxShadow: 'xl',
-                  borderColor: `${item.colorScheme}.300`,
-                }}
-                cursor="pointer"
-                as={Link}
-                to={item.href}
-              >
-                <CardBody>
-                  <VStack spacing={4} align="center" py={4}>
-                    <Box
-                      p={4}
-                      bg={`${item.colorScheme}.50`}
-                      borderRadius="2xl"
-                      _dark={{ bg: `${item.colorScheme}.900` }}
-                    >
-                      <Icon
-                        as={item.icon}
-                        boxSize={8}
-                        color={`${item.colorScheme}.500`}
-                      />
-                    </Box>
-                    <VStack spacing={2} textAlign="center">
-                      <Heading size="sm">
-                        <FormattedMessage id={item.titleId} />
-                      </Heading>
-                      <Text fontSize="sm" color="gray.600" _dark={{ color: 'gray.400' }}>
-                        {item.description}
-                      </Text>
-                    </VStack>
-                    <Button
-                      variant="ghost"
-                      colorScheme={item.colorScheme}
-                      size="sm"
-                      rightIcon={<Icon as={FiActivity} />}
-                    >
-                      Manage
-                    </Button>
-                  </VStack>
-                </CardBody>
-              </Card>
-            </GridItem>
-          ))}
-          
-          {/* Audit Trail Card (if user has permission) */}
-          {(userHasRole(user, USER_ROLE.ADMIN) || 
-            userHasRole(user, USER_ROLE.AUDITOR) || 
-            userHasRole(user, USER_ROLE.ASSET_OWNER) || 
-            userHasRole(user, USER_ROLE.APPROVER)) && (
-            <GridItem>
-              <Card
-                variant="elevated"
-                bg={cardBg}
-                borderColor={cardBorderColor}
-                transition="all 0.2s ease-in-out"
-                _hover={{
-                  transform: 'translateY(-4px)',
-                  boxShadow: 'xl',
-                  borderColor: 'purple.300',
-                }}
-                cursor="pointer"
-                as={Link}
-                to="/auditor/audit-trail"
-              >
-                <CardBody>
-                  <VStack spacing={4} align="center" py={4}>
-                    <Box
-                      p={4}
-                      bg="purple.50"
-                      borderRadius="2xl"
-                      _dark={{ bg: 'purple.900' }}
-                    >
-                      <Icon
-                        as={FiBarChart}
-                        boxSize={8}
-                        color="purple.500"
-                      />
-                    </Box>
-                    <VStack spacing={2} textAlign="center">
-                      <Heading size="sm">
-                        <FormattedMessage id="text.audit_trail" />
-                      </Heading>
-                      <Text fontSize="sm" color="gray.600" _dark={{ color: 'gray.400' }}>
-                        {getAuditTrailDescription()}
-                      </Text>
-                    </VStack>
-                    <Button
-                      variant="ghost"
-                      colorScheme="purple"
-                      size="sm"
-                      rightIcon={<Icon as={FiClock} />}
-                    >
-                      View Logs
-                    </Button>
-                  </VStack>
-                </CardBody>
-              </Card>
-            </GridItem>
+                      {index === selectedIndex && (
+                        <Kbd fontSize="xs">Enter</Kbd>
+                      )}
+                    </Flex>
+                  </ListItem>
+                ))}
+              </List>
+            </Box>
           )}
+        </Box>
 
-          {/* Terminal Audit Card (if user has permission) */}
-          {(userHasRole(user, USER_ROLE.ADMIN) || userHasRole(user, USER_ROLE.AUDITOR)) && (
-            <GridItem>
-              <Card
-                variant="elevated"
-                bg={cardBg}
-                borderColor={cardBorderColor}
-                transition="all 0.2s ease-in-out"
-                _hover={{
-                  transform: 'translateY(-4px)',
-                  boxShadow: 'xl',
-                  borderColor: 'green.300',
-                }}
-                cursor="pointer"
-                as={Link}
-                to="/auditor/terminal-audit"
-              >
-                <CardBody>
-                  <VStack spacing={4} align="center" py={4}>
-                    <Box
-                      p={4}
-                      bg="green.50"
-                      borderRadius="2xl"
-                      _dark={{ bg: 'green.900' }}
-                    >
-                      <Icon
-                        as={FiTerminal}
-                        boxSize={8}
-                        color="green.500"
-                      />
-                    </Box>
-                    <VStack spacing={2} textAlign="center">
-                      <Heading size="sm">
-                        <FormattedMessage id="terminal.audit.title" />
-                      </Heading>
-                      <Text fontSize="sm" color="gray.600" _dark={{ color: 'gray.400' }}>
-                        Monitor and review terminal sessions and commands
-                      </Text>
-                    </VStack>
-                    <Button
-                      variant="ghost"
-                      colorScheme="green"
-                      size="sm"
-                      rightIcon={<Icon as={FiTerminal} />}
-                    >
-                      View Terminal Logs
-                    </Button>
-                  </VStack>
-                </CardBody>
-              </Card>
-            </GridItem>
-          )}
-
-          {/* Unix Groups Card (if user has asset owner permission) */}
-          {userHasRole(user, USER_ROLE.ASSET_OWNER) && (
-            <GridItem>
-              <Card
-                variant="elevated"
-                bg={cardBg}
-                borderColor={cardBorderColor}
-                transition="all 0.2s ease-in-out"
-                _hover={{
-                  transform: 'translateY(-4px)',
-                  boxShadow: 'xl',
-                  borderColor: 'orange.300',
-                }}
-                cursor="pointer"
-                as={Link}
-                to="/asset_owner/unix-groups"
-              >
-                <CardBody>
-                  <VStack spacing={4} align="center" py={4}>
-                    <Box
-                      p={4}
-                      bg="orange.50"
-                      borderRadius="2xl"
-                      _dark={{ bg: 'orange.900' }}
-                    >
-                      <Icon
-                        as={FiUsers}
-                        boxSize={8}
-                        color="orange.500"
-                      />
-                    </Box>
-                    <VStack spacing={2} textAlign="center">
-                      <Heading size="sm">
-                        <FormattedMessage id="unix_groups.title" />
-                      </Heading>
-                      <Text fontSize="sm" color="gray.600" _dark={{ color: 'gray.400' }}>
-                        <FormattedMessage id="unix_groups.manage_groups" />
-                      </Text>
-                    </VStack>
-                    <Button
-                      variant="ghost"
-                      colorScheme="orange"
-                      size="sm"
-                      rightIcon={<Icon as={FiUsers} />}
-                    >
-                      <FormattedMessage id="unix_groups.manage_groups" />
-                    </Button>
-                  </VStack>
-                </CardBody>
-              </Card>
-            </GridItem>
-          )}
-        </Grid>
+        {/* Hints */}
+        <Flex
+          justify="center"
+          gap={6}
+          mt={8}
+          fontSize="sm"
+          color={subtleTextColor}
+          flexWrap="wrap"
+        >
+          <Flex align="center" gap={2}>
+            <Kbd fontSize="xs">↑↓</Kbd>
+            <Text mb={0}>Navigate</Text>
+          </Flex>
+          <Flex align="center" gap={2}>
+            <Kbd fontSize="xs">Enter</Kbd>
+            <Text mb={0}>Select</Text>
+          </Flex>
+          <Flex align="center" gap={2}>
+            <Kbd fontSize="xs">Esc</Kbd>
+            <Text mb={0}>Clear</Text>
+          </Flex>
+        </Flex>
       </VStack>
     </DamBasePage>
   );

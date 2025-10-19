@@ -54,9 +54,6 @@ export function BaseAssetsTable({
   return (
     <DamCard mt={4}>
       <DamCardBody>
-        <TextCardHeader mb={0}>
-          <FormattedMessage id="text.assets" />
-        </TextCardHeader>
         <DamCardDivider />
 
         <TableContainer width='100%'>

@@ -1,5 +1,5 @@
 import { AUTH_PROVIDER, USER_ROLE } from "@/constants/enums";
-import { 
+import {
   VStack,
   Heading,
   Text,
@@ -38,22 +38,21 @@ export default function Login({ authProviders, children }: { authProviders: stri
 
   // Store invite code in localStorage when it's found in URL, so it persists through Keycloak redirects
   useEffect(() => {
-    if (inviteCode) {
+    if (inviteCode && !usedInviteCode) {
       localStorage.setItem('pendingInviteCode', inviteCode);
-      console.log('Stored invite code for later use:', inviteCode);
     }
+    
+    // Mark that we've used the invite code when coming back from Keycloak
+    if (usedInviteCode) {
+      localStorage.setItem('usedInviteCode', 'true');
+    }
+    
+    // Clean up if neither parameter is present
     if (!usedInviteCode && !inviteCode) {
-      clearStoredInviteCode();
+      localStorage.removeItem('pendingInviteCode');
+      localStorage.removeItem('usedInviteCode');
     }
   }, [inviteCode, usedInviteCode]);
-
-  // Retrieve stored invite code (for use after Keycloak redirects)
-  const getStoredInviteCode = () => {
-    return usedInviteCode ? localStorage.getItem('pendingInviteCode') : null;
-  };
-  const getStoredUsedInviteCode = () => {
-    return localStorage.getItem('usedInviteCode');
-  };
 
   // Clear stored invite code after successful authentication
   const clearStoredInviteCode = () => {
@@ -71,6 +70,16 @@ export default function Login({ authProviders, children }: { authProviders: stri
     const cleanPath = currentUrl.pathname + (currentUrl.search ?? '');
     navigate(cleanPath.endsWith('?') ? cleanPath.slice(0, -1) : cleanPath, { replace: true });
   };
+
+  // Retrieve stored invite code (for use after Keycloak redirects)
+  const getStoredInviteCode = () => {
+    // Only return stored invite code if we have usedInviteCode parameter in URL
+    // or if we have it marked in localStorage
+    const hasUsedInviteCode = usedInviteCode || localStorage.getItem('usedInviteCode');
+    return hasUsedInviteCode ? localStorage.getItem('pendingInviteCode') : null;
+  };
+
+
 
   const isAuthProviderAvailable = (provider: string) => {
     const auth_providers: string[] = authProviders.split(',');
@@ -107,11 +116,11 @@ export default function Login({ authProviders, children }: { authProviders: stri
     setIsValidToken(true);
     stateActions.setUser(res.user);
     stateActions.setIsLogin(true);
-    
+
     if (!isLocalToken && authProvider === AUTH_PROVIDER.GOOGLE) {
       setGoogleToken(token);
     }
-    
+
     handleLoginSuccess(res.user);
     clearStoredInviteCode();
   };
@@ -121,10 +130,10 @@ export default function Login({ authProviders, children }: { authProviders: stri
       console.error("No token found.");
       return;
     }
-    
+
     stateActions.addLoading();
     setAuthenticating(true);
-    
+
     try {
       const res = await request(`/api/auth/verifyToken`, {
         method: 'POST',
@@ -134,7 +143,7 @@ export default function Login({ authProviders, children }: { authProviders: stri
           authProvider: authProvider.toUpperCase()
         }
       });
-      
+
       if (res.authorized) {
         handleTokenVerificationSuccess(res, token, authProvider, isLocalToken);
       } else {
@@ -163,9 +172,9 @@ export default function Login({ authProviders, children }: { authProviders: stri
 
   const logoutToken = (authProvider: string) => {
     const isKeycloakProvider = (isAuthProviderAvailable(AUTH_PROVIDER.KEYCLOAK) && authProvider === AUTH_PROVIDER.KEYCLOAK) ||
-                              (isAuthProviderAvailable(AUTH_PROVIDER.KEYCLOAK_SSO) && authProvider === AUTH_PROVIDER.KEYCLOAK_SSO);
+      (isAuthProviderAvailable(AUTH_PROVIDER.KEYCLOAK_SSO) && authProvider === AUTH_PROVIDER.KEYCLOAK_SSO);
     const isGoogleProvider = isAuthProviderAvailable(AUTH_PROVIDER.GOOGLE) && authProvider === AUTH_PROVIDER.GOOGLE;
-    
+
     if (isKeycloakProvider) {
       logoutKeycloak();
     } else if (isGoogleProvider) {
@@ -173,6 +182,9 @@ export default function Login({ authProviders, children }: { authProviders: stri
     }
   };
   const handleAuthFailure = (authProvider: string) => {
+    // Clean up URL parameters on authentication failure
+    clearStoredInviteCode();
+    
     showError({
       description: "Authentication failed",
       onCloseComplete: () => {
@@ -182,18 +194,21 @@ export default function Login({ authProviders, children }: { authProviders: stri
   };
 
   const handleAuthError = (error: any, authProvider: string) => {
-    // Try multiple possible error message paths from Spring Boot ResponseStatusException
-    const errorMessage = error?.response?.data?.message ?? 
-                         error?.response?.data?.error ?? 
-                         error?.message ??
-                         intl.formatMessage({ id: 'text.login_failed' });
+    // Clean up URL parameters on authentication error
+    clearStoredInviteCode();
     
+    // Try multiple possible error message paths from Spring Boot ResponseStatusException
+    const errorMessage = error?.response?.data?.message ??
+      error?.response?.data?.error ??
+      error?.message ??
+      intl.formatMessage({ id: 'text.login_failed' });
+
     console.log('Authentication error details:', {
       status: error?.response?.status,
       data: error?.response?.data,
       message: errorMessage
     });
-    
+
     showError({
       description: errorMessage,
       onCloseComplete: () => {
@@ -212,7 +227,7 @@ export default function Login({ authProviders, children }: { authProviders: stri
   };
 
   const showAuditLogStorageNotConfigured = () => {
-    showError({ 
+    showError({
       description: intl.formatMessage({ id: 'text.audit_log_storage_not_configured' })
     });
     navigate('/admin/settings');
@@ -222,38 +237,38 @@ export default function Login({ authProviders, children }: { authProviders: stri
     if (userHasRole(user, USER_ROLE.ASSET_OWNER) ?? userHasRole(user, USER_ROLE.ADMIN)) {
       // Check for new credentials first
       request('/api/asset_owner/assets/new-credentials', {})
-      .then((res) => {
-        if(res.length > 0) {
-          showError({
-            description: intl.formatMessage({ id: 'text.new_asset_is_assigned' }),
-          });
-          navigate('/asset_owner');
-        } else {
-          // If no new credentials, check for pending approval requests
+        .then((res) => {
+          if (res.length > 0) {
+            showError({
+              description: intl.formatMessage({ id: 'text.new_asset_is_assigned' }),
+            });
+            navigate('/asset_owner');
+          } else {
+            // If no new credentials, check for pending approval requests
+            checkPendingApprovals();
+          }
+        })
+        .catch((e) => {
+          console.log(e);
+          // Even if new credentials check fails, still check for pending approvals
           checkPendingApprovals();
-        }
-      })
-      .catch((e) => {
-        console.log(e);
-        // Even if new credentials check fails, still check for pending approvals
-        checkPendingApprovals();
-      })
+        })
     }
   }
 
   const checkPendingApprovals = () => {
     request('/api/asset_owner/assets/approvals', {})
-    .then((res) => {
-      if(res.length > 0) {
-        showSuccess({
-          description: intl.formatMessage({ id: 'text.pending_approval_requests_found' }),
-        });
-        navigate('/asset_owner');
-      }
-    })
-    .catch((e) => {
-      console.log('Failed to check pending approvals:', e);
-    })
+      .then((res) => {
+        if (res.length > 0) {
+          showSuccess({
+            description: intl.formatMessage({ id: 'text.pending_approval_requests_found' }),
+          });
+          navigate('/asset_owner');
+        }
+      })
+      .catch((e) => {
+        console.log('Failed to check pending approvals:', e);
+      })
   }
 
   const handleAdminLogin = async (user: User) => {
@@ -299,7 +314,7 @@ export default function Login({ authProviders, children }: { authProviders: stri
       await handleDeveloperLogin();
     }
   };
-  
+
   const currentUrl = new URL(window.location.href);
   if (currentUrl.pathname.includes('/auth/reset-password')) {
     return <ResetPassword />
@@ -312,9 +327,9 @@ export default function Login({ authProviders, children }: { authProviders: stri
   const isAuthenticated = isValidToken && (isKeycloakAuthenticated || isGoogleAuthenticated);
 
   const cleanupInviteCodeFromUrl = () => {
-    const hasPendingInviteCode = getStoredInviteCode();
-    const hasUsedInviteCode = getStoredUsedInviteCode();
-    
+    const hasPendingInviteCode = localStorage.getItem('pendingInviteCode');
+    const hasUsedInviteCode = localStorage.getItem('usedInviteCode');
+
     if (!hasPendingInviteCode && !hasUsedInviteCode) {
       const currentUrl = new URL(window.location.href);
       if (currentUrl.searchParams.has('inviteCode')) {
@@ -331,12 +346,12 @@ export default function Login({ authProviders, children }: { authProviders: stri
 
   const renderKeycloakLogin = () => {
     if (!isKeycloakProviderAvailable) return null;
-    
+
     return (
       <KeycloakLogin
         authenticating={authenticating}
-        inviteCode={getStoredInviteCode()}
-        usedInviteCode={getStoredUsedInviteCode()}
+        inviteCode={inviteCode}
+        usedInviteCode={usedInviteCode}
         handleKeycloakLogin={handleKeycloakLogin}
         onInitialized={() => { setKeycloakInitialized(true) }}
         isLoggedOut={keycloakLoggedOut}
@@ -351,7 +366,7 @@ export default function Login({ authProviders, children }: { authProviders: stri
 
   const renderGoogleLogin = () => {
     if (!isGoogleProviderAvailable) return null;
-    
+
     return (
       <Box w="full" display="flex" justifyContent="center">
         <GoogleLogin
@@ -368,7 +383,7 @@ export default function Login({ authProviders, children }: { authProviders: stri
 
   const renderDivider = () => {
     if (!showDivider) return null;
-    
+
     return (
       <HStack w="full" spacing={4}>
         <Divider />
@@ -389,7 +404,7 @@ export default function Login({ authProviders, children }: { authProviders: stri
   return (
     <DamAuthLayout>
       {isLoading && <DamFullLoading showBackground />}
-      
+
       <DamAuthCard>
         <VStack spacing={6}>
           <VStack spacing={2} textAlign="center">

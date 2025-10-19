@@ -45,9 +45,6 @@ export function ChangeRequests() {
   return (
     <DamCard mt={4} flex={1}>
       <DamCardBody>
-        <TextCardHeader mb={0} id="lblAssetSetting">
-          <FormattedMessage id="text.change_requests" />
-        </TextCardHeader>
         <DamCardDivider />
 
         <Table variant="simple" mt={4} id="tblChangeRequests">

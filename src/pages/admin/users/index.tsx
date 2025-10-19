@@ -276,19 +276,6 @@ export function Component() {
       hasErrors = true;
     }
     
-    // Check for duplicate name combination (firstName + lastName)
-    const existingUserWithName = users.find(user => 
-      user.firstName.trim().toLowerCase() === trimmedFirstName.toLowerCase() &&
-      user.lastName.trim().toLowerCase() === trimmedLastName.toLowerCase() &&
-      (!excludeUserId || user.id !== excludeUserId)
-    );
-    
-    if (existingUserWithName) {
-      setFirstNameError(intl.formatMessage({ id: 'text.name_already_exists' }));
-      setLastNameError(intl.formatMessage({ id: 'text.name_already_exists' }));
-      hasErrors = true;
-    }
-    
     return !hasErrors;
   };
 

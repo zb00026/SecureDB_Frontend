@@ -1,4 +1,4 @@
-import { Box, Flex, Input, Select, Grid, GridItem, useColorMode, Alert, AlertIcon, Text, Button, useDisclosure } from "@chakra-ui/react";
+import { Box, Flex, Input, Select, Grid, GridItem, useColorMode, useColorModeValue, Alert, AlertIcon, Text, Button, useDisclosure, Tooltip } from "@chakra-ui/react";
 import { Global, css } from "@emotion/react";
 import { DamBasePage } from "@common/components/DamBasePage";
 import { useRoleBasedAuditTrail } from "@common/hooks/useRoleBasedAuditTrail";
@@ -7,10 +7,11 @@ import { FormattedMessage, useIntl } from "react-intl";
 import { DatePicker } from "antd";
 import dayjs from "dayjs";
 const { RangePicker } = DatePicker;
-import { PrimaryButton, useMyState, useAssetsForAudit } from "@common/index";
+import { PrimaryButton, useMyState, useAssetsForAudit, useDamToast } from "@common/index";
 import { DamTable } from "@common/components/DamTable";
 import { AuditChangesDialog } from "@common/components/DamDialog/AuditChangesDialog";
 import { useState } from "react";
+import { FiDownload } from "react-icons/fi";
 
 export const isSearchable = true;
 export const displayName = 'Audit Trail';
@@ -20,10 +21,17 @@ export function Component() {
   const { colorMode } = useColorMode();
   const { snap } = useMyState();
   const user = snap.session.user;
+  const { showSuccess, showError } = useDamToast();
   
   // State for changes dialog
   const [selectedAuditRecord, setSelectedAuditRecord] = useState<any>(null);
   const { isOpen: isChangesDialogOpen, onOpen: onChangesDialogOpen, onClose: onChangesDialogClose } = useDisclosure();
+  
+  // State for download
+  const [isDownloading, setIsDownloading] = useState(false);
+
+  // Color mode values
+  const descriptionTextColor = useColorModeValue('gray.600', 'gray.300');
 
   const {
     filters,
@@ -32,7 +40,8 @@ export function Component() {
     getList,
     pagination,
     availableFilters,
-    roleBasedMessage
+    roleBasedMessage,
+    downloadAuditLogs
   } = useRoleBasedAuditTrail({ user });
 
   // Fetch assets for the dropdown
@@ -82,11 +91,22 @@ export function Component() {
       title: 'Description',
       dataIndex: 'description',
       key: 'description',
-      render: (text: any, record: any) => (
-        <Text fontSize="sm" color="gray.600" maxW="300px" isTruncated>
-          {getHumanReadableDescription(record)}
-        </Text>
-      ),
+      render: (text: any, record: any) => {
+        const description = getHumanReadableDescription(record);
+        return (
+          <Tooltip label={description} placement="top" hasArrow>
+            <Text 
+              fontSize="sm" 
+              color={descriptionTextColor} 
+              maxW="300px" 
+              isTruncated
+              cursor="help"
+            >
+              {description}
+            </Text>
+          </Tooltip>
+        );
+      },
     },
     {
       title: 'IP Address',
@@ -145,6 +165,25 @@ export function Component() {
       ...filters,
       assetId: assetId === 'all' ? undefined : parseInt(assetId),
     });
+  };
+
+  const handleDownload = async () => {
+    try {
+      setIsDownloading(true);
+      await downloadAuditLogs(filters);
+      showSuccess({
+        title: intl.formatMessage({ id: 'text.download_success' }),
+        description: intl.formatMessage({ id: 'text.audit_logs_downloaded' })
+      });
+    } catch (error) {
+      console.error('Download failed:', error);
+      showError({
+        title: intl.formatMessage({ id: 'text.download_failed' }),
+        description: intl.formatMessage({ id: 'text.audit_logs_download_error' })
+      });
+    } finally {
+      setIsDownloading(false);
+    }
   };
 
   const getDarkModeStyles = (colorMode: string) => {
@@ -319,16 +358,29 @@ export function Component() {
           </Grid>
 
           {/* Buttons Row */}
-          <Flex justify="flex-end" gap={4} mt={4}>
-            <PrimaryButton 
-              variant="outline" 
-              onClick={handleReset}
+          <Flex justify="space-between" gap={4} mt={4}>
+            <Button
+              leftIcon={<FiDownload />}
+              colorScheme="green"
+              variant="outline"
+              onClick={handleDownload}
+              isLoading={isDownloading}
+              loadingText={intl.formatMessage({ id: 'text.downloading' })}
             >
-              <FormattedMessage id="text.reset" />
-            </PrimaryButton>
-            <PrimaryButton onClick={handleSearch} id="btnSearchAuditTrail">
-              <FormattedMessage id="text.search" />
-            </PrimaryButton>
+              <FormattedMessage id="text.download_audit_logs" />
+            </Button>
+            
+            <Flex gap={4}>
+              <PrimaryButton 
+                variant="outline" 
+                onClick={handleReset}
+              >
+                <FormattedMessage id="text.reset" />
+              </PrimaryButton>
+              <PrimaryButton onClick={handleSearch} id="btnSearchAuditTrail">
+                <FormattedMessage id="text.search" />
+              </PrimaryButton>
+            </Flex>
           </Flex>
         </Box>
 
