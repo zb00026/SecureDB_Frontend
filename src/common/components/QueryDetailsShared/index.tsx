@@ -1,4 +1,4 @@
-import { Flex, Text, Table, Thead, Tbody, Tr, Th, Td, Box, VStack, Textarea } from "@chakra-ui/react";
+import { Flex, Text, Table, Thead, Tbody, Tr, Th, Td, Box, VStack, Textarea, useColorModeValue } from "@chakra-ui/react";
 import { DamBasePage } from "@common/components/DamBasePage";
 import { DamCardDivider } from "@common/index";
 import { Asset } from "@models/assets/Asset";
@@ -44,6 +44,12 @@ export function QueryDetailsShared({
   actionButtons,
   historySection
 }: QueryDetailsSharedProps) {
+  
+  // Color mode values for better contrast
+  const tableBg = useColorModeValue('white', 'gray.800');
+  const tableHoverBg = useColorModeValue('blue.50', 'whiteAlpha.200');
+  const tableBorderColor = useColorModeValue('gray.200', 'gray.600');
+  const queryBoxBg = useColorModeValue('gray.50', 'gray.700');
 
   return (
     <DamBasePage title={title}>
@@ -123,7 +129,7 @@ export function QueryDetailsShared({
             <VStack spacing={6} align="stretch">
               {queryResults.results.map((result, resultIndex) => (
                 <Box key={`result-${result.query}-${result.data.length}`}>
-                  <Box mb={3} p={3} borderRadius="md" bg="gray.90">
+                  <Box mb={3} p={3} borderRadius="md" bg={queryBoxBg}>
                     <Text fontSize="sm" fontWeight="bold" mb={1}>
                       Query {resultIndex + 1}:
                     </Text>
@@ -134,7 +140,7 @@ export function QueryDetailsShared({
                       {result.data.length} rows returned
                     </Text>
                   </Box>
-                  <Box overflowX="auto" border="1px solid" borderColor="gray.200" borderRadius="md">
+                  <Box overflowX="auto" border="1px solid" borderColor={tableBorderColor} borderRadius="md" bg={tableBg}>
                     <Table variant="simple" size="sm">
                       <Thead>
                         <Tr>
@@ -147,7 +153,7 @@ export function QueryDetailsShared({
                       </Thead>
                       <Tbody>
                         {result.data.map((row) => (
-                          <Tr key={`row-${result.query}-${JSON.stringify(row).substring(0, 100)}`} _hover={{ bg: "gray.50" }}>
+                          <Tr key={`row-${result.query}-${JSON.stringify(row).substring(0, 100)}`} _hover={{ bg: tableHoverBg }}>
                             {result.headers.map((header) => (
                               <Td key={`cell-${result.query}-${JSON.stringify(row).substring(0, 50)}-${header}`} fontSize="sm">
                                 {row[header] !== null ? String(row[header]) : 'NULL'}

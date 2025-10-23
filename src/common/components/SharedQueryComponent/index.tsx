@@ -25,6 +25,7 @@ interface QueryHistory {
   timestamp: string;
   resultCount?: number;
   results?: QueryResponse;
+  accessRequestId?: string;
 }
 
 interface SharedQueryComponentProps {
@@ -95,17 +96,22 @@ export const SharedQueryComponent: React.FC<SharedQueryComponentProps> = ({
   const [changeDescription, setChangeDescription] = useState('');
   const [isChangeRequest, setIsChangeRequest] = useState(false);
 
-  // Load query history from localStorage on component mount
+  // Load query history from localStorage on component mount, filtered by accessRequestId
   useEffect(() => {
     const savedHistory = localStorage.getItem(QUERY_HISTORY_KEY);
     if (savedHistory) {
       try {
-        setQueryHistory(JSON.parse(savedHistory));
+        const allHistory = JSON.parse(savedHistory);
+        // Filter history by accessRequestId if it exists
+        const filteredHistory = accessRequestId 
+          ? allHistory.filter((item: QueryHistory) => item.accessRequestId === accessRequestId)
+          : allHistory;
+        setQueryHistory(filteredHistory);
       } catch (error) {
         console.error('Failed to parse query history:', error);
       }
     }
-  }, []);
+  }, [accessRequestId]);
 
   // Save query to history
   const saveQueryToHistory = (query: string, results?: QueryResponse) => {
@@ -114,12 +120,34 @@ export const SharedQueryComponent: React.FC<SharedQueryComponentProps> = ({
       query: query.trim(),
       timestamp: new Date().toISOString(),
       resultCount: results?.results?.reduce((total, result) => total + result.data.length, 0),
-      results
+      results,
+      accessRequestId
     };
 
-    const updatedHistory = [newQuery, ...queryHistory.filter(h => h.query !== query.trim())].slice(0, 20); // Keep last 20 queries
+    // Get all history from localStorage and filter by accessRequestId
+    const savedHistory = localStorage.getItem(QUERY_HISTORY_KEY);
+    let allHistory: QueryHistory[] = [];
+    if (savedHistory) {
+      try {
+        allHistory = JSON.parse(savedHistory);
+      } catch (error) {
+        console.error('Failed to parse query history:', error);
+      }
+    }
+
+    // Filter existing history by accessRequestId and add new query
+    const filteredHistory = accessRequestId 
+      ? allHistory.filter((item: QueryHistory) => item.accessRequestId === accessRequestId)
+      : allHistory;
+    
+    const updatedHistory = [newQuery, ...filteredHistory.filter(h => h.query !== query.trim())].slice(0, 20);
+    
+    // Update the filtered history for display
     setQueryHistory(updatedHistory);
-    localStorage.setItem(QUERY_HISTORY_KEY, JSON.stringify(updatedHistory));
+    
+    // Save back to localStorage with all history (including other accessRequestIds)
+    const updatedAllHistory = [newQuery, ...allHistory.filter(h => h.query !== query.trim())].slice(0, 20);
+    localStorage.setItem(QUERY_HISTORY_KEY, JSON.stringify(updatedAllHistory));
   };
 
   // Load query and results from history

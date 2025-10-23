@@ -1,4 +1,4 @@
-import { Box, Flex, Input, Select, Grid, GridItem, useColorMode, useColorModeValue, Alert, AlertIcon, Text, Button, useDisclosure, Tooltip } from "@chakra-ui/react";
+import { Box, Flex, Input, Select, Grid, GridItem, useColorMode, useColorModeValue, Alert, AlertIcon, Text, Button, useDisclosure, Tooltip, Tabs, TabList, TabPanels, Tab, TabPanel } from "@chakra-ui/react";
 import { Global, css } from "@emotion/react";
 import { DamBasePage } from "@common/components/DamBasePage";
 import { useRoleBasedAuditTrail } from "@common/hooks/useRoleBasedAuditTrail";
@@ -12,6 +12,7 @@ import { DamTable } from "@common/components/DamTable";
 import { AuditChangesDialog } from "@common/components/DamDialog/AuditChangesDialog";
 import { useState } from "react";
 import { FiDownload } from "react-icons/fi";
+import { AuditStatsCharts } from "./components/AuditStatsCharts";
 
 export const isSearchable = true;
 export const displayName = 'Audit Trail';
@@ -22,13 +23,15 @@ export function Component() {
   const { snap } = useMyState();
   const user = snap.session.user;
   const { showSuccess, showError } = useDamToast();
-  
   // State for changes dialog
   const [selectedAuditRecord, setSelectedAuditRecord] = useState<any>(null);
   const { isOpen: isChangesDialogOpen, onOpen: onChangesDialogOpen, onClose: onChangesDialogClose } = useDisclosure();
   
   // State for download
   const [isDownloading, setIsDownloading] = useState(false);
+
+  // State for tabs
+  const [activeTab, setActiveTab] = useState<'logs' | 'stats'>('logs');
 
   // Color mode values
   const descriptionTextColor = useColorModeValue('gray.600', 'gray.300');
@@ -54,20 +57,20 @@ export function Component() {
 
   const getHumanReadableDescription = (record: any) => {
     const { action, previousValue, newValue, user } = record;
-    
+
     if (!previousValue && !newValue) {
-      return `User ${user} performed ${action}`;
+      return `Performed ${action}`;
     }
 
     if (!previousValue) {
-      return `User ${user} created new record with action ${action}`;
+      return `Created new record with action ${action}`;
     }
 
     if (!newValue) {
-      return `User ${user} deleted record with action ${action}`;
+      return `Deleted record with action ${action}`;
     }
 
-    return `User ${user} updated record with action ${action}`;
+    return `Updated record with action ${action}`;
   };
 
   const columns = [
@@ -91,18 +94,17 @@ export function Component() {
       title: 'Description',
       dataIndex: 'description',
       key: 'description',
-      render: (text: any, record: any) => {
-        const description = getHumanReadableDescription(record);
+      render: (text: any) => {
         return (
-          <Tooltip label={description} placement="top" hasArrow>
-            <Text 
-              fontSize="sm" 
-              color={descriptionTextColor} 
-              maxW="300px" 
+          <Tooltip label={text} placement="top" hasArrow>
+            <Text
+              fontSize="sm"
+              color={descriptionTextColor}
+              maxW="300px"
               isTruncated
               cursor="help"
             >
-              {description}
+              {text}
             </Text>
           </Tooltip>
         );
@@ -203,9 +205,9 @@ export function Component() {
         hover: '#EDF2F7'
       }
     };
-  
+
     const mode = colorMode === 'dark' ? colors.dark : colors.light;
-  
+
     return css`
       .dark-theme-picker.ant-picker {
         background-color: ${mode.bg};
@@ -249,7 +251,7 @@ export function Component() {
       }
     `;
   };
-  
+
 
   return (
     <DamBasePage
@@ -261,7 +263,7 @@ export function Component() {
           <AlertIcon />
           <Text fontSize="sm" mb={0}>{roleBasedMessage}</Text>
         </Alert>
-        
+
         {/* Asset loading error */}
         {assetsError && (
           <Alert status="error" mb={4}>
@@ -269,129 +271,161 @@ export function Component() {
             <Text fontSize="sm" mb={0}>{assetsError}</Text>
           </Alert>
         )}
-        <Box 
-          p={4} 
-          borderRadius="md" 
-          shadow="sm"
-          mb={6}
-        >
-          <Grid
-            templateColumns="repeat(3, 1fr)"
-            gap={4}
-            mb={4}
-          >
-            {/* Date Range Row */}
-            <GridItem>
-              <Flex gap={4}>
-              <RangePicker
-                  size="large"
-                  placeholder={[
-                    intl.formatMessage({ id: "text.from" }),
-                    intl.formatMessage({ id: "text.to" }),
-                  ]}
-                  style={{ width: "100%" }}
-                  value={filters.startDate ? [dayjs(filters.startDate), dayjs(filters.endDate)] : null}
-                  onChange={(dates) => {
-                    setFilters({
-                      ...filters,
-                      startDate: dates?.[0]?.format('YYYY-MM-DD') ?? '',
-                      endDate: dates?.[1]?.format('YYYY-MM-DD') ?? ''
-                    });
-                  }}
-                  className={colorMode === 'dark' ? 'dark-theme-picker' : ''}
-                />
-              </Flex>
-            </GridItem>
 
-            {/* Asset Dropdown - only show if user can filter by asset */}
-            {availableFilters.canFilterByAsset && (
-              <GridItem>
-                <Select
-                  value={filters.assetId?.toString() || 'all'}
-                  onChange={(e) => handleAssetChange(e.target.value)}
-                  isDisabled={assetsLoading}
+        {/* Tabs */}
+        <Tabs index={activeTab === 'logs' ? 0 : 1} onChange={(index) => setActiveTab(index === 0 ? 'logs' : 'stats')} mb={6}>
+          <TabList>
+            <Tab>
+              <FormattedMessage id="text.audit_logs" />
+            </Tab>
+            <Tab>
+              <FormattedMessage id="text.audit_stats" />
+            </Tab>
+          </TabList>
+
+          <TabPanels>
+            {/* Audit Logs Tab */}
+            <TabPanel px={0}>
+              <Box
+                p={4}
+                borderRadius="md"
+                shadow="sm"
+                mb={6}
+              >
+                <Grid
+                  templateColumns="repeat(3, 1fr)"
+                  gap={4}
+                  mb={4}
                 >
-                  <option value="all">All Assets</option>
-                  {assets
-                    .map(asset => (
-                      <option key={asset.id} value={asset.id?.toString()}>
-                        {asset.name}
-                      </option>
-                    ))}
-                </Select>
-              </GridItem>
-            )}
+                  {/* Date Range Row */}
+                  <GridItem>
+                    <Flex gap={4}>
+                      <RangePicker
+                        size="large"
+                        placeholder={[
+                          intl.formatMessage({ id: "text.from" }),
+                          intl.formatMessage({ id: "text.to" }),
+                        ]}
+                        style={{ width: "100%" }}
+                        value={filters.startDate ? [dayjs(filters.startDate), dayjs(filters.endDate)] : null}
+                        onChange={(dates) => {
+                          setFilters({
+                            ...filters,
+                            startDate: dates?.[0]?.format('YYYY-MM-DD') ?? '',
+                            endDate: dates?.[1]?.format('YYYY-MM-DD') ?? ''
+                          });
+                        }}
+                        className={colorMode === 'dark' ? 'dark-theme-picker' : ''}
+                      />
+                    </Flex>
+                  </GridItem>
 
-            {/* Action Dropdown */}
-            <GridItem>
-              <Select
-                placeholder="Select Action"
-                value={filters.action}
-                onChange={(e) => setFilters({ ...filters, action: e.target.value })}
-              >
-                {availableFilters.availableActions.map((action: string) => (
-                  <option key={action} value={action}>{action}</option>
-                ))}
-              </Select>
-            </GridItem>
+                  {/* Asset Dropdown - only show if user can filter by asset */}
+                  {availableFilters.canFilterByAsset && (
+                    <GridItem>
+                      <Select
+                        value={filters.assetId?.toString() || 'all'}
+                        onChange={(e) => handleAssetChange(e.target.value)}
+                        isDisabled={assetsLoading}
+                      >
+                        <option value="all">All Assets</option>
+                        {assets.map(asset => (
+                          <option key={asset.id} value={asset.id?.toString()}>
+                            {asset.name}
+                          </option>
+                        ))}
+                      </Select>
+                    </GridItem>
+                  )}
 
-            {/* User Input - only show if user can view all users */}
-            {availableFilters.canViewAllUsers && (
-              <GridItem>
-                <Input
-                  placeholder="User"
-                  value={filters.user}
-                  onChange={(e) => setFilters({ ...filters, user: e.target.value })}
-                />
-              </GridItem>
-            )}
+                  {/* Action Dropdown */}
+                  <GridItem>
+                    <Select
+                      placeholder="Select Action"
+                      value={filters.action}
+                      onChange={(e) => setFilters({ ...filters, action: e.target.value })}
+                    >
+                      {availableFilters.availableActions.map((action: string) => (
+                        <option key={action} value={action}>{action}</option>
+                      ))}
+                    </Select>
+                  </GridItem>
 
-            {/* IP Address */}
-            <GridItem>
-              <Input
-                placeholder="IP Address"
-                value={filters.ipAddress}
-                onChange={(e) => setFilters({ ...filters, ipAddress: e.target.value })}
+                  {/* User Input - only show if user can view all users */}
+                  {availableFilters.canViewAllUsers && (
+                    <GridItem>
+                      <Input
+                        placeholder="User"
+                        value={filters.user}
+                        onChange={(e) => setFilters({ ...filters, user: e.target.value })}
+                      />
+                    </GridItem>
+                  )}
+
+                  {/* IP Address */}
+                  <GridItem>
+                    <Input
+                      placeholder="IP Address"
+                      value={filters.ipAddress}
+                      onChange={(e) => setFilters({ ...filters, ipAddress: e.target.value })}
+                    />
+                  </GridItem>
+
+                </Grid>
+
+                {/* Buttons Row */}
+                <Flex justify="space-between" gap={4} mt={4}>
+                  <Button
+                    leftIcon={<FiDownload />}
+                    colorScheme="green"
+                    variant="outline"
+                    onClick={handleDownload}
+                    isLoading={isDownloading}
+                    loadingText={intl.formatMessage({ id: 'text.downloading' })}
+                  >
+                    <FormattedMessage id="text.download_audit_logs" />
+                  </Button>
+
+                  <Flex gap={4}>
+                    <PrimaryButton
+                      variant="outline"
+                      onClick={handleReset}
+                    >
+                      <FormattedMessage id="text.reset" />
+                    </PrimaryButton>
+                    <PrimaryButton onClick={handleSearch} id="btnSearchAuditTrail">
+                      <FormattedMessage id="text.search" />
+                    </PrimaryButton>
+                  </Flex>
+                </Flex>
+              </Box>
+
+              <DamTable
+                id="tableAuditTrail"
+                columns={columns}
+                dataSource={(Array.isArray(getData) ? getData : getData?.content) || []}
+                pagination={pagination}
+                rowKey="id"
               />
-            </GridItem>
+            </TabPanel>
 
-          </Grid>
+            {/* Audit Stats Tab */}
+            <TabPanel px={0}>
+              <AuditStatsCharts
+                filters={filters}
+                user={user}
+                availableFilters={availableFilters}
+                assets={assets}
+                assetsLoading={assetsLoading}
+                onAssetChange={handleAssetChange}
+                onFiltersChange={setFilters}
+                intl={intl}
+                colorMode={colorMode}
+              />
+            </TabPanel>
+          </TabPanels>
+        </Tabs>
 
-          {/* Buttons Row */}
-          <Flex justify="space-between" gap={4} mt={4}>
-            <Button
-              leftIcon={<FiDownload />}
-              colorScheme="green"
-              variant="outline"
-              onClick={handleDownload}
-              isLoading={isDownloading}
-              loadingText={intl.formatMessage({ id: 'text.downloading' })}
-            >
-              <FormattedMessage id="text.download_audit_logs" />
-            </Button>
-            
-            <Flex gap={4}>
-              <PrimaryButton 
-                variant="outline" 
-                onClick={handleReset}
-              >
-                <FormattedMessage id="text.reset" />
-              </PrimaryButton>
-              <PrimaryButton onClick={handleSearch} id="btnSearchAuditTrail">
-                <FormattedMessage id="text.search" />
-              </PrimaryButton>
-            </Flex>
-          </Flex>
-        </Box>
-
-        <DamTable
-          id="tableAuditTrail"
-          columns={columns}
-          dataSource={(Array.isArray(getData) ? getData : getData?.content) || []}
-          pagination={pagination}
-          rowKey="id"
-        />
-        
         {/* Changes Dialog */}
         {selectedAuditRecord && (
           <AuditChangesDialog

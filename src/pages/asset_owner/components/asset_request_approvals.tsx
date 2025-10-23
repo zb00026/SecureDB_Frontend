@@ -18,9 +18,9 @@ import { DamCard, DamCardBody, DamCardDivider, DamRejectDialog, request, TextCar
 import { useState, useEffect } from "react";
 import { AccessRequest } from "@models/assets/AccessRequest";
 import { format } from 'date-fns';
-import { Link } from "react-router-dom";
 import { useApiRequest } from "@common/hooks/useApiRequest";
 import { UnixAccessApprovalDialog } from "@common/components/DamDialog/UnixAccessApprovalDialog";
+import { useNavigate } from "react-router";
 
 const getStatusColor = (status: string): string => {
   switch (status) {
@@ -36,6 +36,7 @@ const getStatusColor = (status: string): string => {
 };
 
 export function AssetRequestApprovals() {
+  const navigate = useNavigate();
   const [assetRequestApprovals, setAssetRequestApprovals] = useState<AccessRequest[]>([]);
   const { showSuccess, showError } = useDamToast();
   const intl = useIntl();
@@ -55,6 +56,8 @@ export function AssetRequestApprovals() {
       .then((res) => {
         if (res.length > 0) {
           setAssetRequestApprovals(res);
+        } else {
+          setAssetRequestApprovals([]);
         }
       })
       .catch((e) => {
@@ -91,11 +94,11 @@ export function AssetRequestApprovals() {
     setSelectedRequest(request);
     
     // Check if it's a Unix access request
-    if (request.assetDTO.type === 'UNIX_SERVER' && request.requestedUsername) {
+    if (request.assetApprovalsDTO.type === 'UNIX_SERVER' && request.requestedUsername) {
       setIsUnixApprovalDialogOpen(true);
     } else {
       // For database requests, redirect to approval page
-      globalThis.location.href = `/asset_owner/access_request_details?accessRequestId=${request.id}&assetId=${request.assetDTO.id}`;
+      navigate(`/asset_owner/access_request_details?accessRequestId=${request.id}&assetId=${request.assetApprovalsDTO.id}`);
     }
   };
 
@@ -137,20 +140,20 @@ export function AssetRequestApprovals() {
                 <Tr key={request.id} backgroundColor={request.id === selectedRequest?.id ? selectedRowBg : 'transparent'}>
                   <Td>
                     <VStack align="start" spacing={0}>
-                      <Text fontWeight="medium">{request.assetDTO.name}</Text>
-                      {request.assetDTO.type === 'UNIX_SERVER' && request.assetDTO.hostAddress && (
+                      <Text fontWeight="medium">{request.assetApprovalsDTO.name}</Text>
+                      {request.assetApprovalsDTO.type === 'UNIX_SERVER' && request.assetApprovalsDTO.hostAddress && (
                         <Text fontSize="sm" color={gray600}>
-                          {request.assetDTO.hostAddress}
+                          {request.assetApprovalsDTO.hostAddress}
                         </Text>
                       )}
                     </VStack>
                   </Td>
                   <Td>
-                    <Badge colorScheme={request.assetDTO.type === 'UNIX_SERVER' ? 'purple' : 'blue'}>
-                      {request.assetDTO.type === 'UNIX_SERVER' ? 'Unix Server' : 'Database'}
+                    <Badge colorScheme={request.assetApprovalsDTO.type === 'UNIX_SERVER' ? 'purple' : 'blue'}>
+                      {request.assetApprovalsDTO.type === 'UNIX_SERVER' ? 'Unix Server' : 'Database'}
                     </Badge>
                   </Td>
-                  <Td>{request.assetDTO.description}</Td>
+                  <Td>{request.assetApprovalsDTO.description}</Td>
                   <Td>{`${request.requestor.firstName} ${request.requestor.lastName}`}</Td>
                   <Td>{request.requestor.email}</Td>
                   <Td>{formatDate(request.requestTime)}</Td>

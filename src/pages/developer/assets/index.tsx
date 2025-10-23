@@ -143,6 +143,10 @@ export function Component() {
         onSubmit={handleUpdatePassword}
         showPasswordWarning={true}
         isTemporaryPassword={true}
+        usernamePlaceholder="Enter DB Username"
+        passwordPlaceholder="Enter DB Password"
+        confirmPasswordPlaceholder="Re-enter DB Password"
+        assetName={selectedAsset?.name}
       />
       <DamAlertDialog
         isOpen={isRelinquishDialogOpen}

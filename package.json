@@ -41,6 +41,7 @@
     "react-router-dom": "^6.10.0",
     "react-syntax-highlighter": "^15.6.1",
     "react-use": "^17.6.0",
+    "recharts": "^3.3.0",
     "rollup-plugin-visualizer": "^5.14.0",
     "valtio": "^2.1.2",
     "wagmi": "^2.14.7"

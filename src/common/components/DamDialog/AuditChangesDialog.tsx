@@ -39,7 +39,7 @@ export function AuditChangesDialog({
   const bgColor = useColorModeValue('white', 'gray.800');
   const textColor = useColorModeValue('gray.800', 'white');
   const borderColor = useColorModeValue('gray.200', 'gray.600');
-  
+
   // Color values for status indicators
   const noChangesColor = useColorModeValue('orange.600', 'orange.400');
   const changesFoundColor = useColorModeValue('green.600', 'green.400');
@@ -137,13 +137,38 @@ export function AuditChangesDialog({
     }
     .diff-viewer table {
       width: 100% !important;
-      min-width: 100% !important;
+      table-layout: fixed !important;
     }
     .diff-viewer tbody {
       width: 100% !important;
     }
     .diff-viewer tbody tr {
       width: 100% !important;
+    }
+    .diff-viewer tbody td {
+      width: 50% !important;
+      max-width: 50% !important;
+      word-wrap: break-word !important;
+      white-space: pre-wrap !important;
+      overflow-wrap: anywhere !important;
+    }
+    .diff-viewer tbody td:nth-child(1),
+    .diff-viewer tbody td:nth-child(2) {
+      width: 3% !important;
+      max-width: 3% !important;
+    }
+    .diff-viewer tbody td:nth-child(3) {
+      width: 47% !important;
+      max-width: 47% !important;
+    }
+    .diff-viewer tbody td:nth-child(4),
+    .diff-viewer tbody td:nth-child(5) {
+      width: 3% !important;
+      max-width: 3% !important;
+    }
+    .diff-viewer tbody td:nth-child(6) {
+      width: 47% !important;
+      max-width: 47% !important;
     }
   `;
 
@@ -153,134 +178,134 @@ export function AuditChangesDialog({
       <Modal isOpen={isOpen} onClose={onClose} size="6xl" closeOnOverlayClick={false}>
         <ModalOverlay bg="blackAlpha.600" />
         <ModalContent bg={bgColor} maxH="90vh" minH="600px" borderRadius="lg" shadow="2xl">
-        <ModalHeader color={textColor} borderBottom="1px solid" borderColor={useColorModeValue('gray.200', 'gray.600')} bg={useColorModeValue('gray.50', 'gray.800')}>
-          <VStack align="start" spacing={2}>
-            <Text fontSize="lg" fontWeight="bold" color={useColorModeValue('gray.800', 'white')}>
-              <FormattedMessage id="text.audit_changes" />
-            </Text>
-            <Text fontSize="sm" color={useColorModeValue('gray.600', 'gray.300')}>
-              {getHumanReadableDescription()}
-            </Text>
-          </VStack>
-        </ModalHeader>
-        
-        <Divider />
-        
-        <ModalBody overflowY="auto" p={0} maxH="70vh">
-          <Box p={4} height="100%" overflow="hidden">
-            {/* Debug info with professional styling */}
-            <Box mb={4} p={3} bg={useColorModeValue('gray.50', 'gray.700')} borderRadius="md" border="1px solid" borderColor={useColorModeValue('gray.200', 'gray.600')}>
-              <Text fontSize="sm" fontWeight="semibold" color={useColorModeValue('gray.700', 'gray.200')} mb={2}>
-                Change Details:
+          <ModalHeader color={textColor} borderBottom="1px solid" borderColor={useColorModeValue('gray.200', 'gray.600')} bg={useColorModeValue('gray.50', 'gray.800')}>
+            <VStack align="start" spacing={2}>
+              <Text fontSize="lg" fontWeight="bold" color={useColorModeValue('gray.800', 'white')}>
+                <FormattedMessage id="text.audit_changes" />
               </Text>
-              <VStack align="start" spacing={1}>
-                <Text fontSize="xs" color={useColorModeValue('gray.600', 'gray.300')}>
-                  <Text as="span" fontWeight="medium">Previous:</Text> {oldValue.substring(0, 50)}{oldValue.length > 50 ? '...' : ''}
+              <Text fontSize="sm" color={useColorModeValue('gray.600', 'gray.300')}>
+                {getHumanReadableDescription()}
+              </Text>
+            </VStack>
+          </ModalHeader>
+
+          <Divider />
+
+          <ModalBody overflowY="auto" p={0} maxH="70vh">
+            <Box p={4} height="100%" overflow="hidden">
+              {/* Debug info with professional styling */}
+              <Box mb={4} p={3} bg={useColorModeValue('gray.50', 'gray.700')} borderRadius="md" border="1px solid" borderColor={useColorModeValue('gray.200', 'gray.600')}>
+                <Text fontSize="sm" fontWeight="semibold" color={useColorModeValue('gray.700', 'gray.200')} mb={2}>
+                  Change Details:
                 </Text>
-                <Text fontSize="xs" color={useColorModeValue('gray.600', 'gray.300')}>
-                  <Text as="span" fontWeight="medium">Current:</Text> {newValueFormatted.substring(0, 50)}{newValueFormatted.length > 50 ? '...' : ''}
-                </Text>
-                <Text fontSize="xs" color={oldValue === newValueFormatted ? noChangesColor : changesFoundColor}>
-                  <Text as="span" fontWeight="medium">Status:</Text> {oldValue === newValueFormatted ? 'No changes detected' : 'Changes found'}
-                </Text>
-              </VStack>
+                <VStack align="start" spacing={1}>
+                  <Text fontSize="xs" color={useColorModeValue('gray.600', 'gray.300')}>
+                    <Text as="span" fontWeight="medium">Previous:</Text> {oldValue.substring(0, 50)}{oldValue.length > 50 ? '...' : ''}
+                  </Text>
+                  <Text fontSize="xs" color={useColorModeValue('gray.600', 'gray.300')}>
+                    <Text as="span" fontWeight="medium">Current:</Text> {newValueFormatted.substring(0, 50)}{newValueFormatted.length > 50 ? '...' : ''}
+                  </Text>
+                  <Text fontSize="xs" color={oldValue === newValueFormatted ? noChangesColor : changesFoundColor}>
+                    <Text as="span" fontWeight="medium">Status:</Text> {oldValue === newValueFormatted ? 'No changes detected' : 'Changes found'}
+                  </Text>
+                </VStack>
+              </Box>
+
+              {/* Always show diff viewer for debugging */}
+              <Box className="diff-viewer" height="100%" overflow="hidden" width='100%'>
+                <ReactDiffViewer
+                  oldValue={oldValue || ''}
+                  newValue={newValueFormatted || ''}
+                  splitView={true}
+                  showDiffOnly={false}
+                  useDarkTheme={useColorModeValue(false, true)}
+                  leftTitle="Previous Value"
+                  rightTitle="New Value"
+                  hideLineNumbers={false}
+                  styles={{
+                    diffContainer: {
+                      fontSize: '14px',
+                      fontFamily: 'monospace',
+                      height: '100%',
+                      display: 'flex',
+                      flexDirection: 'row',
+                      width: '100%',
+                      minWidth: '100%',
+                      overflow: 'auto',
+                    },
+                    diffRemoved: {
+                      backgroundColor: useColorModeValue('#fef2f2', '#2d1b1b'),
+                      color: useColorModeValue('#dc2626', '#fca5a5'),
+                      borderLeft: `3px solid ${useColorModeValue('#dc2626', '#fca5a5')}`,
+                    },
+                    diffAdded: {
+                      backgroundColor: useColorModeValue('#f0fdf4', '#1a2e1a'),
+                      color: useColorModeValue('#16a34a', '#86efac'),
+                      borderLeft: `3px solid ${useColorModeValue('#16a34a', '#86efac')}`,
+                    },
+                    marker: {
+                      fontSize: '12px',
+                      fontWeight: 'bold',
+                    },
+                    content: {
+                      fontSize: '14px',
+                      fontFamily: 'monospace',
+                      width: 'inherit',
+                    },
+                    line: {
+                      fontSize: '14px',
+                      fontFamily: 'monospace',
+                    },
+                    wordDiff: {
+                      fontSize: '14px',
+                    },
+                    wordAdded: {
+                      backgroundColor: useColorModeValue('#dcfce7', '#1a2e1a'),
+                      color: useColorModeValue('#16a34a', '#86efac'),
+                      fontWeight: '500',
+                    },
+                    wordRemoved: {
+                      backgroundColor: useColorModeValue('#fef2f2', '#2d1b1b'),
+                      color: useColorModeValue('#dc2626', '#fca5a5'),
+                      fontWeight: '500',
+                    },
+                    gutter: {
+                      backgroundColor: useColorModeValue('#f8fafc', '#1a202c'),
+                      color: useColorModeValue('#64748b', '#94a3b8'),
+                      borderRight: `1px solid ${useColorModeValue('#e2e8f0', '#4a5568')}`,
+                    },
+                    lineNumber: {
+                      color: useColorModeValue('#64748b', '#94a3b8'),
+                      fontSize: '12px',
+                    },
+                    splitView: {
+                      flexDirection: 'row',
+                      display: 'flex',
+                      width: '100%',
+                      height: '100%',
+                      overflow: 'auto',
+                    },
+                    codeFold: {
+                      backgroundColor: useColorModeValue('#f8fafc', '#1a202c'),
+                      color: useColorModeValue('#64748b', '#94a3b8'),
+                    },
+                    codeFoldGutter: {
+                      backgroundColor: useColorModeValue('#f8fafc', '#1a202c'),
+                      color: useColorModeValue('#64748b', '#94a3b8'),
+                    },
+                  }}
+                />
+              </Box>
             </Box>
-            
-            {/* Always show diff viewer for debugging */}
-            <Box className="diff-viewer" height="100%" overflow="hidden" width='100%'>
-              <ReactDiffViewer
-                oldValue={oldValue || ''}
-                newValue={newValueFormatted || ''}
-                splitView={true}
-                showDiffOnly={false}
-                useDarkTheme={useColorModeValue(false, true)}
-                leftTitle="Previous Value"
-                rightTitle="New Value"
-                hideLineNumbers={false}
-                styles={{
-                  diffContainer: {
-                    fontSize: '14px',
-                    fontFamily: 'monospace',
-                    height: '100%',
-                    display: 'flex',
-                    flexDirection: 'row',
-                    width: '100%',
-                    minWidth: '100%',
-                    overflow: 'auto',
-                  },
-                  diffRemoved: {
-                    backgroundColor: useColorModeValue('#fef2f2', '#2d1b1b'),
-                    color: useColorModeValue('#dc2626', '#fca5a5'),
-                    borderLeft: `3px solid ${useColorModeValue('#dc2626', '#fca5a5')}`,
-                  },
-                  diffAdded: {
-                    backgroundColor: useColorModeValue('#f0fdf4', '#1a2e1a'),
-                    color: useColorModeValue('#16a34a', '#86efac'),
-                    borderLeft: `3px solid ${useColorModeValue('#16a34a', '#86efac')}`,
-                  },
-                  marker: {
-                    fontSize: '12px',
-                    fontWeight: 'bold',
-                  },
-                  content: {
-                    fontSize: '14px',
-                    fontFamily: 'monospace',
-                    width: 'inherit',
-                  },
-                  line: {
-                    fontSize: '14px',
-                    fontFamily: 'monospace',
-                  },
-                  wordDiff: {
-                    fontSize: '14px',
-                  },
-                  wordAdded: {
-                    backgroundColor: useColorModeValue('#dcfce7', '#1a2e1a'),
-                    color: useColorModeValue('#16a34a', '#86efac'),
-                    fontWeight: '500',
-                  },
-                  wordRemoved: {
-                    backgroundColor: useColorModeValue('#fef2f2', '#2d1b1b'),
-                    color: useColorModeValue('#dc2626', '#fca5a5'),
-                    fontWeight: '500',
-                  },
-                  gutter: {
-                    backgroundColor: useColorModeValue('#f8fafc', '#1a202c'),
-                    color: useColorModeValue('#64748b', '#94a3b8'),
-                    borderRight: `1px solid ${useColorModeValue('#e2e8f0', '#4a5568')}`,
-                  },
-                  lineNumber: {
-                    color: useColorModeValue('#64748b', '#94a3b8'),
-                    fontSize: '12px',
-                  },
-                  splitView: {
-                    flexDirection: 'row',
-                    display: 'flex',
-                    width: '100%',
-                    height: '100%',
-                    overflow: 'auto',
-                  },
-                  codeFold: {
-                    backgroundColor: useColorModeValue('#f8fafc', '#1a202c'),
-                    color: useColorModeValue('#64748b', '#94a3b8'),
-                  },
-                  codeFoldGutter: {
-                    backgroundColor: useColorModeValue('#f8fafc', '#1a202c'),
-                    color: useColorModeValue('#64748b', '#94a3b8'),
-                  },
-                }}
-              />
-            </Box>
-          </Box>
-        </ModalBody>
-        
-        <ModalFooter borderTop="1px solid" borderColor={useColorModeValue('gray.200', 'gray.600')} bg={useColorModeValue('gray.50', 'gray.800')}>
-          <Button onClick={onClose} colorScheme="blue" size="md" fontWeight="medium">
-            <FormattedMessage id="text.close" />
-          </Button>
-        </ModalFooter>
-      </ModalContent>
-    </Modal>
+          </ModalBody>
+
+          <ModalFooter borderTop="1px solid" borderColor={useColorModeValue('gray.200', 'gray.600')} bg={useColorModeValue('gray.50', 'gray.800')}>
+            <Button onClick={onClose} colorScheme="blue" size="md" fontWeight="medium">
+              <FormattedMessage id="text.close" />
+            </Button>
+          </ModalFooter>
+        </ModalContent>
+      </Modal>
     </>
   );
 }

@@ -24,9 +24,27 @@ interface SetCredentialDialogProps {
   readonly showPasswordRequirements?: boolean;
   readonly showPasswordWarning?: boolean;
   readonly showConfirmPassword?: boolean;
+  readonly assetName?: string;
+  readonly usernamePlaceholder?: string;
+  readonly passwordPlaceholder?: string;
+  readonly confirmPasswordPlaceholder?: string;
 }
 
-export function SetCredentialDialog({ isOpen, titleId, onClose, onSubmit, showPasswordRequirements = false, showPasswordWarning = false, isTemporaryPassword = false, saveButtonTextId, showConfirmPassword = false }: SetCredentialDialogProps) {
+export function SetCredentialDialog({ 
+  isOpen, 
+  titleId, 
+  onClose, 
+  onSubmit, 
+  showPasswordRequirements = false, 
+  showPasswordWarning = false, 
+  isTemporaryPassword = false, 
+  saveButtonTextId, 
+  showConfirmPassword = false, 
+  assetName,
+  usernamePlaceholder = "Enter Username",
+  passwordPlaceholder = "Enter Password",
+  confirmPasswordPlaceholder = "Re-enter Password"
+}: SetCredentialDialogProps) {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
@@ -92,12 +110,17 @@ export function SetCredentialDialog({ isOpen, titleId, onClose, onSubmit, showPa
         <AlertDialogContent>
           <AlertDialogHeader fontSize="lg" fontWeight="bold">
             <FormattedMessage id={titleId ?? "text.set_credential"} />
+            {assetName && (
+              <Text fontSize="md" fontWeight="normal" color="gray.600" mt={1}>
+                <FormattedMessage id="text.asset_name_title"/> {assetName}
+              </Text>
+            )}
           </AlertDialogHeader>
           <AlertDialogBody id='credentialDialogBody'>
             <div data-form-type="other" data-lpignore="true" data-1p-ignore="true" data-browser-ignore="true">
               {!isTemporaryPassword && (
                 <Input
-                  placeholder="Enter User Identifier"
+                  placeholder={usernamePlaceholder}
                   id="userField"
                   name="user_field"
                   value={username}
@@ -119,7 +142,7 @@ export function SetCredentialDialog({ isOpen, titleId, onClose, onSubmit, showPa
                   mb={3}
                 />)}
               <DamPasswordInput
-                placeholder={showConfirmPassword ? "Enter New Key" : "Enter Key"}
+                placeholder={passwordPlaceholder}
                 id="keyField"
                 name="key_field"
                 value={password}
@@ -138,7 +161,7 @@ export function SetCredentialDialog({ isOpen, titleId, onClose, onSubmit, showPa
               {showConfirmPassword && (
                 <Flex pt={2}>
                   <DamPasswordInput
-                    placeholder="Re-enter Key"
+                    placeholder={confirmPasswordPlaceholder}
                     id="confirmKeyField"
                     name="confirm_key_field"
                     value={confirmPassword}

@@ -394,6 +394,16 @@
   "text.audit_logs_download_error": "Failed to download audit logs. Please try again.",
   "text.downloading": "Downloading...",
   "text.download_audit_logs": "Download Audit Logs",
+  "text.audit_logs": "Audit Logs",
+  "text.audit_stats": "Audit Stats",
+  "text.activity_over_time": "Activity Over Time",
+  "text.top_assets": "Top Assets by Activity",
+  "text.top_users": "Top Users by Activity",
+  "text.top_ip_addresses": "Top IP Addresses by Activity",
+  "text.summary": "Summary",
+  "text.total_events": "Total Events",
+  "text.date_range": "Date Range",
+  "text.failed_to_load_stats": "Failed to load statistics data",
   "text.lock_asset": "Lock Asset",
   "text.lock_asset_access": "Lock Asset Access",
   "text.unlock_asset_access": "Unlock Asset Access",
@@ -702,7 +712,7 @@
   "unix_groups.group_name_length_invalid": "Group name must be between 1 and 32 characters",
   "unix_groups.group_name_format_invalid": "Group name can only contain letters, numbers, dots, underscores, and hyphens",
   "text.select_asset_owners": "Select Asset Owners",
-  "text.for_asset": "for {assetName}",
+  "text.asset_name_title": "Asset Name: ",
   "text.asset_owner_selection_required": "Asset Owner Selection Required",
   "text.asset_owner_selection_description": "You must select at least one asset owner before creating the asset. Asset owners will be responsible for setting up credentials and managing access to this asset.",
   "text.select_owners": "Select Owners",
@@ -715,5 +725,6 @@
   "text.asset_owner_credentials_required": "Asset owners must set up credentials before the asset can be used for access requests.",
   "text.new_assets_require_credentials": "New assets require credential setup",
   "text.credential_setup_required": "You have {count} new asset(s) that require credential setup. Please set up credentials for these assets to enable access requests.",
-  "text.setup_credentials_now": "Set Up Credentials Now"
+  "text.setup_credentials_now": "Set Up Credentials Now",
+  "text.error_occurred": "An Error Occurred"
 }

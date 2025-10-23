@@ -301,3 +301,64 @@ export function getAuthToken() {// Get current authentication token and provider
 
   return null;
 };
+
+/**
+ * Safe string conversion function that handles all value types properly
+ * Prevents SonarQube warnings about object stringification
+ */
+export function convertToString(value: unknown): string {
+  // Handle nullish values
+  if (value == null) return '';
+
+  // Handle primitive types
+  if (typeof value === 'string' || typeof value === 'number' || typeof value === 'boolean') {
+    return String(value);
+  }
+
+  // Handle Dates
+  if (value instanceof Date) {
+    return value.toISOString();
+  }
+
+  // Handle Maps and Sets
+  if (value instanceof Map) {
+    return JSON.stringify(Object.fromEntries(value), null, 2);
+  }
+
+  if (value instanceof Set) {
+    return JSON.stringify(Array.from(value), null, 2);
+  }
+
+  // Handle objects safely (including circular references)
+  if (typeof value === 'object') {
+    try {
+      return JSON.stringify(value, getCircularReplacer(), 2);
+    } catch {
+      return '[Unserializable Object]';
+    }
+  }
+
+  // Handle functions
+  if (typeof value === 'function') {
+    return `[Function: ${(value as Function).name || 'anonymous'}]`;
+  }
+
+  // Fallback for other types (e.g., symbols, bigints)
+  try {
+    return String(value);
+  } catch {
+    return '[Unknown Type]';
+  }
+}
+
+// 🔄 Helper to avoid JSON.stringify circular reference errors
+function getCircularReplacer() {
+  const seen = new WeakSet();
+  return function (_key: string, val: any) {
+    if (typeof val === 'object' && val !== null) {
+      if (seen.has(val)) return '[Circular]';
+      seen.add(val);
+    }
+    return val;
+  };
+}

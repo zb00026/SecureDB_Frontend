@@ -30,6 +30,7 @@ export default function Login({ authProviders, children }: { authProviders: stri
   const [keycloakInitialized, setKeycloakInitialized] = useState<boolean>(false);
   const [keycloakAuthenticated, setKeycloakAuthenticated] = useState<any>(null);
   const [keycloakLoggedOut, setKeycloakLoggedOut] = useState<boolean>(false);
+  const [hasProcessedAuthentication, setHasProcessedAuthentication] = useState<boolean>(false);
   const intl = useIntl();
   const [searchParams] = useSearchParams();
   const inviteCode = searchParams.get('inviteCode');
@@ -131,6 +132,12 @@ export default function Login({ authProviders, children }: { authProviders: stri
       return;
     }
 
+    // Prevent duplicate authentication processing
+    if (hasProcessedAuthentication) {
+      return;
+    }
+    
+    setHasProcessedAuthentication(true);
     stateActions.addLoading();
     setAuthenticating(true);
 
@@ -162,12 +169,14 @@ export default function Login({ authProviders, children }: { authProviders: stri
   const logoutKeycloak = () => {
     setKeycloakLoggedOut(true);
     setIsValidToken(false);
+    setHasProcessedAuthentication(false);
   };
 
   const logoutGoogle = () => {
     googleLogout();
     clearGoogleToken();
     setIsValidToken(false);
+    setHasProcessedAuthentication(false);
   };
 
   const logoutToken = (authProvider: string) => {
@@ -257,13 +266,14 @@ export default function Login({ authProviders, children }: { authProviders: stri
   }
 
   const checkPendingApprovals = () => {
+    
     request('/api/asset_owner/assets/approvals', {})
       .then((res) => {
         if (res.length > 0) {
           showSuccess({
             description: intl.formatMessage({ id: 'text.pending_approval_requests_found' }),
           });
-          navigate('/asset_owner');
+          navigate('/asset_owner?tab=approvals');
         }
       })
       .catch((e) => {
@@ -306,8 +316,8 @@ export default function Login({ authProviders, children }: { authProviders: stri
   const handleLoginSuccess = async (user: User) => {
     if (userHasRole(user, USER_ROLE.ADMIN)) {
       await handleAdminLogin(user);
-    }
-    if (userHasRole(user, USER_ROLE.ASSET_OWNER)) {
+    } else if (userHasRole(user, USER_ROLE.ASSET_OWNER)) {
+      // Only call checkAssetCredential if user is not ADMIN (since handleAdminLogin already calls it)
       checkAssetCredential(user);
     }
     if (userHasRole(user, USER_ROLE.DEVELOPER)) {

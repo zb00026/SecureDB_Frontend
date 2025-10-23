@@ -4,9 +4,17 @@ import { useIntl } from "react-intl";
 export function useDamToast() {
   const toast = useToast();
   const intl = useIntl();
+  
+  // Generate unique ID for toasts to avoid duplicate key warnings
+  const generateToastId = (type: 'success' | 'error', customId?: string) => {
+    if (customId) return customId;
+    return `${type}-${Date.now()}-${crypto.randomUUID()}`;
+  };
+
   const showSuccess = ({ id, title = intl.formatMessage({id: 'text.SUCCESS'}), description }: { id?: string, title?: string, description: string }) => {
+    const toastId = generateToastId('success', id);
     toast({
-      id: id ?? 'toastSuccess',
+      id: toastId,
       title,
       description,
       status: 'success',
@@ -17,8 +25,9 @@ export function useDamToast() {
   };
 
   const showError = ({ id, title, description, onCloseComplete, duration }: { id?: string, title?: string, description: string, onCloseComplete?: () => void, duration?: number }) => {
+    const toastId = generateToastId('error', id);
     toast({
-      id: id ?? 'toastError',
+      id: toastId,
       title,
       description,
       status: 'error',
@@ -29,16 +38,20 @@ export function useDamToast() {
     });
   };
 
-  const showRes = (res: any) => {
+  const showRes = (res: any, customId?: string) => {
+    const status = res.code === 0 ? "success" : "error";
+    const toastId = generateToastId(status, customId);
     toast({
+      id: toastId,
       title: res.message ?? "",
       description: res.description ?? "",
-      status: res.code === 0 ? "success" : "error",
+      status,
       position: "top",
       duration: 5000,
       isClosable: true,
     });
   };
+
 
   return { showSuccess, showError, showRes };
 }

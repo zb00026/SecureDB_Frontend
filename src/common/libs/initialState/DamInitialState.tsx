@@ -153,6 +153,9 @@ export function DamInitialState() {
           saveButtonTextId={'text.update'}
           showPasswordRequirements={true}
           showConfirmPassword={true}
+          usernamePlaceholder="Enter Username"
+          passwordPlaceholder="Enter New Password"
+          confirmPasswordPlaceholder="Confirm New Password"
         />
       )}
       <Outlet />

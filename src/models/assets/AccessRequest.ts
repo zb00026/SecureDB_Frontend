@@ -11,6 +11,7 @@ export interface AccessRequest {
   id: number;
   asset: Asset;
   assetDTO: Asset;
+  assetApprovalsDTO: Asset;
   accessSql: string;
   requestor: User;
   requestTime: string; // ISO DateTime string
