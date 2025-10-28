@@ -33,18 +33,7 @@ import {
 import { FiEye, FiTrash2, FiShield, FiDatabase, FiPlay, FiPause, FiCheckCircle, FiXCircle } from 'react-icons/fi';
 import { FormattedMessage, useIntl } from 'react-intl';
 import { request, useDamToast } from '@common/index';
-
-interface MaskingPolicy {
-  readonly id: string;
-  readonly fieldName: string;
-  readonly tableName: string;
-  readonly maskingStrategy: 'partial' | 'full' | 'hash' | 'custom';
-  readonly customPattern?: string;
-  readonly roles?: string[];
-  readonly description: string;
-  readonly createdAt: string;
-  readonly isActive: boolean;
-}
+import { MaskingPolicy } from '@models/MaskingPolicy';
 
 export interface MaskingPoliciesRef {
   readonly refreshPolicies: () => void;
@@ -206,6 +195,12 @@ export const MaskingPolicies = forwardRef<MaskingPoliciesRef>((props, ref) => {
             <Thead>
               <Tr>
                 <Th>
+                  <FormattedMessage id="text.asset_name" />
+                </Th>
+                <Th>
+                  <FormattedMessage id="text.database_name" />
+                </Th>
+                <Th>
                   <FormattedMessage id="text.field_name" />
                 </Th>
                 <Th>
@@ -232,6 +227,13 @@ export const MaskingPolicies = forwardRef<MaskingPoliciesRef>((props, ref) => {
               {policies.length > 0 ? (
                 policies.map((policy) => (
                   <Tr key={policy.id}>
+                    <Td fontWeight="medium">{policy.asset.name}</Td>
+                    <Td>
+                      <HStack>
+                        <FiDatabase size={14} />
+                        <Text mb={0}>{policy.asset.databaseName}</Text>
+                      </HStack>
+                    </Td>
                     <Td fontWeight="medium">{policy.fieldName}</Td>
                     <Td>
                       <HStack>
@@ -343,7 +345,7 @@ export const MaskingPolicies = forwardRef<MaskingPoliciesRef>((props, ref) => {
                 ))
               ) : (
                 <Tr>
-                  <Td colSpan={7} textAlign="center" py={8}>
+                  <Td colSpan={9} textAlign="center" py={8}>
                     <VStack spacing={2}>
                       <FiShield size={48} color="gray" />
                       <Text color="gray.500" mb={0}>
@@ -371,6 +373,26 @@ export const MaskingPolicies = forwardRef<MaskingPoliciesRef>((props, ref) => {
           <ModalBody>
             {selectedPolicy && (
               <VStack spacing={4} align="stretch">
+                <Box>
+                  <Text fontWeight="bold" mb={0}>
+                    <FormattedMessage id="text.asset_information" />
+                  </Text>
+                  <HStack spacing={4}>
+                    <Box>
+                      <Text fontSize="sm" color="gray.500" mb={0}>
+                        <FormattedMessage id="text.asset_name" />
+                      </Text>
+                      <Text fontWeight="medium" mb={0}>{selectedPolicy.asset.name}</Text>
+                    </Box>
+                    <Box>
+                      <Text fontSize="sm" color="gray.500" mb={0}>
+                        <FormattedMessage id="text.database_name" />
+                      </Text>
+                      <Text fontWeight="medium" mb={0}>{selectedPolicy.asset.databaseName}</Text>
+                    </Box>
+                  </HStack>
+                </Box>
+
                 <Box>
                   <Text fontWeight="bold" mb={0}>
                     <FormattedMessage id="text.field_information" />

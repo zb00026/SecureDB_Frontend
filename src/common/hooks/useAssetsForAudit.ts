@@ -56,8 +56,9 @@ export const useAssetsForAudit = ({ user }: UseAssetsForAuditProps): UseAssetsFo
       request(endpoint, {})
         .then((response) => {
           let assetData: AssetWithPasswordStatus[] = [];
-          
-          if (user && userHasRole(user, USER_ROLE.ASSET_OWNER)) {
+          if (user && (userHasRole(user, USER_ROLE.ADMIN) || userHasRole(user, USER_ROLE.AUDITOR))) {
+            assetData = Array.isArray(response) ? response : response?.content ?? [];
+          } else if (user && userHasRole(user, USER_ROLE.ASSET_OWNER)) {
             // For asset owners, response is AssetCredential[] with asset property
             const credentials = Array.isArray(response) ? response : [];
             assetData = credentials.map((credential: AssetCredential) => ({

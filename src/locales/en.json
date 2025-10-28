@@ -726,5 +726,7 @@
   "text.new_assets_require_credentials": "New assets require credential setup",
   "text.credential_setup_required": "You have {count} new asset(s) that require credential setup. Please set up credentials for these assets to enable access requests.",
   "text.setup_credentials_now": "Set Up Credentials Now",
-  "text.error_occurred": "An Error Occurred"
+  "text.error_occurred": "An Error Occurred",
+  "text.asset_information": "Asset Information",
+  "text.for_asset": "For {assetName}"
 }
