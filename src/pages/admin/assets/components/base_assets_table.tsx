@@ -149,7 +149,7 @@ export function BaseAssetsTable({
                       {showQueryButton && (
                         <Td>
                           {asset.accessRequest &&
-                            !asset.accessRequest?.assetCredential?.isTemporaryPassword &&
+                            !asset.accessRequest?.isTempPassword &&
                             asset.accessRequest?.assetApproverStatus === ApprovalStatus.APPROVED && (
                               <>
                                 {asset.type === AssetType.UNIX_SERVER ? (

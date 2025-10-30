@@ -1,14 +1,5 @@
-import { useQueryAssetData } from "@common/hooks/useQueryAssetPage";
-import { SharedQueryComponent } from "@common/components/SharedQueryComponent";
+import { QueryAssetPage } from "@common/components/QueryAssetPage";
 
 export function Component() {
-  const { currentAsset, accessRequestId } = useQueryAssetData({ userType: "developer" });
-
-  return (
-    <SharedQueryComponent
-      asset={currentAsset}
-      accessRequestId={accessRequestId}
-      userType="developer"
-    />
-  );
+  return <QueryAssetPage userType="developer" />;
 }

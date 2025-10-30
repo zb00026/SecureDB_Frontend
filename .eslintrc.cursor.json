@@ -1,0 +1,74 @@
+{
+  "extends": [
+    "@typescript-eslint/recommended",
+    "react-hooks/recommended"
+  ],
+  "parser": "@typescript-eslint/parser",
+  "plugins": [
+    "@typescript-eslint",
+    "react-hooks",
+    "complexity"
+  ],
+  "rules": {
+    // Enforce readonly props
+    "@typescript-eslint/prefer-readonly": "error",
+    "@typescript-eslint/prefer-readonly-parameter-types": "off",
+    
+    // Enforce readonly arrays and objects
+    "@typescript-eslint/prefer-readonly-parameter-types": "off",
+    "@typescript-eslint/readonly-array": "error",
+    
+    // Code complexity rules
+    "complexity": ["error", 15],
+    "max-lines-per-function": ["error", 50],
+    "max-depth": ["error", 4],
+    "max-lines": ["error", 300],
+    
+    // TypeScript specific rules
+    "@typescript-eslint/no-explicit-any": "warn",
+    "@typescript-eslint/prefer-interface": "error",
+    "@typescript-eslint/no-unused-vars": "error",
+    "@typescript-eslint/explicit-function-return-type": "off",
+    "@typescript-eslint/explicit-module-boundary-types": "off",
+    
+    // React specific rules
+    "react-hooks/rules-of-hooks": "error",
+    "react-hooks/exhaustive-deps": "warn",
+    "react/prop-types": "off",
+    
+    // Import rules
+    "import/order": [
+      "error",
+      {
+        "groups": [
+          "builtin",
+          "external",
+          "internal",
+          "parent",
+          "sibling",
+          "index"
+        ],
+        "newlines-between": "always",
+        "alphabetize": {
+          "order": "asc",
+          "caseInsensitive": true
+        }
+      }
+    ],
+    
+    // General code quality
+    "no-console": "warn",
+    "no-debugger": "error",
+    "prefer-const": "error",
+    "no-var": "error"
+  },
+  "settings": {
+    "import/resolver": {
+      "typescript": {
+        "alwaysTryTypes": true,
+        "project": "./tsconfig.json"
+      }
+    }
+  }
+}
+

@@ -30,7 +30,7 @@ export function AssetsTable({
   onViewAccess
 }: AssetsTableProps) {
   const renderAccessRequestAction = (asset: Asset) => {
-    if (asset.accessRequest?.isTempPassword) {
+    if (asset.accessRequest?.isTempPassword && asset.accessRequest?.assetApproverStatus === ApprovalStatus.APPROVED) {
       return (
         <Button
           mb={0}

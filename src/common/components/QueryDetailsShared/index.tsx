@@ -1,23 +1,13 @@
 import { Flex, Text, Table, Thead, Tbody, Tr, Th, Td, Box, VStack, Textarea, useColorModeValue } from "@chakra-ui/react";
 import { DamBasePage } from "@common/components/DamBasePage";
 import { DamCardDivider } from "@common/index";
-import { Asset } from "@models/assets/Asset";
 import { FormattedMessage } from "react-intl";
 import { AssetDetailsSection } from "@pages/developer/components/asset_detail_section";
 import { DamQueryInput } from "@common/components/DamQueryInput";
+import { QueryResponse } from "@models/QueryModels";
+import { Asset } from "@models/assets/Asset";
 
-interface QueryResult {
-  readonly headers: string[];
-  readonly data: Record<string, any>[];
-  readonly query: string;
-}
-
-interface QueryResponse {
-  readonly totalQueries: number;
-  readonly results: QueryResult[];
-}
-
-interface QueryDetailsSharedProps {
+export interface QueryDetailsSharedProps {
   readonly title: string;
   readonly asset: Asset | null;
   readonly query: string;
@@ -29,8 +19,8 @@ interface QueryDetailsSharedProps {
   readonly isTicketInfoVisible?: boolean;
   readonly actionButtons?: React.ReactNode;
   readonly historySection?: React.ReactNode;
+  readonly tabbedContent?: React.ReactNode;
 }
-
 export function QueryDetailsShared({
   title,
   asset,
@@ -42,7 +32,8 @@ export function QueryDetailsShared({
   changeDescription,
   isTicketInfoVisible = false,
   actionButtons,
-  historySection
+  historySection,
+  tabbedContent
 }: QueryDetailsSharedProps) {
   
   // Color mode values for better contrast
@@ -64,61 +55,68 @@ export function QueryDetailsShared({
       <DamCardDivider />
 
       <Flex direction={"column"} w="full">
-        <Flex direction="row" gap={2}>
-          <Flex direction={'column'} gap={3} flex={2}>
-            <Text fontSize="md" fontWeight="bold" mt={4} mb={0}>
-              <FormattedMessage id="text.query_to_run" />
-            </Text>
+        {/* Tabbed Content */}
+        {tabbedContent ? (
+          <Box>
+            {tabbedContent}
+          </Box>
+        ) : (
+          <Flex direction="row" gap={4}>
+            <Flex direction={'column'} gap={3} flex={2}>
+              <Text fontSize="md" fontWeight="bold" mt={4} mb={0}>
+                <FormattedMessage id="text.query_to_run" />
+              </Text>
 
-            {isQueryEditable ? (
-              <DamQueryInput
-                value={query}
-                onChange={onQueryChange ?? (() => { })}
-              />
-            ) : (
-              <Box
-                border="1px solid"
-                borderColor="gray.200"
-                borderRadius="md"
-                p={3}
-                bg="gray.50"
-                fontFamily="monospace"
-                fontSize="sm"
-                minHeight="120px"
-                whiteSpace="pre-wrap"
-              >
-                {query ?? 'No query provided'}
-              </Box>
-            )}
-
-            {actionButtons && (
-              <Flex direction={'row'} gap={3} mt={2}>
-                {actionButtons}
-              </Flex>
-            )}
-
-            {isTicketInfoVisible && (
-              <Flex direction={'column'} gap={3} mt={2}>
-                <Text fontSize="md" fontWeight="bold" mt={4} mb={0}>
-                  <FormattedMessage id="text.ticket_reference" />
-                </Text>
-                <Textarea
-                  value={ticketReference ?? ''}
-                  isReadOnly={true}
+              {isQueryEditable ? (
+                <DamQueryInput
+                  value={query}
+                  onChange={onQueryChange ?? (() => { })}
                 />
-                <Text fontSize="md" fontWeight="bold" mt={4} mb={0}>
-                  <FormattedMessage id="text.change_description" />
-                </Text>
-                <Textarea
-                  value={changeDescription ?? ''}
-                  isReadOnly={true}
-                />
-              </Flex>
-            )}
+              ) : (
+                <Box
+                  border="1px solid"
+                  borderColor="gray.200"
+                  borderRadius="md"
+                  p={3}
+                  bg="gray.50"
+                  fontFamily="monospace"
+                  fontSize="sm"
+                  minHeight="120px"
+                  whiteSpace="pre-wrap"
+                >
+                  {query ?? 'No query provided'}
+                </Box>
+              )}
+
+              {actionButtons && (
+                <Flex direction={'row'} gap={3} mt={2}>
+                  {actionButtons}
+                </Flex>
+              )}
+
+              {isTicketInfoVisible && (
+                <Flex direction={'column'} gap={3} mt={2}>
+                  <Text fontSize="md" fontWeight="bold" mt={4} mb={0}>
+                    <FormattedMessage id="text.ticket_reference" />
+                  </Text>
+                  <Textarea
+                    value={ticketReference ?? ''}
+                    isReadOnly={true}
+                  />
+                  <Text fontSize="md" fontWeight="bold" mt={4} mb={0}>
+                    <FormattedMessage id="text.change_description" />
+                  </Text>
+                  <Textarea
+                    value={changeDescription ?? ''}
+                    isReadOnly={true}
+                  />
+                </Flex>
+              )}
+            </Flex>
+
+            {historySection}
           </Flex>
-
-          {historySection}
-        </Flex>
+        )}
 
         {/* Results Table */}
         {queryResults && (

@@ -1,0 +1,141 @@
+# Cursor Rules for DAM Frontend Project
+
+## Code Quality Rules
+
+### 1. Props Interface Rules
+- All interface properties MUST be readonly
+- Use `readonly` modifier for all props in React components
+- Example: `readonly title: string;` instead of `title: string;`
+
+### 2. Code Complexity Rules
+- Maximum cognitive complexity: 15
+- Maximum cyclomatic complexity: 15
+- Refactor functions that exceed these limits
+- Extract helper functions to reduce complexity
+
+### 3. TypeScript Rules
+- Use strict TypeScript configuration
+- Prefer interfaces over types for object shapes
+- Use readonly arrays: `readonly string[]` instead of `string[]`
+- Use readonly objects: `readonly { key: value }` instead of `{ key: value }`
+
+### 4. React Component Rules
+- Use forwardRef for components that need ref forwarding
+- Use useImperativeHandle for exposing methods via refs
+- Prefer functional components over class components
+- Use proper TypeScript generics for component props
+
+### 5. Model Organization Rules
+- Define all interfaces in `/src/models/` folder
+- Group related interfaces in the same file
+- Use descriptive file names (e.g., `QueryModels.ts`, `UserModels.ts`)
+- Export interfaces from models folder
+- Import models using `@models/` alias
+
+### 6. Import Rules
+- Use absolute imports with aliases (`@models/`, `@common/`, `@pages/`)
+- Group imports: React imports first, then third-party, then local
+- Use named exports for interfaces and types
+
+### 7. Function Rules
+- Maximum function length: 50 lines
+- Extract complex logic into separate functions
+- Use descriptive function names
+- Prefer pure functions when possible
+
+### 8. Error Handling Rules
+- Always handle errors in async operations
+- Use proper error types and messages
+- Log errors appropriately
+- Provide user-friendly error messages
+
+### 9. Performance Rules
+- Use React.memo for expensive components
+- Use useMemo and useCallback for expensive calculations
+- Avoid unnecessary re-renders
+- Use proper dependency arrays in hooks
+
+### 10. Accessibility Rules
+- Use semantic HTML elements
+- Provide proper ARIA labels
+- Ensure keyboard navigation works
+- Use proper color contrast ratios
+
+## File Structure Rules
+
+### Models Folder Structure
+```
+src/models/
+├── QueryModels.ts          # Query-related interfaces
+├── UserModels.ts           # User-related interfaces  
+├── AssetModels.ts          # Asset-related interfaces
+├── DatabaseSchema.ts       # Database schema interfaces
+└── index.ts               # Re-exports all models
+```
+
+### Component Structure
+```
+src/common/components/
+├── ComponentName/
+│   ├── index.tsx          # Main component
+│   ├── types.ts           # Component-specific types (if needed)
+│   └── utils.ts           # Component-specific utilities (if needed)
+```
+
+## Examples
+
+### Good Interface Definition
+```typescript
+// src/models/QueryModels.ts
+export interface QueryResult {
+  readonly headers: readonly string[];
+  readonly data: readonly Record<string, any>[];
+  readonly query: string;
+}
+
+export interface QueryResponse {
+  readonly totalQueries: number;
+  readonly results: readonly QueryResult[];
+}
+```
+
+### Good Component Props
+```typescript
+interface ComponentProps {
+  readonly title: string;
+  readonly data: readonly DataItem[];
+  readonly onAction: (id: string) => void;
+}
+```
+
+### Good Function Complexity
+```typescript
+// Good - Simple function
+const formatDate = (date: Date): string => {
+  return date.toISOString();
+};
+
+// Good - Complex logic extracted
+const processUserData = (users: readonly User[]): readonly ProcessedUser[] => {
+  return users.map(processUser);
+};
+
+const processUser = (user: User): ProcessedUser => {
+  // Complex processing logic here
+  return {
+    id: user.id,
+    name: user.name.toUpperCase(),
+    // ... other processing
+  };
+};
+```
+
+## Enforcement
+
+These rules should be enforced through:
+1. ESLint configuration
+2. TypeScript strict mode
+3. Code review process
+4. Automated testing
+5. Cursor AI assistance
+

@@ -1,39 +1,18 @@
 import { Flex, Text, Box, VStack, HStack, Badge, IconButton, Textarea, Checkbox } from "@chakra-ui/react";
 import { PrimaryButton, useDamToast } from "@common/index";
-import { Asset } from "@models/assets/Asset";
-import { useEffect, useState } from "react";
+import { useEffect, useState, forwardRef, useImperativeHandle } from "react";
 import { FormattedMessage, useIntl } from "react-intl";
 import { useApiRequest } from "@common/hooks/useApiRequest";
 import { DeleteIcon } from "@chakra-ui/icons";
 import { DamAlertDialog } from "@common/components/DamDialog/DamAlertDialog";
-import { QueryDetailsShared } from "@common/components/QueryDetailsShared";
-
-interface QueryResult {
-  headers: string[];
-  data: Record<string, any>[];
-  query: string;
-}
-
-interface QueryResponse {
-  totalQueries: number;
-  results: QueryResult[];
-}
-
-interface QueryHistory {
-  id: string;
-  query: string;
-  timestamp: string;
-  resultCount?: number;
-  results?: QueryResponse;
-  accessRequestId?: string;
-}
-
-interface SharedQueryComponentProps {
-  asset: Asset | null;
-  accessRequestId?: string;
-  userType: 'developer' | 'asset_owner';
-  onClose?: () => void;
-}
+import { DamQueryInput } from "@common/components/DamQueryInput";
+import { 
+  QueryResponse, 
+  QueryHistory, 
+  SharedQueryComponentProps, 
+  SharedQueryComponentRef,
+  SaveDialogConfig,
+} from "@models/QueryModels";
 
 const QUERY_HISTORY_KEY = 'dam_query_history';
 
@@ -74,13 +53,13 @@ const validateSQL = (query: string): { isValid: boolean; errorMessage?: string }
   return { isValid: true };
 };
 
-export const SharedQueryComponent: React.FC<SharedQueryComponentProps> = ({
+export const SharedQueryComponent = forwardRef<SharedQueryComponentRef, SharedQueryComponentProps>(({
   asset,
   accessRequestId,
   userType,
-  onClose
-}) => {
-  const intl = useIntl();
+  showHistory = true,
+  showQueryEditor = true,
+}, ref) => {
   const { showError, showSuccess } = useDamToast();
   const [query, setQuery] = useState<string>('');
   const [queryResults, setQueryResults] = useState<QueryResponse | null>(null);
@@ -88,13 +67,16 @@ export const SharedQueryComponent: React.FC<SharedQueryComponentProps> = ({
   const [isLoading, setIsLoading] = useState(false);
   const { handleRequest } = useApiRequest();
   const [isSaveDlgOpen, setIsSaveDlgOpen] = useState(false);
-  const [saveDialogConfig, setSaveDialogConfig] = useState<{
-    title: string;
-    message: string;
-  }>({ title: '', message: '' });
+  const [saveDialogConfig, setSaveDialogConfig] = useState<SaveDialogConfig>({ title: '', message: '' });
   const [ticketReference, setTicketReference] = useState('');
   const [changeDescription, setChangeDescription] = useState('');
   const [isChangeRequest, setIsChangeRequest] = useState(false);
+  // Expose setQuery method to parent component
+  useImperativeHandle(ref, () => ({
+    setQuery: (newQuery: string) => {
+      setQuery(newQuery);
+    }
+  }));
 
   // Load query history from localStorage on component mount, filtered by accessRequestId
   useEffect(() => {
@@ -164,6 +146,8 @@ export const SharedQueryComponent: React.FC<SharedQueryComponentProps> = ({
     localStorage.removeItem(QUERY_HISTORY_KEY);
     showSuccess({ description: 'Query history cleared' });
   };
+
+
 
   // Handle save as change request
   const handleSaveAsChangeRequest = () => {
@@ -247,6 +231,45 @@ export const SharedQueryComponent: React.FC<SharedQueryComponentProps> = ({
     );
   };
 
+  // Reusable query results component
+  const renderQueryResults = () => {
+    if (!queryResults) return null;
+    
+    return (
+      <Box flex="1" mt={4} overflowY="auto">
+        <Text fontSize="md" fontWeight="bold" mb={2}>
+          Query Results ({queryResults.totalQueries} {queryResults.totalQueries === 1 ? 'query' : 'queries'}, {queryResults.results.reduce((total, result) => total + result.data.length, 0)} total rows)
+        </Text>
+        <Box border="1px solid" borderColor="gray.200" borderRadius="md" overflow="hidden">
+          <Box overflowX="auto">
+            <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+              <thead>
+                <tr style={{ backgroundColor: 'gray.50' }}>
+                  {queryResults.results[0]?.headers.map((header) => (
+                    <th key={header} style={{ padding: '8px 12px', textAlign: 'left', borderBottom: '1px solid gray.200' }}>
+                      {header}
+                    </th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {queryResults.results[0]?.data.slice(0, 100).map((row, rowIndex) => (
+                  <tr key={`row-${rowIndex}-${JSON.stringify(row)}`} style={{ borderBottom: '1px solid gray.200' }}>
+                    {queryResults.results[0]?.headers.map((header) => (
+                      <td key={`${header}-${rowIndex}`} style={{ padding: '8px 12px', borderRight: '1px solid gray.200' }}>
+                        {row[header]}
+                      </td>
+                    ))}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </Box>
+        </Box>
+      </Box>
+    );
+  };
+
   // Action buttons for query functionality
   const actionButtons = (
     <Flex direction="row" gap={3} w="full">
@@ -289,10 +312,11 @@ export const SharedQueryComponent: React.FC<SharedQueryComponentProps> = ({
     </Flex>
   ) : null;
 
+
   // Query History Section
   const historySection = (
-    <Box flex={1} minW="300px" maxHeight={'320px'}>
-      <HStack justify="space-between" mt={4} mb={2}>
+    <Box flex={1} minW="300px" h="full">
+      <HStack justify="space-between" mb={2}>
         <Text fontSize="md" fontWeight="bold">
           Query History
         </Text>
@@ -312,7 +336,7 @@ export const SharedQueryComponent: React.FC<SharedQueryComponentProps> = ({
         borderColor="gray.200"
         borderRadius="md"
         p={3}
-        maxH="320px"
+        h="calc(100% - 40px)"
         overflowY="auto"
       >
         {queryHistory.length === 0 ? (
@@ -366,23 +390,66 @@ export const SharedQueryComponent: React.FC<SharedQueryComponentProps> = ({
     </Box>
   );
 
+  // If only showing history, return just the history section
+  if (!showQueryEditor && showHistory) {
+    return <>{historySection}</>;
+  }
+
+  // If only showing query editor, return just the query editor
+  if (showQueryEditor && !showHistory) {
+    return (
+      <Flex direction={'column'} gap={3} h="full">
+        <Text fontSize="md" fontWeight="bold" mb={0}>
+          <FormattedMessage id="text.query_to_run" />
+        </Text>
+
+        <DamQueryInput
+          value={query}
+          onChange={setQuery}
+        />
+
+        <Flex direction={'row'} gap={3} mt={2}>
+          {actionButtons}
+        </Flex>
+
+        {changeRequestFields}
+
+        {/* Query Results */}
+        {renderQueryResults()}
+      </Flex>
+    );
+  }
+
+  // Default: show both query editor and history
   return (
     <>
-      <QueryDetailsShared
-        title={intl.formatMessage({ id: 'text.query_asset' })}
-        asset={asset}
-        query={query}
-        queryResults={queryResults}
-        isQueryEditable={true}
-        onQueryChange={setQuery}
-        actionButtons={
-          <Flex direction="column" gap={3} w="full">
+      <Flex direction="row" gap={4} h="full" minH="500px">
+        <Flex direction={'column'} gap={3} flex={2} h="full">
+          <Text fontSize="md" fontWeight="bold" mb={0}>
+            <FormattedMessage id="text.query_to_run" />
+          </Text>
+
+          <Box flex="0 0 120px">
+            <DamQueryInput
+              value={query}
+              onChange={setQuery}
+            />
+          </Box>
+
+          <Flex direction={'row'} gap={3} mt={2}>
             {actionButtons}
-            {changeRequestFields}
           </Flex>
-        }
-        historySection={historySection}
-      />
+
+          {changeRequestFields}
+
+          {/* Query Results */}
+          {renderQueryResults()}
+        </Flex>
+
+        <Box flex="0 0 300px" h="full">
+          {historySection}
+        </Box>
+      </Flex>
       
       <DamAlertDialog
         isOpen={isSaveDlgOpen}
@@ -394,4 +461,4 @@ export const SharedQueryComponent: React.FC<SharedQueryComponentProps> = ({
       />
     </>
   );
-};
+});
