@@ -16,6 +16,7 @@ export * from "./components/DamCardBody";
 export * from "./components/DamCardDivider";
 export * from "./components/DamContent";
 export * from "./components/DamTable";
+export * from "./components/ActionMenu";
 export * from "./components/DamText/TextBody";
 export * from "./components/DamText/TextBody1";
 export * from "./components/DamText/TextCardHeader";

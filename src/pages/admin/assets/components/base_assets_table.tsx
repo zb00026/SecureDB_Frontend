@@ -1,11 +1,12 @@
-import { Flex, Table, TableContainer, Tbody, Td, Th, Thead, Tr, Text, Tooltip } from "@chakra-ui/react";
-import { DamCard, DamCardBody, DamCardDivider, PrimaryButton, TextCardHeader } from "@common/index";
+import { Flex, Table, TableContainer, Tbody, Td, Th, Thead, Tr, Text, Tooltip, Checkbox } from "@chakra-ui/react";
+import { DamCard, DamCardBody, DamCardDivider, ActionMenu, ActionMenuItem } from "@common/index";
 import { ApprovalStatus } from "@models/assets/AccessRequest";
 import { Asset } from "@models/assets/Asset";
 import { FormattedMessage } from "react-intl";
 import { WarningIcon } from "@chakra-ui/icons";
 import { AssetType } from "@/constants/enums";
-import { FiTerminal } from "react-icons/fi";
+import { useState, useMemo } from "react";
+import { handleRowClick, handleCheckboxClick } from "@common/libs/utils/tableSelection";
 
 interface BaseAssetsTableProps {
   readonly assets: Asset[];
@@ -21,6 +22,15 @@ interface BaseAssetsTableProps {
   readonly onViewAccess?: (asset: Asset) => void;
   readonly showLockAsset?: boolean;
   readonly lockActions: (asset: Asset) => React.ReactNode;
+  // Action handlers for the menu
+  readonly onEditAsset?: (asset: Asset) => void;
+  readonly onDeleteAsset?: (asset: Asset) => void;
+  readonly onManageUsers?: (asset: Asset, userType: 'owners' | 'approvers') => void;
+  readonly onLockAsset?: (asset: Asset) => void;
+  readonly onUnlockAsset?: (asset: Asset) => void;
+  // Permission flags for role-based access
+  readonly canManageUsers?: boolean;
+  readonly canLockAsset?: boolean;
 }
 
 const getStatusColor = (status: string | undefined): string => {
@@ -49,17 +59,187 @@ export function BaseAssetsTable({
   showAccessRequestStatus,
   showLockAsset,
   lockActions,
-  onViewAccess
+  onViewAccess,
+  onEditAsset,
+  onDeleteAsset,
+  onManageUsers,
+  onLockAsset,
+  onUnlockAsset,
+  canManageUsers = false,
+  canLockAsset = false
 }: BaseAssetsTableProps) {
+  const [selectedRowKeys, setSelectedRowKeys] = useState<string[]>([]);
+
+  const selectedRows = useMemo(() => {
+    return assets.filter(asset => asset.id && selectedRowKeys.includes(String(asset.id)));
+  }, [assets, selectedRowKeys]);
+
+  const selectAll = () => {
+    setSelectedRowKeys(assets.filter(asset => asset.id).map(asset => String(asset.id)));
+  };
+
+  const deselectAll = () => {
+    setSelectedRowKeys([]);
+  };
+
+  // Wrapper functions for asset IDs
+  const handleAssetRowClick = (assetId: number) => {
+    handleRowClick(String(assetId), selectedRowKeys, setSelectedRowKeys);
+  };
+
+  const handleAssetCheckboxClick = (assetId: number, checked: boolean) => {
+    handleCheckboxClick(String(assetId), checked, selectedRowKeys, setSelectedRowKeys);
+  };
+
+  const isAllSelected = assets.length > 0 && selectedRowKeys.length === assets.length;
+  const isIndeterminate = selectedRowKeys.length > 0 && selectedRowKeys.length < assets.length;
+
+  // Helper functions to reduce cognitive complexity
+  const addEditItem = (items: ActionMenuItem[], selectedAssetForActions: Asset) => {
+    if (onEditAsset) {
+      items.push({
+        label: 'Edit',
+        onClick: () => onEditAsset(selectedAssetForActions),
+        colorScheme: 'green',
+        variant: 'outline',
+      });
+    }
+  };
+
+  const addViewAccessItem = (items: ActionMenuItem[], selectedAssetForActions: Asset) => {
+    if (onViewAccess && selectedAssetForActions.type !== AssetType.UNIX_SERVER) {
+      items.push({
+        label: 'View Access',
+        onClick: () => onViewAccess?.(selectedAssetForActions),
+        colorScheme: 'blue',
+        variant: 'outline',
+      });
+    }
+  };
+
+  const addQueryItem = (items: ActionMenuItem[], selectedAssetForActions: Asset) => {
+    if (!onQueryAsset) return;
+    
+    const canQuery = selectedAssetForActions.accessRequest && 
+      !selectedAssetForActions.accessRequest?.isTempPassword &&
+      selectedAssetForActions.accessRequest?.assetApproverStatus === ApprovalStatus.APPROVED;
+    
+    if (canQuery) {
+      items.push({
+        label: selectedAssetForActions.type === AssetType.UNIX_SERVER ? 'Terminal Access' : 'Run Query',
+        onClick: () => {
+          if (selectedAssetForActions.type === AssetType.UNIX_SERVER) {
+            onTerminalAsset?.(selectedAssetForActions);
+          } else {
+            onQueryAsset(selectedAssetForActions);
+          }
+        },
+        colorScheme: 'blue',
+        variant: 'outline',
+      });
+    }
+  };
+
+  const addManageUsersItem = (items: ActionMenuItem[], selectedAssetForActions: Asset) => {
+    if (onManageUsers) {
+      items.push({
+        label: 'Manage Users',
+        onClick: () => onManageUsers?.(selectedAssetForActions, 'owners'),
+        colorScheme: 'purple',
+        variant: 'outline',
+        isDisabled: !canManageUsers,
+      });
+    }
+  };
+
+  const addLockUnlockItems = (items: ActionMenuItem[], selectedAssetForActions: Asset) => {
+    if (!selectedAssetForActions.locked && onLockAsset) {
+      items.push({
+        label: 'Lock Asset',
+        onClick: () => onLockAsset(selectedAssetForActions),
+        colorScheme: 'orange',
+        variant: 'outline',
+        isDisabled: !canLockAsset,
+      });
+    }
+    
+    if (selectedAssetForActions.locked && onUnlockAsset) {
+      items.push({
+        label: 'Unlock Asset',
+        onClick: () => onUnlockAsset(selectedAssetForActions),
+        colorScheme: 'green',
+        variant: 'outline',
+        isDisabled: !canLockAsset,
+      });
+    }
+  };
+
+  const addDeleteItem = (items: ActionMenuItem[], selectedAssetForActions: Asset) => {
+    if (onDeleteAsset) {
+      items.push({
+        label: 'Delete',
+        onClick: () => {
+          onDeleteAsset(selectedAssetForActions);
+          setSelectedRowKeys([]);
+        },
+        colorScheme: 'red',
+        variant: 'outline',
+      });
+    }
+  };
+
+  // Build action menu items based on selected rows
+  const actionMenuItems: ActionMenuItem[] = useMemo(() => {
+    const items: ActionMenuItem[] = [];
+    const singleSelected = selectedRows.length === 1;
+    const selectedAssetForActions = singleSelected ? selectedRows[0] : null;
+    
+    if (!singleSelected || !selectedAssetForActions) {
+      return items;
+    }
+
+    addEditItem(items, selectedAssetForActions);
+    addViewAccessItem(items, selectedAssetForActions);
+    addQueryItem(items, selectedAssetForActions);
+    addManageUsersItem(items, selectedAssetForActions);
+    addLockUnlockItems(items, selectedAssetForActions);
+    addDeleteItem(items, selectedAssetForActions);
+
+    return items;
+  }, [selectedRows, onEditAsset, onViewAccess, onQueryAsset, onTerminalAsset, onManageUsers, onLockAsset, onUnlockAsset, onDeleteAsset, canManageUsers, canLockAsset]);
+
   return (
     <DamCard mt={4}>
       <DamCardBody>
+        {/* AWS-style Header with Selection Count and Actions */}
+        <Flex justify="space-between" align="center" my={2} minH="32px">
+          <Flex align="center" gap={2} minH="32px">
+            <Text fontSize="md" fontWeight="semibold" mb={0} mx={1} lineHeight="32px">
+              <FormattedMessage id='text.assets' /> 
+              {selectedRows.length > 0 && ` (${selectedRows.length} selected)`}
+            </Text>
+          </Flex>
+          <ActionMenu
+            items={actionMenuItems}
+            hasSelection={selectedRows.length === 1}
+            selectedCount={selectedRows.length}
+            variant="buttons"
+          />
+        </Flex>
+
         <DamCardDivider />
 
         <TableContainer width='100%'>
-          <Table variant='simple' id="tblAssets">
+          <Table variant='simple' id="tblAssets" size="sm">
             <Thead>
               <Tr>
+                <Th width="40px">
+                  <Checkbox
+                    isChecked={isAllSelected}
+                    isIndeterminate={isIndeterminate}
+                    onChange={(e) => e.target.checked ? selectAll() : deselectAll()}
+                  />
+                </Th>
                 <Th><FormattedMessage id='text.name' /></Th>
                 <Th><FormattedMessage id='text.type' /></Th>
                 <Th><FormattedMessage id='text.database_type' /></Th>
@@ -73,132 +253,111 @@ export function BaseAssetsTable({
                 {showAccessRequestStatus && (
                   <Th><FormattedMessage id='text.access_request_status' /></Th>
                 )}
-                <Th><FormattedMessage id='text.actions' /></Th>
-                {showQueryButton && (
-                  <Th><FormattedMessage id='text.query_action' /></Th>
-                )}
-                {renderDetailButton && (
-                  <Th><FormattedMessage id='text.detail_action' /></Th>
-                )}
-                {onViewAccess && (
-                  <Th><FormattedMessage id='text.view_access' /></Th>
-                )}
-                {showLockAsset && (
-                  <Th><FormattedMessage id='text.lock_asset' /></Th>
-                )}
               </Tr>
             </Thead>
             <Tbody maxHeight={500}>
               {assets.length > 0 ? (
                 <>
-                  {assets.map((asset) => (
-                    <Tr key={asset.id}
-                      sx={{
+                  {assets.map((asset) => {
+                    if (!asset.id) return null;
+                    const isRowSelected = selectedRowKeys.includes(String(asset.id));
+                    const isSelectedAsset = asset.id === selectedAsset?.id;
+                    
+                    // Determine row background style
+                    let rowBackgroundStyle = {};
+                    if (isRowSelected) {
+                      rowBackgroundStyle = {
+                        backgroundColor: 'blue.50 !important',
+                        _dark: {
+                          backgroundColor: 'blue.900 !important'
+                        }
+                      };
+                    } else if (isSelectedAsset) {
+                      rowBackgroundStyle = {
                         _light: {
-                          backgroundColor: asset.id === selectedAsset?.id ? 'gray.200' : 'transparent',
+                          backgroundColor: 'gray.200'
                         },
                         _dark: {
-                          backgroundColor: asset.id === selectedAsset?.id ? 'gray.600' : 'transparent',
-                        },
-                      }}
-                      cursor="pointer"
-                      onClick={() => onSelectAsset(asset)}>
-                      <Td>{asset.name}</Td>
-                      <Td>{asset.type}</Td>
-                      <Td>{asset.databaseType ?? '-'}</Td>
-                      <Td>{asset.hostAddress}</Td>
-                      <Td>{asset.portNumber}</Td>
-                      <Td>{asset.databaseName}</Td>
-                      <Td>{asset.description}</Td>
-                      {showFetchTemplate && (
-                        <Td>{asset.fetchTemplate ?? '-'}</Td>
-                      )}
-                      {showAccessRequestStatus && (
-                        <Td>
-                          <Tooltip
-                            label={asset.accessRequest?.rejectReason ?? 'No reason provided'}
-                            isDisabled={asset.accessRequest?.assetApproverStatus !== 'REJECTED'}
-                            placement="right"
-                            hasArrow
-                          >
-                            <Flex
-                              dir="row"
-                              alignItems={'center'}
-                              gap={2}
-                              display="inline-flex"
+                          backgroundColor: 'gray.600'
+                        }
+                      };
+                    }
+
+                    return (
+                      <Tr key={asset.id}
+                        sx={{
+                          _hover: {
+                            backgroundColor: 'gray.100',
+                            _dark: {
+                              backgroundColor: 'gray.700'
+                            }
+                          },
+                          ...rowBackgroundStyle
+                        }}
+                        cursor="pointer"
+                        onClick={() => {
+                          // Rule 1 & 2: Handle row click (not checkbox)
+                          if (asset.id) {
+                            handleAssetRowClick(asset.id);
+                          }
+                          // Also call the original onSelectAsset for navigation/details
+                          onSelectAsset(asset);
+                        }}>
+                        <Td onClick={(e) => e.stopPropagation()}>
+                          <Checkbox
+                            isChecked={isRowSelected}
+                            onChange={(e) => asset.id && handleAssetCheckboxClick(asset.id, e.target.checked)}
+                            onClick={(e) => e.stopPropagation()}
+                          />
+                        </Td>
+                        <Td>{asset.name}</Td>
+                        <Td>{asset.type}</Td>
+                        <Td>{asset.databaseType ?? '-'}</Td>
+                        <Td>{asset.hostAddress}</Td>
+                        <Td>{asset.portNumber}</Td>
+                        <Td>{asset.databaseName}</Td>
+                        <Td>{asset.description}</Td>
+                        {showFetchTemplate && (
+                          <Td>{asset.fetchTemplate ?? '-'}</Td>
+                        )}
+                        {showAccessRequestStatus && (
+                          <Td>
+                            <Tooltip
+                              label={asset.accessRequest?.rejectReason ?? 'No reason provided'}
+                              isDisabled={asset.accessRequest?.assetApproverStatus !== 'REJECTED'}
+                              placement="right"
+                              hasArrow
                             >
-                              <Text
-                                color={getStatusColor(asset.accessRequest?.assetApproverStatus)}
-                                mb={0}
-                                fontWeight="semibold"
+                              <Flex
+                                dir="row"
+                                alignItems={'center'}
+                                gap={2}
+                                display="inline-flex"
                               >
-                                {asset.accessRequest?.assetApproverStatus}
-                              </Text>
-                              {asset.accessRequest?.assetApproverStatus === 'REJECTED' && (
-                                <WarningIcon color="red.500" />
-                              )}
-                            </Flex>
-                          </Tooltip>
-                        </Td>
-                      )}
-                      <Td>
-                        <Flex gap={2}>
-                          {renderActions(asset)}
-                        </Flex>
-                      </Td>
-                      {showQueryButton && (
-                        <Td>
-                          {asset.accessRequest &&
-                            !asset.accessRequest?.isTempPassword &&
-                            asset.accessRequest?.assetApproverStatus === ApprovalStatus.APPROVED && (
-                              <>
-                                {asset.type === AssetType.UNIX_SERVER ? (
-                                  <PrimaryButton 
-                                    variant='outline' 
-                                    size='sm' 
-                                    leftIcon={<FiTerminal />}
-                                    onClick={() => onTerminalAsset?.(asset)}
-                                  >
-                                    <FormattedMessage id='text.terminal_access' />
-                                  </PrimaryButton>
-                                ) : (
-                                  <PrimaryButton variant='outline' size='sm' onClick={() => onQueryAsset?.(asset)}>
-                                    <FormattedMessage id='text.run_query' />
-                                  </PrimaryButton>
+                                <Text
+                                  color={getStatusColor(asset.accessRequest?.assetApproverStatus)}
+                                  mb={0}
+                                  fontWeight="semibold"
+                                >
+                                  {asset.accessRequest?.assetApproverStatus}
+                                </Text>
+                                {asset.accessRequest?.assetApproverStatus === 'REJECTED' && (
+                                  <WarningIcon color="red.500" />
                                 )}
-                              </>
-                            )}
-                        </Td>
-                      )}
-                      {renderDetailButton && (
-                        <Td>
-                          {renderDetailButton(asset)}
-                        </Td>
-                      )}
-                      {onViewAccess && asset.type !== AssetType.UNIX_SERVER ? (
-                        <Td>
-                          <PrimaryButton variant='outline' size='sm' onClick={() => onViewAccess?.(asset)}>
-                            <FormattedMessage id='text.view_access' />
-                          </PrimaryButton>
-                        </Td>
-                      ) : (<Td></Td>)}
-                      {showLockAsset && (
-                        <Td>
-                          {lockActions(asset)}
-                        </Td>
-                      )}
-                    </Tr>
-                  ))}
+                              </Flex>
+                            </Tooltip>
+                          </Td>
+                        )}
+                      </Tr>
+                    );
+                  })}
                 </>
               ) : (
                 <Tr>
                   <Td colSpan={
-                    7 +
+                    8 +
                     (showFetchTemplate ? 1 : 0) +
-                    (showAccessRequestStatus ? 1 : 0) +
-                    (showQueryButton ? 1 : 0) +
-                    (renderDetailButton ? 1 : 0) +
-                    (onViewAccess ? 1 : 0)
+                    (showAccessRequestStatus ? 1 : 0)
                   } textAlign={'center'}>
                     <FormattedMessage id="text.no_assets" />
                   </Td>
@@ -210,4 +369,4 @@ export function BaseAssetsTable({
       </DamCardBody>
     </DamCard>
   );
-} 
+}

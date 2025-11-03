@@ -31,7 +31,7 @@ export function Component() {
   const [isFormShow, setIsFormShow] = useState(false);
   const [isDelDlgOpen, setIsDelDlgOpen] = useState(false);
   const [deleteAssetId, setDeleteAssetId] = useState<number | null>(null);
-  
+
   // Lock/Unlock states
   const [isLockDialogOpen, setIsLockDialogOpen] = useState(false);
   const [lockDialogAsset, setLockDialogAsset] = useState<Asset | null>(null);
@@ -173,14 +173,14 @@ export function Component() {
 
   const handleLockConfirm = async (asset: Asset, lockAction: LockAction, lockType: LockType) => {
     setIsLockLoading(true);
-    
+
     try {
       // Defensive implementation - this is a critical operation
       if (!asset?.id) {
         throw new Error('Invalid asset selected');
       }
 
-      const endpoint = lockDialogAction === LockAction.LOCK 
+      const endpoint = lockDialogAction === LockAction.LOCK
         ? `/api/admin/assets/${asset.id}/lockout`
         : `/api/admin/assets/${asset.id}/unlock`;
 
@@ -199,8 +199,8 @@ export function Component() {
         successDescriptionId: lockDialogAction === LockAction.LOCK ? 'text.asset_lock_success' : 'text.asset_unlock_success',
         errorDescriptionId: lockDialogAction === LockAction.LOCK ? 'text.asset_lock_failed' : 'text.asset_unlock_failed'
       });
-      
-      
+
+
     } catch (error: any) {
       console.error(`${lockDialogAction} operation failed:`, error);
       showError({
@@ -227,7 +227,7 @@ export function Component() {
 
   const handleUpdateUser = (user: User, method: 'Add' | 'Remove') => {
     if (!manageUsersAsset) return;
-  
+
     setIsManageUsersLoading(true);
     request(`/api/admin/assets/${manageUsersAsset.id}/${manageUsersType}`, {
       method: 'POST',
@@ -259,7 +259,7 @@ export function Component() {
         setIsManageUsersLoading(false);
       });
   };
-  
+
   const handleAddUser = (user: User) => handleUpdateUser(user, 'Add');
   const handleRemoveUser = (user: User) => handleUpdateUser(user, 'Remove');
 
@@ -276,7 +276,7 @@ export function Component() {
 
   const handleSaveAsset = (assetData: Partial<AssetDTO>) => {
     if (!editAsset) return;
-    
+
     setIsEditAssetLoading(true);
     handleRequest(`/api/admin/assets/${editAsset.id}`, 'PUT', assetData, {
       onSuccess: () => {
@@ -338,7 +338,7 @@ export function Component() {
     setIsFormShow(false);
     setIsAssetOwnerModalOpen(false);
     setIsCreatingAsset(false);
-    
+
     // Show success message with instructions for asset owners
     showSuccess({
       title: intl.formatMessage({ id: 'text.asset_created' }),
@@ -347,14 +347,14 @@ export function Component() {
         { assetName: formState.name }
       )
     });
-    
+
     // Show additional message about asset owner instructions
     setTimeout(() => showAssetOwnerInstructions(owners), 2000);
   };
 
   const handleAssetOwnerSelection = async (owners: User[]) => {
     setIsCreatingAsset(true);
-    
+
     // Create the asset with the selected owners
     const assetData = {
       ...formState,
@@ -388,9 +388,9 @@ export function Component() {
         <DamCard>
           <DamCardBody>
             <Flex alignItems={'center'} w='full' justifyContent={'end'} my={3}>
-              <Button 
-                id="btnBulkUploadAssets" 
-                mr={2} 
+              <Button
+                id="btnBulkUploadAssets"
+                mr={2}
                 colorScheme="blue"
                 onClick={onBulkUploadOpen}
               >
@@ -512,15 +512,16 @@ export function Component() {
             )}
           </DamCardBody>
         </DamCard>
-            <AssetsTable
-              assets={assets}
-              selectedAsset={selectedAsset}
-              onSelectAsset={handleSelectAsset}
-              onDeleteAsset={deleteAsset}
+
+        <AssetsTable
+          assets={assets}
+          selectedAsset={selectedAsset}
+          onSelectAsset={handleSelectAsset}
+          onDeleteAsset={deleteAsset}
           onEditAsset={handleEditAsset}
-              onViewAccess={viewAssetAccess}
-              onLockAsset={handleLockAsset}
-              onUnlockAsset={handleUnlockAsset}
+          onViewAccess={viewAssetAccess}
+          onLockAsset={handleLockAsset}
+          onUnlockAsset={handleUnlockAsset}
           onManageUsers={handleManageUsers}
         />
       </Flex>
@@ -561,7 +562,7 @@ export function Component() {
         const ownersData = Array.isArray(getAssetOwners) ? getAssetOwners : getAssetOwners.content ?? [];
         const approversData = Array.isArray(getApprovers) ? getApprovers : getApprovers.content ?? [];
         const availableUsers = manageUsersType === 'owners' ? ownersData : approversData;
-        
+
         // Extract assigned users based on asset and management type
         const assetOwners = manageUsersAsset?.owners ?? [];
         const assetApprovers = manageUsersAsset?.approvers ?? [];

@@ -17,6 +17,7 @@ interface AssetsTableProps {
   readonly showQueryButton: boolean;
 }
 
+
 export function AssetsTable({
   assets,
   selectedAsset,
@@ -82,6 +83,12 @@ export function AssetsTable({
     )
   );
 
+  const handleRelinquishAccess = (asset: Asset) => {
+    if (asset.accessRequest) {
+      onRelinquishAccess(asset.accessRequest);
+    }
+  };
+
   return (
     <BaseAssetsTable
       assets={assets}
@@ -96,6 +103,16 @@ export function AssetsTable({
       onViewAccess={onViewAccess}
       showLockAsset={false}
       lockActions={() => null}
+      onDeleteAsset={(asset) => {
+        // For developers, this would be relinquish access or cancel request
+        if (asset.accessRequest?.assetApproverStatus === ApprovalStatus.APPROVED) {
+          handleRelinquishAccess(asset);
+        } else if (asset.accessRequest) {
+          handleRelinquishAccess(asset);
+        } else {
+          // No access request, can't delete
+        }
+      }}
     />
   );
 } 

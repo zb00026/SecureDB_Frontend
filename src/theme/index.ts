@@ -276,6 +276,63 @@ const components = {
       },
     },
   },
+  Table: {
+    parts: ['table', 'thead', 'tbody', 'tr', 'th', 'td'],
+    baseStyle: {
+      th: {
+        px: '10px',
+        py: '5px',
+      },
+      td: {
+        px: '10px',
+        py: '5px',
+      },
+    },
+    sizes: {
+      sm: {
+        th: {
+          px: '10px',
+          py: '5px',
+        },
+        td: {
+          px: '10px',
+          py: '5px',
+        },
+      },
+      md: {
+        th: {
+          px: '10px',
+          py: '5px',
+        },
+        td: {
+          px: '10px',
+          py: '5px',
+        },
+      },
+      lg: {
+        th: {
+          px: '10px',
+          py: '5px',
+        },
+        td: {
+          px: '10px',
+          py: '5px',
+        },
+      },
+    },
+    variants: {
+      simple: {
+        th: {
+          px: '10px',
+          py: '5px',
+        },
+        td: {
+          px: '10px',
+          py: '5px',
+        },
+      },
+    },
+  },
 };
 
 // Global styles
@@ -292,6 +349,17 @@ const styles = {
     },
     '*, *::before, &::after': {
       borderColor: props.colorMode === 'dark' ? 'gray.700' : 'gray.200',
+    },
+    // Table padding - apply to all Td and Th elements
+    'th, td': {
+      padding: '5px 10px !important',
+    },
+    // More specific selectors to ensure padding is applied
+    'table th, table td': {
+      padding: '5px 10px !important',
+    },
+    '[role="table"] th, [role="table"] td': {
+      padding: '5px 10px !important',
     },
     // Smooth scrolling
     html: {

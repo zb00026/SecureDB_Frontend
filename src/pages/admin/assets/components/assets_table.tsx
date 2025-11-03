@@ -1,5 +1,5 @@
 import { Flex, HStack, IconButton, Tooltip } from "@chakra-ui/react";
-import { EditIcon, DeleteIcon, ViewIcon, AtSignIcon } from "@chakra-ui/icons"; // Replace AtSignIcon with a better user icon if available
+import { EditIcon, DeleteIcon, ViewIcon, AtSignIcon } from "@chakra-ui/icons";
 import { Asset } from "@models/assets/Asset";
 import { useIntl } from "react-intl";
 import { BaseAssetsTable } from "./base_assets_table";
@@ -35,6 +35,7 @@ export function AssetsTable({
   const { snap } = useMyState();
   const user = snap.session.user;
   const intl = useIntl();
+
   // Check if user has admin or asset owner role
   const canViewAccess = userHasRole(user, USER_ROLE.ADMIN) || userHasRole(user, USER_ROLE.ASSET_OWNER);
 
@@ -144,6 +145,9 @@ export function AssetsTable({
     </HStack>
   );
 
+  const canManageUsers = userHasRole(user, USER_ROLE.ADMIN);
+  const canLockAsset = userHasRole(user, USER_ROLE.ADMIN);
+
   return (
     <BaseAssetsTable
       assets={assets}
@@ -153,6 +157,14 @@ export function AssetsTable({
       showLockAsset={true}
       lockActions={lockActions}
       onTerminalAsset={onTerminalAsset}
+      onEditAsset={onEditAsset}
+      onDeleteAsset={onDeleteAsset}
+      onViewAccess={onViewAccess}
+      onLockAsset={onLockAsset}
+      onUnlockAsset={onUnlockAsset}
+      onManageUsers={onManageUsers}
+      canManageUsers={canManageUsers}
+      canLockAsset={canLockAsset}
     />
   );
 } 

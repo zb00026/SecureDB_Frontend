@@ -3,14 +3,16 @@ import {
   useColorModeValue, Input, IconButton, Tooltip, VStack,
   Modal, ModalOverlay, ModalContent, ModalHeader, ModalCloseButton, ModalBody,
   useDisclosure,
-  Alert, AlertIcon, AlertTitle, AlertDescription, CloseButton, Box
+  Alert, AlertIcon, AlertTitle, AlertDescription, CloseButton, Box,
+  Checkbox, Text
 } from "@chakra-ui/react";
 import { DamBasePage } from "@common/components/DamBasePage";
-import { DamCardBody, DamCard, request, useDamToast, TextCardHeader, DamCardDivider, stateActions } from "@common/index";
+import { DamCardBody, DamCard, request, useDamToast, DamCardDivider, stateActions, ActionMenu, ActionMenuItem } from "@common/index";
+import { handleRowClick, handleCheckboxClick } from "@common/libs/utils/tableSelection";
 import { AssetCredential } from "@models/assets/AssetCredential";
 import { Asset } from "@models/assets/Asset";
 import { AssetDTO } from "@models/assets/AssetDTO";
-import { useEffect, useState, useRef } from "react";
+import React, { useEffect, useState, useRef, useMemo, useCallback } from "react";
 import { FormattedMessage, useIntl } from "react-intl";
 import { SetCredentialDialog } from "@common/components/DamDialog/SetCredentialDialog";
 import { SetSSHCredentialDialog } from "@common/components/DamDialog/SetSSHCredentialDialog";
@@ -30,50 +32,155 @@ export const displayName = 'Asset Owner Main Page';
 
 type ActiveTab = 'assets' | 'approvals' | 'changes' | 'masking';
 
+// Default empty edit form state
+const getDefaultEditFormState = (): AssetDTO => ({
+  name: '',
+  description: '',
+  hostAddress: '',
+  portNumber: '',
+  databaseName: '',
+  type: undefined,
+  databaseType: undefined,
+  unixServerType: undefined
+});
+
+// Helper function to create edit form state from asset
+const createEditFormState = (asset: Asset): AssetDTO => ({
+  name: asset.name,
+  description: asset.description,
+  hostAddress: asset.hostAddress,
+  portNumber: asset.portNumber,
+  databaseName: asset.databaseName,
+  type: asset.type,
+  databaseType: asset.databaseType,
+  unixServerType: asset.unixServerType,
+});
+
+// Helper function to check if tab is valid
+const isValidTab = (tab: string | null): tab is ActiveTab => {
+  return tab !== null && ['assets', 'approvals', 'changes', 'masking'].includes(tab);
+};
+
+// Helper function to check if credential needs setup
+const needsCredentialSetup = (credential: AssetCredential): boolean => {
+  return !credential.username && !credential.sshKeyFile;
+};
+
+// Helper function to check if asset is database type
+const isDatabaseAsset = (assetType: string | undefined): boolean => {
+  return assetType === 'DATABASE';
+};
+
+// Helper function to check if asset is Unix server type
+const isUnixServerAsset = (assetType: string | undefined): boolean => {
+  return assetType === 'UNIX_SERVER';
+};
+
+// Helper function to check if has database credentials
+const hasDatabaseCredentials = (credential: AssetCredential): boolean => {
+  return Boolean(credential.username && credential.password);
+};
+
+// Helper function to check if has SSH credentials
+const hasSSHCredentials = (credential: AssetCredential): boolean => {
+  return Boolean(credential.username && credential.sshKeyFile);
+};
+
+// Helper function to get row background style
+const getRowBackgroundStyle = (isRowSelected: boolean, isSelectedCredential: boolean) => {
+  if (isRowSelected) {
+    return {
+      backgroundColor: 'blue.50 !important',
+      _dark: {
+        backgroundColor: 'blue.900 !important'
+      }
+    };
+  }
+  if (isSelectedCredential) {
+    return {
+      _light: {
+        backgroundColor: 'gray.200'
+      },
+      _dark: {
+        backgroundColor: 'gray.600'
+      }
+    };
+  }
+  return {};
+};
+
+// Tab Button Component
+interface TabButtonProps {
+  readonly tab: ActiveTab;
+  readonly activeTab: ActiveTab;
+  readonly onTabClick: (tab: ActiveTab) => void;
+  readonly icon: React.ReactElement;
+  readonly messageId: string;
+}
+
+const TabButton = ({ tab, activeTab, onTabClick, icon, messageId }: TabButtonProps) => {
+  const isActive = activeTab === tab;
+  return (
+    <Button
+      variant={isActive ? 'solid' : 'ghost'}
+      colorScheme={isActive ? 'blue' : 'gray'}
+      onClick={() => onTabClick(tab)}
+      leftIcon={icon}
+      borderRadius="0"
+      borderBottom={isActive ? '2px solid' : 'none'}
+      borderBottomColor={isActive ? 'blue.500' : 'transparent'}
+    >
+      <FormattedMessage id={messageId} />
+    </Button>
+  );
+};
+
 export function Component() {
   const { showError, showSuccess } = useDamToast();
   const navigate = useNavigate();
   const location = useLocation();
   const [credentials, setCredentials] = useState<AssetCredential[]>([]);
   const [selectedCredential, setSelectedCredential] = useState<AssetCredential | null>(null);
+  const [selectedRowKeys, setSelectedRowKeys] = useState<string[]>([]);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [isSSHDialogOpen, setIsSSHDialogOpen] = useState(false);
   const [isDelDlgOpen, setIsDelDlgOpen] = useState(false);
   const [isTerminalModalOpen, setIsTerminalModalOpen] = useState(false);
   const [terminalAsset, setTerminalAsset] = useState<Asset | null>(null);
   const [editingAssetId, setEditingAssetId] = useState<number | null>(null);
-  const [editFormState, setEditFormState] = useState<AssetDTO>({
-    name: '',
-    description: '',
-    hostAddress: '',
-    portNumber: '',
-    databaseName: '',
-    type: undefined,
-    databaseType: undefined,
-    unixServerType: undefined
-  });
+  const [editFormState, setEditFormState] = useState<AssetDTO>(getDefaultEditFormState());
   const [activeTab, setActiveTab] = useState<ActiveTab>('assets');
   const [newAssetsRequiringCredentials, setNewAssetsRequiringCredentials] = useState<AssetCredential[]>([]);
   const [showNewAssetsAlert, setShowNewAssetsAlert] = useState(false);
 
-  // Check for tab preference from dashboard or URL parameters
-  useEffect(() => {
-    // Check URL parameters first
+  // Helper function to set tab from URL parameter
+  const setTabFromUrl = () => {
     const urlParams = new URLSearchParams(location.search);
     const tabParam = urlParams.get('tab');
 
-    if (tabParam && ['assets', 'approvals', 'changes', 'masking'].includes(tabParam)) {
-      setActiveTab(tabParam as ActiveTab);
-      // Clean up URL parameter
-      const newUrl = location.pathname;
-      navigate(newUrl, { replace: true });
-    } else {
-      // Check session storage for saved tab preference
-      const savedTab = sessionStorage.getItem('asset_owner_active_tab');
-      if (savedTab && ['assets', 'approvals', 'changes', 'masking'].includes(savedTab)) {
-        setActiveTab(savedTab as ActiveTab);
-        sessionStorage.removeItem('asset_owner_active_tab');
-      }
+    if (isValidTab(tabParam)) {
+      setActiveTab(tabParam);
+      navigate(location.pathname, { replace: true });
+      return true;
+    }
+    return false;
+  };
+
+  // Helper function to set tab from session storage
+  const setTabFromSession = () => {
+    const savedTab = sessionStorage.getItem('asset_owner_active_tab');
+    if (isValidTab(savedTab)) {
+      setActiveTab(savedTab);
+      sessionStorage.removeItem('asset_owner_active_tab');
+      return true;
+    }
+    return false;
+  };
+
+  // Check for tab preference from dashboard or URL parameters
+  useEffect(() => {
+    if (!setTabFromUrl()) {
+      setTabFromSession();
     }
   }, [location.search, navigate]);
   const selectedRowBg = useColorModeValue('gray.200', 'gray.700');
@@ -99,37 +206,39 @@ export function Component() {
     closeViewAccessModal
   } = useViewAccess({ apiEndpoint: '/api/asset_owner/assets' });
 
+  const intl = useIntl();
+
+  // Helper function to check and handle new assets requiring credentials
+  const handleNewAssetsCheck = (res: AssetCredential[]) => {
+    const newAssets = res.filter(needsCredentialSetup);
+
+    if (newAssets.length === 0) {
+      setNewAssetsRequiringCredentials([]);
+      setShowNewAssetsAlert(false);
+      return;
+    }
+
+    setNewAssetsRequiringCredentials(newAssets);
+    setShowNewAssetsAlert(true);
+    showSuccess({
+      title: intl.formatMessage({ id: 'text.new_assets_require_credentials' }),
+      description: intl.formatMessage(
+        { id: 'text.credential_setup_required' },
+        { count: newAssets.length }
+      )
+    });
+  };
+
   const fetchAssignedCredentials = () => {
     stateActions.addLoading();
     request('/api/asset_owner/assets/credentials', {})
       .then((res) => {
-        if (res.length > 0) {
-          setCredentials(res);
-
-          // Check for new assets that need credential setup
-          const newAssets = res.filter((credential: AssetCredential) =>
-            !credential.username && !credential.sshKeyFile
-          );
-
-          if (newAssets.length > 0) {
-            setNewAssetsRequiringCredentials(newAssets);
-            setShowNewAssetsAlert(true);
-
-            // Show alert to user about new assets requiring credentials
-            showSuccess({
-              title: intl.formatMessage({ id: 'text.new_assets_require_credentials' }),
-              description: intl.formatMessage(
-                { id: 'text.credential_setup_required' },
-                { count: newAssets.length }
-              )
-            });
-          } else {
-            setNewAssetsRequiringCredentials([]);
-            setShowNewAssetsAlert(false);
-          }
-        } else {
+        if (res.length === 0) {
           setCredentials([]);
+          return;
         }
+        setCredentials(res);
+        handleNewAssetsCheck(res);
       })
       .catch((e) => {
         showError({
@@ -139,66 +248,87 @@ export function Component() {
       .finally(() => {
         stateActions.subLoading();
       });
-  }
+  };
+
   useEffect(() => {
     fetchAssignedCredentials();
   }, []);
-  const intl = useIntl();
+
+  // Helper function to handle database credential request
+  const handleDatabaseCredentialRequest = (endpoint: string, method: string, data?: { username: string; password: string }) => {
+    return request(endpoint, { method, data })
+      .then(() => {
+        showSuccess({
+          description: intl.formatMessage({ id: 'text.credentials_set_success' }),
+        });
+        fetchAssignedCredentials();
+      })
+      .catch((e) => {
+        showError({
+          description: e.data?.error ?? intl.formatMessage({ id: 'text.error_occurred_setting_credentials' }),
+        });
+      })
+      .finally(() => {
+        stateActions.subLoading();
+      });
+  };
+
+  // Helper function to handle SSH credential request
+  const handleSSHCredentialRequest = (endpoint: string, method: string, data?: { username: string; sshKeyFile: string }) => {
+    return request(endpoint, { method, data })
+      .then(() => {
+        showSuccess({
+          description: intl.formatMessage({ id: 'text.ssh_credentials_set_success' }),
+        });
+        fetchAssignedCredentials();
+      })
+      .catch((e) => {
+        showError({
+          description: e.data?.error ?? intl.formatMessage({ id: 'text.error_occurred_setting_ssh_credentials' }),
+        });
+      })
+      .finally(() => {
+        stateActions.subLoading();
+      });
+  };
+
+  // Helper function to handle relinquish credential (generic for both database and SSH)
+  const handleRelinquishCredential = (endpoint: string, successMessageId: string, errorMessageId: string) => {
+    return request(endpoint, { method: 'DELETE' })
+      .then(() => {
+        showSuccess({
+          description: intl.formatMessage({ id: successMessageId }),
+        });
+        fetchAssignedCredentials();
+      })
+      .catch((e) => {
+        showError({
+          description: e.data?.error ?? intl.formatMessage({ id: errorMessageId }),
+        });
+      })
+      .finally(() => {
+        stateActions.subLoading();
+      });
+  };
 
   const handleSetCredential = (username: string, password: string) => {
-    if (!selectedCredential) return;
+    if (!selectedCredential || !isDatabaseAsset(selectedCredential.asset?.type)) return;
     stateActions.addLoading();
-
-    // Determine if it's a database or SSH credential based on asset type
-    const isDatabase = selectedCredential.asset?.type === 'DATABASE';
-
-    if (isDatabase) {
-      // For database credentials, set username and password
-      request(`/api/asset_owner/assets/credentials/${selectedCredential.id}`, {
-        method: 'POST',
-        data: { username, password }
-      })
-        .then(() => {
-          showSuccess({
-            description: intl.formatMessage({ id: 'text.credentials_set_success' }),
-          });
-          fetchAssignedCredentials();
-        })
-        .catch((e) => {
-          showError({
-            description: e.data?.error ?? intl.formatMessage({ id: 'text.error_occurred_setting_credentials' }),
-          });
-        });
-    }
+    handleDatabaseCredentialRequest(
+      `/api/asset_owner/assets/credentials/${selectedCredential.id}`,
+      'POST',
+      { username, password }
+    );
   };
 
   const handleSetSSHCredential = (username: string, sshPrivateKey: string) => {
-    if (!selectedCredential) return;
+    if (!selectedCredential || !isUnixServerAsset(selectedCredential.asset?.type)) return;
     stateActions.addLoading();
-
-    // Determine if it's a Unix Server credential based on asset type
-    const isUnixServer = selectedCredential.asset?.type === 'UNIX_SERVER';
-
-    if (isUnixServer) {
-
-
-      // Update existing SSH credentials
-      request(`/api/asset_owner/assets/ssh-credentials/${selectedCredential.id}`, {
-        method: 'PUT',
-        data: { username, sshKeyFile: sshPrivateKey }
-      })
-        .then(() => {
-          showSuccess({
-            description: intl.formatMessage({ id: 'text.ssh_credentials_set_success' }),
-          });
-          fetchAssignedCredentials();
-        })
-        .catch((e) => {
-          showError({
-            description: e.data?.error ?? intl.formatMessage({ id: 'text.error_occurred_setting_ssh_credentials' }),
-          });
-        });
-    }
+    handleSSHCredentialRequest(
+      `/api/asset_owner/assets/ssh-credentials/${selectedCredential.id}`,
+      'PUT',
+      { username, sshKeyFile: sshPrivateKey }
+    );
   };
 
   const handleRelinquish = () => {
@@ -206,105 +336,69 @@ export function Component() {
     setIsDelDlgOpen(false);
     stateActions.addLoading();
 
-    // Determine if it's a database or SSH credential based on asset type
-    const isDatabase = selectedCredential.asset?.type === 'DATABASE';
-    const isUnixServer = selectedCredential.asset?.type === 'UNIX_SERVER';
-
-    if (isDatabase) {
-      // For database credentials, clear username and password
-      request(`/api/asset_owner/assets/credentials/${selectedCredential.id}`, {
-        method: 'DELETE'
-      })
-        .then(() => {
-          showSuccess({
-            description: intl.formatMessage({ id: 'text.credentials_relinquished_success' }),
-          });
-          fetchAssignedCredentials();
-        })
-        .catch((e) => {
-          showError({
-            description: e.data?.error ?? intl.formatMessage({ id: 'text.error_occurred_relinquishing_credentials' }),
-          });
-        });
-    } else if (isUnixServer) {
-      // For SSH credentials, clear username and sshKeyFile using the SSH credentials endpoint
-      request(`/api/asset_owner/assets/ssh-credentials/${selectedCredential.id}`, {
-        method: 'DELETE'
-      })
-        .then(() => {
-          showSuccess({
-            description: intl.formatMessage({ id: 'text.ssh_credentials_relinquished_success' }),
-          });
-          fetchAssignedCredentials();
-        })
-        .catch((e) => {
-          showError({
-            description: e.data?.error ?? intl.formatMessage({ id: 'text.error_occurred_relinquishing_ssh_credentials' }),
-          });
-        });
+    const assetType = selectedCredential.asset?.type;
+    if (isDatabaseAsset(assetType)) {
+      handleRelinquishCredential(
+        `/api/asset_owner/assets/credentials/${selectedCredential.id}`,
+        'text.credentials_relinquished_success',
+        'text.error_occurred_relinquishing_credentials'
+      );
+      return;
     }
+    
+    if (isUnixServerAsset(assetType)) {
+      handleRelinquishCredential(
+        `/api/asset_owner/assets/ssh-credentials/${selectedCredential.id}`,
+        'text.ssh_credentials_relinquished_success',
+        'text.error_occurred_relinquishing_ssh_credentials'
+      );
+    }
+  };
+
+  // Helper function to reset edit form state
+  const resetEditForm = () => {
+    setEditingAssetId(null);
+    setEditFormState(getDefaultEditFormState());
+  };
+
+  // Helper function to handle asset update success
+  const handleAssetUpdateSuccess = () => {
+    showSuccess({
+      description: intl.formatMessage({ id: 'text.asset_updated_success' }),
+    });
+    resetEditForm();
+    fetchAssignedCredentials();
+  };
+
+  // Helper function to handle asset update error
+  const handleAssetUpdateError = (e: any) => {
+    showError({
+      description: e.data?.error ?? intl.formatMessage({ id: 'text.error_occurred_updating_asset' }),
+    });
   };
 
   const handleEditAsset = (credential: AssetCredential) => {
     if (!credential.asset) return;
     setEditingAssetId(credential.asset.id || null);
-    setEditFormState({
-      name: credential.asset.name,
-      description: credential.asset.description,
-      hostAddress: credential.asset.hostAddress,
-      portNumber: credential.asset.portNumber,
-      databaseName: credential.asset.databaseName,
-      type: credential.asset.type,
-      databaseType: credential.asset.databaseType,
-      unixServerType: credential.asset.unixServerType,
-    });
+    setEditFormState(createEditFormState(credential.asset));
   };
 
   const handleSaveAsset = () => {
     if (!editingAssetId) return;
     stateActions.addLoading();
-
-
     request(`/api/asset_owner/assets/${editingAssetId}`, {
       method: 'POST',
       data: editFormState
     })
-      .then(() => {
-        showSuccess({
-          description: intl.formatMessage({ id: 'text.asset_updated_success' }),
-        });
-        setEditingAssetId(null);
-        setEditFormState({
-          name: '',
-          description: '',
-          hostAddress: '',
-          portNumber: '',
-          databaseName: '',
-          type: undefined,
-          databaseType: undefined,
-          unixServerType: undefined
-        });
-        fetchAssignedCredentials();
-      })
-      .catch((e) => {
-        showError({
-          description: e.data?.error ?? intl.formatMessage({ id: 'text.error_occurred_updating_asset' }),
-        });
+      .then(handleAssetUpdateSuccess)
+      .catch(handleAssetUpdateError)
+      .finally(() => {
+        stateActions.subLoading();
       });
   };
 
   const handleCancelEdit = () => {
-    setEditingAssetId(null);
-    setEditFormState({
-      name: '',
-      description: '',
-      hostAddress: '',
-      portNumber: '',
-      databaseName: '',
-      type: undefined,
-      databaseType: undefined,
-      unixServerType: undefined
-    });
+    resetEditForm();
   };
 
   const handleOpenTerminal = (asset: Asset) => {
@@ -323,24 +417,19 @@ export function Component() {
 
   // Helper function to render credential status buttons
   const renderCredentialStatus = (credential: AssetCredential) => {
-    const isDatabase = credential.asset?.type === 'DATABASE';
-    const isUnixServer = credential.asset?.type === 'UNIX_SERVER';
-
-    if (isDatabase) {
+    const assetType = credential.asset?.type;
+    if (assetType === 'DATABASE') {
       return renderDatabaseCredentialStatus(credential);
     }
-
-    if (isUnixServer) {
+    if (assetType === 'UNIX_SERVER') {
       return renderSSHCredentialStatus(credential);
     }
-
     return null;
   };
 
   // Helper function for database credential status
   const renderDatabaseCredentialStatus = (credential: AssetCredential) => {
-    const hasDatabaseCredentials = credential.username && credential.password;
-    if (!hasDatabaseCredentials) {
+    if (!hasDatabaseCredentials(credential)) {
       return (
         <Flex gap={2} justifyContent={'center'} w='full'>
           <Button
@@ -390,8 +479,7 @@ export function Component() {
 
   // Helper function for SSH credential status
   const renderSSHCredentialStatus = (credential: AssetCredential) => {
-    const hasSSHCredentials = credential.username && credential.sshKeyFile;
-    if (!hasSSHCredentials) {
+    if (!hasSSHCredentials(credential)) {
       return (
         <Flex gap={2} justifyContent={'center'} w='full'>
           <Button
@@ -439,6 +527,89 @@ export function Component() {
     );
   };
 
+  const selectedRows = useMemo(() => {
+    return credentials.filter(cred => cred.id && selectedRowKeys.includes(String(cred.id)));
+  }, [credentials, selectedRowKeys]);
+
+  const selectAll = () => {
+    setSelectedRowKeys(credentials.filter(cred => cred.id).map(cred => String(cred.id)));
+  };
+
+  const deselectAll = () => {
+    setSelectedRowKeys([]);
+  };
+
+  // Wrapper functions for credential IDs
+  const handleCredentialRowClick = (credentialId: number) => {
+    handleRowClick(String(credentialId), selectedRowKeys, setSelectedRowKeys);
+  };
+
+  const handleCredentialCheckboxClick = (credentialId: number, checked: boolean) => {
+    handleCheckboxClick(String(credentialId), checked, selectedRowKeys, setSelectedRowKeys);
+  };
+
+  const isAllSelected = credentials.length > 0 && selectedRowKeys.length === credentials.length;
+  const isIndeterminate = selectedRowKeys.length > 0 && selectedRowKeys.length < credentials.length;
+
+  // Helper function to build action menu items for database assets
+  const buildDatabaseMenuItems = useCallback((selectedCredential: AssetCredential): ActionMenuItem[] => {
+    const items: ActionMenuItem[] = [
+      { label: 'Edit Asset', onClick: () => handleEditAsset(selectedCredential), colorScheme: 'orange', variant: 'outline' },
+      { label: 'View Access', onClick: () => viewAssetAccess(selectedCredential), colorScheme: 'blue', variant: 'outline' },
+      { label: 'Query Database', onClick: () => handleOpenQuery(selectedCredential.asset as Asset), colorScheme: 'green', variant: 'outline' }
+    ];
+    
+    if (!hasDatabaseCredentials(selectedCredential)) {
+      items.push({ label: 'Set Credential', onClick: () => { setSelectedCredential(selectedCredential); setIsDialogOpen(true); }, colorScheme: 'green', variant: 'outline' });
+      return items;
+    }
+    
+    items.push(
+      { label: 'Update Credential', onClick: () => { setSelectedCredential(selectedCredential); setIsDialogOpen(true); }, colorScheme: 'yellow', variant: 'outline' },
+      { label: 'Relinquish Credential', onClick: () => { setSelectedCredential(selectedCredential); setIsDelDlgOpen(true); }, colorScheme: 'red', variant: 'outline' }
+    );
+    return items;
+  }, [handleEditAsset, viewAssetAccess, handleOpenQuery, setSelectedCredential, setIsDialogOpen, setIsDelDlgOpen]);
+
+  // Helper function to build action menu items for Unix server assets
+  const buildUnixServerMenuItems = useCallback((selectedCredential: AssetCredential): ActionMenuItem[] => {
+    const items: ActionMenuItem[] = [
+      { label: 'Edit Asset', onClick: () => handleEditAsset(selectedCredential), colorScheme: 'orange', variant: 'outline' }
+    ];
+    
+    if (!hasSSHCredentials(selectedCredential)) {
+      items.push({ label: 'Set SSH Credential', onClick: () => { setSelectedCredential(selectedCredential); setIsSSHDialogOpen(true); }, colorScheme: 'green', variant: 'outline' });
+      return items;
+    }
+    
+    items.push(
+      { label: 'Terminal Access', onClick: () => handleOpenTerminal(selectedCredential.asset as Asset), colorScheme: 'purple', variant: 'outline' },
+      { label: 'Update SSH Credential', onClick: () => { setSelectedCredential(selectedCredential); setIsSSHDialogOpen(true); }, colorScheme: 'yellow', variant: 'outline' },
+      { label: 'Relinquish SSH Credential', onClick: () => { setSelectedCredential(selectedCredential); setIsDelDlgOpen(true); }, colorScheme: 'red', variant: 'outline' }
+    );
+    return items;
+  }, [handleEditAsset, handleOpenTerminal, setSelectedCredential, setIsSSHDialogOpen, setIsDelDlgOpen]);
+
+  // Build action menu items based on selected rows
+  const actionMenuItems: ActionMenuItem[] = useMemo(() => {
+    const singleSelected = selectedRows.length === 1;
+    const selectedCredential = singleSelected ? selectedRows[0] : null;
+
+    if (!selectedCredential || !singleSelected) {
+      return [];
+    }
+
+    const assetType = selectedCredential.asset?.type;
+    if (assetType === 'DATABASE') {
+      return buildDatabaseMenuItems(selectedCredential);
+    }
+    if (assetType === 'UNIX_SERVER') {
+      return buildUnixServerMenuItems(selectedCredential);
+    }
+    
+    return [{ label: 'Edit Asset', onClick: () => handleEditAsset(selectedCredential), colorScheme: 'orange', variant: 'outline' }];
+  }, [selectedRows, buildDatabaseMenuItems, buildUnixServerMenuItems, handleEditAsset]);
+
   const renderAssetCell = (asset: Asset | undefined, field: keyof Asset, isEditing: boolean) => {
     if (!asset) return '-';
 
@@ -460,6 +631,72 @@ export function Component() {
     // For read-only fields (type, databaseType, unixServerType), show the original asset value
     const value = asset[field];
     return typeof value === 'string' || typeof value === 'number' ? String(value) : '-';
+  };
+
+  // Helper function to render table rows
+  const renderTableRows = () => {
+    if (credentials.length === 0) {
+      return (
+        <Tr>
+          <Td colSpan={10} textAlign={'center'}>
+            <FormattedMessage id="text.no_asset_credentials" />
+          </Td>
+        </Tr>
+      );
+    }
+
+    return (
+      <>
+        {credentials.map((credential) => {
+          if (!credential.id) return null;
+          const isEditing = editingAssetId === credential.asset?.id;
+          const isDatabase = isDatabaseAsset(credential.asset?.type);
+          const isRowSelected = selectedRowKeys.includes(String(credential.id));
+          const isSelectedCredential = credential.asset?.id === selectedCredential?.asset?.id;
+          const rowBackgroundStyle = getRowBackgroundStyle(isRowSelected, isSelectedCredential);
+
+          return (
+            <Tr
+              key={credential.id}
+              sx={{
+                _hover: {
+                  backgroundColor: 'gray.100',
+                  _dark: {
+                    backgroundColor: 'gray.700'
+                  }
+                },
+                ...rowBackgroundStyle
+              }}
+              cursor="pointer"
+              onClick={() => {
+                if (credential.id) {
+                  handleCredentialRowClick(credential.id);
+                }
+                setSelectedCredential(credential);
+              }}
+            >
+              <Td onClick={(e) => e.stopPropagation()}>
+                <Checkbox
+                  isChecked={isRowSelected}
+                  onChange={(e) => {
+                    e.stopPropagation();
+                    credential.id && handleCredentialCheckboxClick(credential.id, e.target.checked);
+                  }}
+                  onClick={(e) => e.stopPropagation()}
+                />
+              </Td>
+              <Td>{renderAssetCell(credential.asset, 'name', isEditing)}</Td>
+              <Td>{credential.asset?.type}</Td>
+              <Td>{isDatabase ? (credential.asset?.databaseType ?? '-') : (credential.asset?.unixServerType ?? '-')}</Td>
+              <Td>{renderAssetCell(credential.asset, 'hostAddress', isEditing)}</Td>
+              <Td>{renderAssetCell(credential.asset, 'portNumber', isEditing)}</Td>
+              <Td>{isDatabase ? renderAssetCell(credential.asset, 'databaseName', isEditing) : '-'}</Td>
+              <Td>{renderAssetCell(credential.asset, 'description', isEditing)}</Td>
+            </Tr>
+          );
+        })}
+      </>
+    );
   };
 
   return (
@@ -491,50 +728,34 @@ export function Component() {
         )}
         {/* Tab Navigation */}
         <Flex mt={4} borderBottom="1px" borderColor={borderColor}>
-          <Button
-            variant={activeTab === 'assets' ? 'solid' : 'ghost'}
-            colorScheme={activeTab === 'assets' ? 'blue' : 'gray'}
-            onClick={() => setActiveTab('assets')}
-            leftIcon={<FiDatabase />}
-            borderRadius="0"
-            borderBottom={activeTab === 'assets' ? '2px solid' : 'none'}
-            borderBottomColor={activeTab === 'assets' ? 'blue.500' : 'transparent'}
-          >
-            <FormattedMessage id="text.assets" />
-          </Button>
-          <Button
-            variant={activeTab === 'approvals' ? 'solid' : 'ghost'}
-            colorScheme={activeTab === 'approvals' ? 'blue' : 'gray'}
-            onClick={() => setActiveTab('approvals')}
-            leftIcon={<FiCheckCircle />}
-            borderRadius="0"
-            borderBottom={activeTab === 'approvals' ? '2px solid' : 'none'}
-            borderBottomColor={activeTab === 'approvals' ? 'blue.500' : 'transparent'}
-          >
-            <FormattedMessage id="text.asset_request_approvals" />
-          </Button>
-          <Button
-            variant={activeTab === 'changes' ? 'solid' : 'ghost'}
-            colorScheme={activeTab === 'changes' ? 'blue' : 'gray'}
-            onClick={() => setActiveTab('changes')}
-            leftIcon={<FiEdit />}
-            borderRadius="0"
-            borderBottom={activeTab === 'changes' ? '2px solid' : 'none'}
-            borderBottomColor={activeTab === 'changes' ? 'blue.500' : 'transparent'}
-          >
-            <FormattedMessage id="text.change_requests" />
-          </Button>
-          <Button
-            variant={activeTab === 'masking' ? 'solid' : 'ghost'}
-            colorScheme={activeTab === 'masking' ? 'blue' : 'gray'}
-            onClick={() => setActiveTab('masking')}
-            leftIcon={<FiShield />}
-            borderRadius="0"
-            borderBottom={activeTab === 'masking' ? '2px solid' : 'none'}
-            borderBottomColor={activeTab === 'masking' ? 'blue.500' : 'transparent'}
-          >
-            <FormattedMessage id="text.data_masking" />
-          </Button>
+          <TabButton
+            tab="assets"
+            activeTab={activeTab}
+            onTabClick={setActiveTab}
+            icon={<FiDatabase />}
+            messageId="text.assets"
+          />
+          <TabButton
+            tab="approvals"
+            activeTab={activeTab}
+            onTabClick={setActiveTab}
+            icon={<FiCheckCircle />}
+            messageId="text.asset_request_approvals"
+          />
+          <TabButton
+            tab="changes"
+            activeTab={activeTab}
+            onTabClick={setActiveTab}
+            icon={<FiEdit />}
+            messageId="text.change_requests"
+          />
+          <TabButton
+            tab="masking"
+            activeTab={activeTab}
+            onTabClick={setActiveTab}
+            icon={<FiShield />}
+            messageId="text.data_masking"
+          />
         </Flex>
 
         {/* Assets Tab */}
@@ -542,12 +763,35 @@ export function Component() {
           <Flex mt={2} flexDirection={'column'} gap={2}>
             <DamCard mt={0}>
               <DamCardBody>
+                {/* AWS-style Header with Selection Count and Actions */}
+                <Flex justify="space-between" align="center" my={2} minH="32px" gap={2} pl={2}>
+                  <Flex align="center" gap={2} minH="32px">
+                    <Text fontSize="md" fontWeight="semibold" mb={0} lineHeight="32px">
+                      <FormattedMessage id='text.assets' />
+                      {selectedRows.length > 0 && ` (${selectedRows.length} selected)`}
+                    </Text>
+                  </Flex>
+                  <ActionMenu
+                    items={actionMenuItems}
+                    hasSelection={selectedRows.length === 1}
+                    selectedCount={selectedRows.length}
+                    variant="buttons"
+                  /> 
+                </Flex>
+
                 <DamCardDivider />
 
                 <TableContainer width='100%'>
-                  <Table variant='simple' id="tblAssetCredentials">
+                  <Table variant='simple' id="tblAssetCredentials" size="sm">
                     <Thead>
                       <Tr>
+                        <Th width="40px">
+                          <Checkbox
+                            isChecked={isAllSelected}
+                            isIndeterminate={isIndeterminate}
+                            onChange={(e) => e.target.checked ? selectAll() : deselectAll()}
+                          />
+                        </Th>
                         <Th><FormattedMessage id='text.name' /></Th>
                         <Th><FormattedMessage id='text.type' /></Th>
                         <Th><FormattedMessage id='text.asset_subtype' /></Th>
@@ -555,134 +799,10 @@ export function Component() {
                         <Th><FormattedMessage id='text.port_number' /></Th>
                         <Th><FormattedMessage id='text.database_name' /></Th>
                         <Th><FormattedMessage id='text.description' /></Th>
-                        <Th textAlign={'center'}><FormattedMessage id='text.status' /></Th>
-                        <Th textAlign={'center'}><FormattedMessage id='text.actions' /></Th>
                       </Tr>
                     </Thead>
                     <Tbody maxHeight={500}>
-                      {credentials.length > 0 ? (
-                        <>
-                          {credentials.map((credential) => {
-                            const isEditing = editingAssetId === credential.asset?.id;
-                            const isDatabase = credential.asset?.type === 'DATABASE';
-                            const isUnixServer = credential.asset?.type === 'UNIX_SERVER';
-
-                            return (
-                              <Tr key={credential.id}
-                                backgroundColor={credential.asset?.id === selectedCredential?.asset?.id ? selectedRowBg : 'transparent'}
-                                onClick={() => setSelectedCredential(credential)}>
-                                <Td>{renderAssetCell(credential.asset, 'name', isEditing)}</Td>
-                                <Td>{credential.asset?.type}</Td>
-                                <Td>{isDatabase ? (credential.asset?.databaseType ?? '-') : (credential.asset?.unixServerType ?? '-')}</Td>
-                                <Td>{renderAssetCell(credential.asset, 'hostAddress', isEditing)}</Td>
-                                <Td>{renderAssetCell(credential.asset, 'portNumber', isEditing)}</Td>
-                                <Td>{isDatabase ? renderAssetCell(credential.asset, 'databaseName', isEditing) : '-'}</Td>
-                                <Td>{renderAssetCell(credential.asset, 'description', isEditing)}</Td>
-                                <Td textAlign={'center'}>
-                                  {renderCredentialStatus(credential)}
-                                </Td>
-                                <Td textAlign={'center'}>
-                                  <Flex gap={2} justifyContent={'center'}>
-                                    {isDatabase && (
-                                      <>
-                                        <Button
-                                          size="sm"
-                                          colorScheme="blue"
-                                          variant="outline"
-                                          onClick={(e) => {
-                                            e.stopPropagation();
-                                            console.log('View Access clicked for credential:', credential);
-                                            viewAssetAccess(credential);
-                                          }}
-                                        >
-                                          <FormattedMessage id="text.view_access" />
-                                        </Button>
-                                        <Button
-                                          size="sm"
-                                          colorScheme="green"
-                                          variant="outline"
-                                          leftIcon={<FiSearch />}
-                                          onClick={(e) => {
-                                            e.stopPropagation();
-                                            handleOpenQuery(credential.asset as Asset);
-                                          }}
-                                        >
-                                          <FormattedMessage id="text.query_database" />
-                                        </Button>
-                                      </>
-                                    )}
-
-                                    {isUnixServer && credential.username && credential.sshKeyFile && (
-                                      <Button
-                                        size="sm"
-                                        colorScheme="purple"
-                                        variant="outline"
-                                        leftIcon={<FiTerminal />}
-                                        onClick={(e) => {
-                                          e.stopPropagation();
-                                          handleOpenTerminal(credential.asset as Asset);
-                                        }}
-                                      >
-                                        <FormattedMessage id="text.terminal_access" />
-                                      </Button>
-                                    )}
-
-                                    {isEditing ? (
-                                      <>
-                                        <Tooltip label="Save changes" placement="top">
-                                          <IconButton
-                                            size="sm"
-                                            colorScheme="green"
-                                            aria-label="Save asset"
-                                            icon={<FiSave />}
-                                            onClick={(e) => {
-                                              e.stopPropagation();
-                                              handleSaveAsset();
-                                            }}
-                                          />
-                                        </Tooltip>
-                                        <Tooltip label="Cancel edit" placement="top">
-                                          <IconButton
-                                            size="sm"
-                                            colorScheme="gray"
-                                            aria-label="Cancel edit"
-                                            icon={<FiX />}
-                                            onClick={(e) => {
-                                              e.stopPropagation();
-                                              handleCancelEdit();
-                                            }}
-                                          />
-                                        </Tooltip>
-                                      </>
-                                    ) : (
-                                      <Tooltip label="Edit asset" placement="top">
-                                        <IconButton
-                                          size="sm"
-                                          colorScheme="orange"
-                                          variant="outline"
-                                          aria-label="Edit asset"
-                                          icon={<FiEdit />}
-                                          onClick={(e) => {
-                                            e.stopPropagation();
-                                            handleEditAsset(credential);
-                                          }}
-                                        />
-                                      </Tooltip>
-                                    )}
-                                  </Flex>
-                                </Td>
-                              </Tr>
-                            );
-                          })}
-                        </>
-                      ) : (
-                        <Tr>
-                          <Td colSpan={9} textAlign={'center'}>
-                            <FormattedMessage id="text.no_asset_credentials" />
-                          </Td>
-                        </Tr>
-                      )}
-
+                      {renderTableRows()}
                     </Tbody>
                   </Table>
                 </TableContainer>

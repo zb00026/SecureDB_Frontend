@@ -157,7 +157,6 @@ export function userHasRole(user?: User, roleName?: string): boolean {
       hasRole = true;
     }
   });
-
   return hasRole;
 }
 

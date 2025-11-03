@@ -1,4 +1,4 @@
-import { Box, Flex, Input, Select, Grid, GridItem, useColorMode, useColorModeValue, Alert, AlertIcon, Text, Button, useDisclosure, Tooltip, Tabs, TabList, TabPanels, Tab, TabPanel } from "@chakra-ui/react";
+import { Box, Flex, Input, Select, Grid, GridItem, useColorMode, useColorModeValue, Alert, AlertIcon, Text, Button, useDisclosure, Tooltip, Tabs, TabList, TabPanels, Tab, TabPanel, IconButton, Icon } from "@chakra-ui/react";
 import { Global, css } from "@emotion/react";
 import { DamBasePage } from "@common/components/DamBasePage";
 import { useRoleBasedAuditTrail } from "@common/hooks/useRoleBasedAuditTrail";
@@ -11,7 +11,7 @@ import { PrimaryButton, useMyState, useAssetsForAudit, useDamToast } from "@comm
 import { DamTable } from "@common/components/DamTable";
 import { AuditChangesDialog } from "@common/components/DamDialog/AuditChangesDialog";
 import { useState } from "react";
-import { FiDownload } from "react-icons/fi";
+import { FiDownload, FiEye } from "react-icons/fi";
 import { AuditStatsCharts } from "./components/AuditStatsCharts";
 
 export const isSearchable = true;
@@ -104,20 +104,30 @@ export function Component() {
       key: 'instanceId',
     },
     {
-      title: 'Changes',
-      dataIndex: 'changes',
-      key: 'changes',
-      render: (text: any, record: any) => (
-        <Button
-          size="sm"
-          variant="outline"
-          colorScheme="blue"
-          onClick={() => handleViewChanges(record)}
-          isDisabled={!record.previousValue && !record.newValue}
-        >
-          <FormattedMessage id="text.view_changes" />
-        </Button>
-      ),
+      title: '',
+      dataIndex: 'id',
+      key: 'viewChanges',
+      width: '60px',
+      render: (_: any, record: any) => {
+        const hasChanges = record.previousValue || record.newValue;
+        if (!hasChanges) return null;
+        
+        return (
+          <Tooltip label={intl.formatMessage({ id: 'text.view_changes' })} placement="top" hasArrow>
+            <IconButton
+              aria-label={intl.formatMessage({ id: 'text.view_changes' })}
+              icon={<Icon as={FiEye} />}
+              size="sm"
+              variant="ghost"
+              colorScheme="blue"
+              onClick={(e) => {
+                e.stopPropagation();
+                handleViewChanges(record);
+              }}
+            />
+          </Tooltip>
+        );
+      },
     },
   ];
 
@@ -386,12 +396,17 @@ export function Component() {
                 </Flex>
               </Box>
 
+              <Text fontSize="md" fontWeight="semibold" mb={4}>
+                <FormattedMessage id="text.audit_logs" />
+              </Text>
+
               <DamTable
                 id="tableAuditTrail"
                 columns={columns}
                 dataSource={(Array.isArray(getData) ? getData : getData?.content) || []}
                 pagination={pagination}
                 rowKey="id"
+                selectable={false}
               />
             </TabPanel>
 

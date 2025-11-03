@@ -1,14 +1,15 @@
 import {
   Box, Button, Text, Flex, Input, Table, TableContainer, Tbody, Td, Th, Thead, Tr, useColorModeValue,
-  IconButton, useDisclosure, HStack, InputGroup, InputLeftElement, Badge, Tooltip, VStack
+  IconButton, useDisclosure, HStack, InputGroup, InputLeftElement, Badge, Tooltip, VStack, Checkbox
 } from "@chakra-ui/react";
-import { DamButton, DamCard, DamCardBody, request, stateActions, useListPage, useDamToast, userHasRole, BulkUploadModal, BulkUploadConfig } from "@common/index";
+import { DamButton, DamCard, DamCardBody, request, stateActions, useListPage, useDamToast, userHasRole, BulkUploadModal, BulkUploadConfig, ActionMenu, ActionMenuItem } from "@common/index";
+import { handleRowClick, handleCheckboxClick } from "@common/libs/utils/tableSelection";
 import { DamAlertDialog } from "@common/components/DamDialog/DamAlertDialog";
 import { useApiRequest } from "@common/hooks/useApiRequest";
 import { Role } from "@models/Role";
 import { User } from "@models/User";
 import { ConfigProvider } from "antd";
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useMemo } from "react";
 import { FormattedMessage, useIntl } from "react-intl";
 import { MultiValue, Select } from 'chakra-react-select';
 import { AUTH_PROVIDER, USER_ROLE } from "@/constants/enums";
@@ -41,7 +42,6 @@ export function Component() {
   const [deleteUserId, setDeleteUserId] = useState<number | null>(null);
   const [roleOptions, setRoleOptions] = useState<Array<RoleOption>>([]);
   const defauleDark = useColorModeValue("ant", "antdark");
-  const selectedRowBg = useColorModeValue('gray.200', 'gray.700');
   const [approvers, setApprovers] = useState<Array<User>>([]);
   const [isApproversDlgOpen, setIsApproversDlgOpen] = useState<boolean>(false);
   const [isUnsetApproverDlgOpen, setIsUnsetApproverDlgOpen] = useState<boolean>(false);
@@ -56,6 +56,9 @@ export function Component() {
   const [searchTerm, setSearchTerm] = useState('');
   const [isSearchActive, setIsSearchActive] = useState(false);
   
+  // Row selection state
+  const [selectedRowKeys, setSelectedRowKeys] = useState<readonly string[]>([]);
+    
   const { isOpen: isBulkUploadOpen, onOpen: onBulkUploadOpen, onClose: onBulkUploadClose } = useDisclosure();
 
   const { getData, getList } = useListPage<User>({
@@ -343,10 +346,12 @@ export function Component() {
       errorDescriptionId: 'text.user_delete_failed'
     });
   };
+  
   const askDelete = (id: number) => {
     setDeleteUserId(id);
     setIsDelDlgOpen(true);
   }
+  
   const closeAskDialog = () => {
     setDeleteUserId(null);
     setIsDelDlgOpen(false);
@@ -385,32 +390,152 @@ export function Component() {
   }
 
   const handleActivateUser = (user: User) => {
-    handleRequest(`/api/admin/users/activate/${user.id}`, 'PUT', {}, {
-      onSuccess: () => {
-        getList({});
-      },
-      successTitleId: 'text.user_activated',
-      successDescriptionId: 'text.user_activation_success',
-      errorDescriptionId: 'text.user_activation_failed'
-    });
+    return request(`/api/admin/users/activate/${user.id}`, { method: 'PUT' });
   }
 
   const handleDeactivateUser = (user: User) => {
-    handleRequest(`/api/admin/users/deactivate/${user.id}`, 'PUT', {}, {
-      onSuccess: () => {
-        getList({});
-      },
-      successTitleId: 'text.user_deactivated',
-      successDescriptionId: 'text.user_deactivation_success',
-      errorDescriptionId: 'text.user_deactivation_failed'
-    });
+    return request(`/api/admin/users/deactivate/${user.id}`, { method: 'PUT' });
   }
 
   const canSetApprover = (user: User) => {
     return !(approvers.length == 1 && approvers[0].id === user.id);
   }
-
   
+  // Computed selected rows
+  const selectedRows = useMemo(() => {
+    return users.filter(user => user.id && selectedRowKeys.includes(String(user.id)));
+  }, [users, selectedRowKeys]);
+
+  const selectAll = () => {
+    const allKeys = users.filter(user => user.id).map(user => String(user.id));
+    setSelectedRowKeys(allKeys);
+  };
+
+  const deselectAll = () => {
+    setSelectedRowKeys([]);
+  };
+
+  // Helper function to handle success/error for user operations
+  const handleUserOperation = (
+    promise: Promise<any>,
+    successTitle: string,
+    successDescription: string,
+    errorMessageId: string
+  ) => {
+    promise
+      .then(() => {
+        showSuccess({
+          title: intl.formatMessage({ id: successTitle }),
+          description: intl.formatMessage({ id: successDescription })
+        });
+        setSelectedRowKeys([]);
+        getList({});
+      })
+      .catch((error: any) => {
+        showError({
+          description: error?.response?.data?.error ?? intl.formatMessage({ id: errorMessageId })
+        });
+      });
+  };
+
+  // Wrapper functions for user IDs
+  const handleUserRowClick = (userId: number) => {
+    handleRowClick(String(userId), selectedRowKeys, setSelectedRowKeys);
+  };
+
+  const handleUserCheckboxClick = (userId: number, checked: boolean) => {
+    handleCheckboxClick(String(userId), checked, selectedRowKeys, setSelectedRowKeys);
+  };
+
+  const isAllSelected = users.length > 0 && selectedRowKeys.length === users.filter(user => user.id).length;
+  const isIndeterminate = selectedRowKeys.length > 0 && selectedRowKeys.length < users.filter(user => user.id).length;
+
+  // Build action menu items based on selected rows
+  const actionMenuItems: ActionMenuItem[] = useMemo(() => {
+    const items: ActionMenuItem[] = [];
+    const singleSelected = selectedRows.length === 1;
+    const selectedUserForActions = singleSelected ? selectedRows[0] : null;
+
+    // Edit User (single selection only)
+    if (singleSelected && selectedUserForActions) {
+      items.push({
+        label: 'Edit',
+        onClick: () => handleSelectUser(selectedUserForActions),
+        colorScheme: 'blue',
+        variant: 'outline',
+      });
+    }
+
+    // Set Approver (single selection only)
+    if (singleSelected && selectedUserForActions && !selectedUserForActions.approver && canSetApprover(selectedUserForActions)) {
+      items.push({
+        label: 'Set Approver',
+        onClick: () => setIsApproversDlgOpen(true),
+        colorScheme: 'green',
+        variant: 'outline',
+      });
+    }
+
+    // Unset Approver (single selection only)
+    if (singleSelected && selectedUserForActions?.approver) {
+      items.push({
+        label: 'Unset Approver',
+        onClick: () => setIsUnsetApproverDlgOpen(true),
+        colorScheme: 'orange',
+        variant: 'outline',
+      });
+    }
+
+    // Activate User (single selection only)
+    const inactiveUsers = selectedRows.filter(user => !user.isActive);
+    if (singleSelected && inactiveUsers.length > 0 && selectedUserForActions) {
+      items.push({
+        label: 'Activate',
+        onClick: () => {
+          handleUserOperation(
+            handleActivateUser(selectedUserForActions),
+            'text.user_activated',
+            'text.user_activation_success',
+            'text.user_activation_failed'
+          );
+        },
+        colorScheme: 'green',
+        variant: 'outline',
+      });
+    }
+
+    // Deactivate User (single selection only)
+    const activeUsers = selectedRows.filter(user => user.isActive);
+    if (singleSelected && activeUsers.length > 0 && selectedUserForActions) {
+      items.push({
+        label: 'Deactivate',
+        onClick: () => {
+          handleUserOperation(
+            handleDeactivateUser(selectedUserForActions),
+            'text.user_deactivated',
+            'text.user_deactivation_success',
+            'text.user_deactivation_failed'
+          );
+        },
+        colorScheme: 'orange',
+        variant: 'outline',
+      });
+    }
+
+    // Delete User (single selection only)
+    if (singleSelected && selectedUserForActions) {
+      items.push({
+        label: 'Delete',
+        onClick: () => {
+          askDelete(selectedUserForActions.id);
+        },
+        colorScheme: 'red',
+        variant: 'outline',
+      });
+    }
+
+    return items;
+  }, [selectedRows, approvers, handleSelectUser, askDelete, canSetApprover, handleActivateUser, handleDeactivateUser, intl, showSuccess, showError, getList]);
 
   return (
     <DamBasePage
@@ -554,10 +679,14 @@ export function Component() {
                   gap={3}
                   direction={{ base: "column", md: "row" }}
                   w="100%"
+                  minH={{ base: "auto", md: "32px" }}
                 >
-                  <Text fontSize="lg" fontWeight="bold" flexShrink={0} minW="fit-content" mb={{ base: 2, md: 0 }}>
-                    <FormattedMessage id="text.users" />
-                  </Text>
+                  <Flex align="center" gap={2} minH="32px">
+                    <Text fontSize="lg" fontWeight="bold" flexShrink={0} minW="fit-content" mb={{ base: 2, md: 0 }} lineHeight="32px">
+                      <FormattedMessage id="text.users" />
+                      {selectedRows.length > 0 && ` (${selectedRows.length} selected)`}
+                    </Text>
+                  </Flex>
                   
                   {/* Search Section */}
                   <Flex flex="1" justify="center" maxW={{ base: "100%", md: "400px" }} mx={4}>
@@ -634,7 +763,16 @@ export function Component() {
                     flexShrink={0}
                     flex={{ base: "none", md: "0" }}
                     w={{ base: "100%", md: "auto" }}
+                    align="center"
+                    gap={3}
+                    minH={{ base: "auto", md: "32px" }}
                   >
+                    <ActionMenu
+                      items={actionMenuItems}
+                      hasSelection={selectedRows.length === 1}
+                      selectedCount={selectedRows.length}
+                      variant="buttons"
+                    />
                     <HStack spacing={3}>
                       <DamButton
                         size="sm"
@@ -666,6 +804,13 @@ export function Component() {
                     <Table variant='simple' size='md' w='100%'>
                       <Thead>
                         <Tr>
+                          <Th width="40px">
+                            <Checkbox
+                              isChecked={isAllSelected}
+                              isIndeterminate={isIndeterminate}
+                              onChange={(e) => e.target.checked ? selectAll() : deselectAll()}
+                            />
+                          </Th>
                           <Th><FormattedMessage id='text.id' /></Th>
                           <Th><FormattedMessage id='text.first_name' /></Th>
                           <Th><FormattedMessage id='text.last_name' /></Th>
@@ -673,105 +818,104 @@ export function Component() {
                           <Th><FormattedMessage id='text.status' /></Th>
                           <Th><FormattedMessage id='text.approver' /></Th>
                           <Th><FormattedMessage id='text.role' /></Th>
-                          <Th><FormattedMessage id='text.actions' /></Th>
                         </Tr>
                       </Thead>
                       <Tbody>
                         {users && users.length > 0 ? (
-                          users.map((user) => (
-                            <Tr key={user.id}
-                              onClick={() => handleSelectUser(user)}
-                              cursor={'pointer'}
-                              backgroundColor={user.id === selectedUser?.id ? selectedRowBg : 'transparent'}>
-                              <Td>{user.id}</Td>
-                              <Td>{user.firstName}</Td>
-                              <Td>{user.lastName}</Td>
-                              <Td>{user.email}</Td>
-                              <Td>
-                                <Text
-                                  color={user.isActive ? 'green.500' : 'red.500'}
-                                  fontWeight="bold"
-                                  fontSize="sm"
-                                >
-                                  {user.isActive ? 'Active' : 'Inactive'}
-                                </Text>
-                              </Td>
-                              <Td>
-                                {user.approver ?
-                                  <Flex
-                                    alignItems={'center'}
-                                    gap={2}
+                          users.map((user) => {
+                            if (!user.id) return null;
+                            const isRowSelected = selectedRowKeys.includes(String(user.id));
+                            const isSelectedUser = user.id === selectedUser?.id;
+                            
+                            // Determine row background style
+                            let rowBackgroundStyle = {};
+                            if (isRowSelected) {
+                              rowBackgroundStyle = {
+                                backgroundColor: 'blue.50 !important',
+                                _dark: {
+                                  backgroundColor: 'blue.900 !important'
+                                }
+                              };
+                            } else if (isSelectedUser) {
+                              rowBackgroundStyle = {
+                                _light: {
+                                  backgroundColor: 'gray.200'
+                                },
+                                _dark: {
+                                  backgroundColor: 'gray.600'
+                                }
+                              };
+                            }
+
+                            return (
+                              <Tr key={user.id}
+                                onClick={() => {
+                                  // Rule 1 & 2: Handle row click (not checkbox)
+                                  handleUserRowClick(user.id);
+                                  // Also select user for editing
+                                  handleSelectUser(user);
+                                }}
+                                cursor={'pointer'}
+                                sx={{
+                                  _hover: {
+                                    backgroundColor: 'gray.100',
+                                    _dark: {
+                                      backgroundColor: 'gray.700'
+                                    }
+                                  },
+                                  ...rowBackgroundStyle
+                                }}>
+                                <Td onClick={(e) => e.stopPropagation()}>
+                                  <Checkbox
+                                    isChecked={isRowSelected}
+                                    onChange={(e) => {
+                                      e.stopPropagation();
+                                      user.id && handleUserCheckboxClick(user.id, e.target.checked);
+                                    }}
+                                    onClick={(e) => e.stopPropagation()}
+                                  />
+                                </Td>
+                                <Td>{user.id}</Td>
+                                <Td>{user.firstName}</Td>
+                                <Td>{user.lastName}</Td>
+                                <Td>{user.email}</Td>
+                                <Td>
+                                  <Text
+                                    color={user.isActive ? 'green.500' : 'red.500'}
+                                    fontWeight="bold"
+                                    fontSize="sm"
+                                    mb={0}
                                   >
+                                    {user.isActive ? 'Active' : 'Inactive'}
+                                  </Text>
+                                </Td>
+                                <Td>
+                                  {user.approver ? (
                                     <Text
                                       textDecoration={'underline'}
                                       mb={0}
-                                      onClick={() => setIsApproversDlgOpen(true)}>
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        setIsApproversDlgOpen(true);
+                                      }}
+                                      cursor="pointer">
                                       {user.approver.email}
                                     </Text>
-                                    <IconButton
-                                      colorScheme="red"
-                                      aria-label="unset"
-                                      size="sm"
-                                      icon={<CloseIcon />}
-                                      onClick={() => {
-                                        setIsUnsetApproverDlgOpen(true);
-                                      }}
-                                    />
-                                  </Flex>
-                                  :
-                                  <Button
-                                    disabled={!canSetApprover(user)}
-                                    colorScheme="green"
-                                    onClick={() => setIsApproversDlgOpen(true)}>
-                                    <FormattedMessage id='text.set_approver' />
-                                  </Button>
-                                }
-                              </Td>
-                              <Td>
-                                {user.roles?.map(role => role.name).join(', ') ?? 'NONE'}
-                              </Td>
-                              <Td>
-                                <Flex gap={2}>
-                                  {user.isActive ? (
-                                    <Button 
-                                      size="sm" 
-                                      colorScheme="orange" 
-                                      onClick={(e) => {
-                                        e.stopPropagation();
-                                        handleDeactivateUser(user);
-                                      }}
-                                    >
-                                      <FormattedMessage id="text.deactivate" />
-                                    </Button>
                                   ) : (
-                                    <Button 
-                                      size="sm" 
-                                      colorScheme="green" 
-                                      onClick={(e) => {
-                                        e.stopPropagation();
-                                        handleActivateUser(user);
-                                      }}
-                                    >
-                                      <FormattedMessage id="text.activate" />
-                                    </Button>
+                                    <Text mb={0}>-</Text>
                                   )}
-                                  <Button 
-                                    size="sm" 
-                                    colorScheme="red" 
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                      askDelete(user.id);
-                                    }}
-                                  >
-                                    <FormattedMessage id="text.delete" />
-                                  </Button>
-                                </Flex>
-                              </Td>
-                            </Tr>
-                          ))
+                                </Td>
+                                <Td>
+                                  <Text mb={0}>
+                                    {user.roles?.map(role => role.name).join(', ') ?? 'NONE'}
+                                  </Text>
+                                </Td>
+                              </Tr>
+                            );
+                          })
                         ) : (
                           <Tr>
-                            <Td colSpan={8} textAlign="center">
+                            <Td colSpan={9} textAlign="center">
                               <FormattedMessage id="text.noUsers" defaultMessage="No users are registered" />
                             </Td>
                           </Tr>
@@ -804,10 +948,9 @@ export function Component() {
         confirmButtonId="btnConfirmUnsetApprover"
       />
 
-
       <UserApproversDlg
         approvers={approvers}
-        selectedUser={selectedUser}
+        selectedUser={selectedRows.length === 1 ? selectedRows[0] : selectedUser}
         isOpen={isApproversDlgOpen}
         onSaveApprover={onSaveApprover}
         confirmButtonId="btnConfirmSaveApprover"
