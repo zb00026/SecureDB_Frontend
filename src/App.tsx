@@ -42,11 +42,49 @@ for (const path of Object.keys(pages)) {
   title = makeUpperCaseFirstLetter(title, " ");
   title = makeUpperCaseFirstLetter(title, "/");
 
+  const isSearchable: boolean = pages[path]?.isSearchable ?? false;
+  const displayName: string = pages[path]?.displayName ?? title;
+
   searchRoutes.push({
     path: routePath,
-    isSearchable: pages[path]?.isSearchable ?? false,
-    title: pages[path]?.displayName ?? title,
+    isSearchable,
+    title: displayName,
   });
+
+  // Add deep-linked tab routes for searchable multi-tab pages
+  if (isSearchable) {
+    // Asset Owner main page tabs
+    if (routePath === '/asset_owner') {
+      const assetOwnerTabs: Array<{ key: string; label: string }> = [
+        { key: 'assets', label: 'Assets' },
+        { key: 'approvals', label: 'Asset Request Approvals' },
+        { key: 'changes', label: 'Change Requests' },
+        { key: 'masking', label: 'Data Masking' },
+      ];
+      for (const tab of assetOwnerTabs) {
+        searchRoutes.push({
+          path: `${routePath}?tab=${tab.key}`,
+          isSearchable: true,
+          title: `${displayName} • ${tab.label}`,
+        });
+      }
+    }
+
+    // Auditor audit-trail page tabs
+    if (routePath === '/auditor/audit-trail') {
+      const auditTrailTabs: Array<{ key: string; label: string }> = [
+        { key: 'logs', label: 'Logs' },
+        { key: 'stats', label: 'Statistics' },
+      ];
+      for (const tab of auditTrailTabs) {
+        searchRoutes.push({
+          path: `${routePath}?tab=${tab.key}`,
+          isSearchable: true,
+          title: `${displayName} • ${tab.label}`,
+        });
+      }
+    }
+  }
 }
 
 export default function App() {

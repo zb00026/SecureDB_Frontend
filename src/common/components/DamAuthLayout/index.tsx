@@ -17,7 +17,7 @@ interface AuthLayoutProps {
   readonly subtitle?: string;
 }
 
-export default function DamAuthLayout({ children, title = "Hagrid", subtitle = "Secure, auditable, and controlled access to your enterprise databases" }: AuthLayoutProps) {
+export default function DamAuthLayout({ children, title = "Hagrid", subtitle = "Secure, auditable, and controlled access to your enterprise databases and servers" }: AuthLayoutProps) {
   const bgGradient = useColorModeValue(
     'linear(to-br, blue.50, purple.50, brand.50)',
     'linear(to-br, gray.900, blue.900, purple.900)'

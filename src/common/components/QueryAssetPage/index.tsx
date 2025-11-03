@@ -4,8 +4,10 @@ import {
   Flex, 
   Divider,
   useBreakpointValue,
-  Checkbox
+  IconButton,
+  Icon
 } from "@chakra-ui/react";
+import { FiChevronLeft, FiChevronRight, FiChevronUp, FiChevronDown } from "react-icons/fi";
 import { useQueryAssetData } from "@common/hooks/useQueryAssetPage";
 import { SharedQueryComponent } from "@common/components/SharedQueryComponent";
 import { DatabaseSchemaBrowser } from "@common/components/DatabaseSchemaBrowser";
@@ -22,7 +24,7 @@ export function QueryAssetPage({ userType }: QueryAssetPageProps) {
   const { currentAsset, accessRequestId } = useQueryAssetData({ userType });
   const queryComponentRef = useRef<{ setQuery: (query: string) => void } | null>(null);
   const { showSuccess } = useDamToast();
-  const [showDatabaseSchema, setShowDatabaseSchema] = useState(false);
+  const [isSchemaOpen, setIsSchemaOpen] = useState(true);
 
   // Responsive breakpoints
   const isLargeScreen = useBreakpointValue({ base: false, xl: true });
@@ -64,50 +66,38 @@ export function QueryAssetPage({ userType }: QueryAssetPageProps) {
             textSize="md"
             pb={0}
           />
-          <Checkbox
-            size="md"
-            isChecked={showDatabaseSchema}
-            onChange={(e) => setShowDatabaseSchema(e.target.checked)}
-            whiteSpace="nowrap"
-            sx={{
-              '& .chakra-checkbox__control': {
-                width: '15px',
-                height: '15px',
-                borderRadius: '6px',
-                borderWidth: '2px',
-              },
-              '& .chakra-checkbox__control[data-checked]': {
-                backgroundColor: 'blue.500',
-                borderColor: 'blue.500',
-              }
-            }}
-          >
-            Database Schema
-          </Checkbox>
         </Flex>
       </Flex>
 
       <DamCardDivider />
 
       {isLargeScreen ? (
-        // Large screen: 3-column layout (Schema | Query | History)
+        // Large screen: 3-column layout (Schema | Toggle | Query)
         <Flex direction="row" gap={4} h="calc(100vh - 200px)" p={6}>
           {/* Left Panel - Schema Browser (conditional) */}
-          {showDatabaseSchema && (
-            <>
-              <Box flex="0 0 30%" minW="300px" h="full">
-                <DatabaseSchemaBrowser
-                  schema={schema}
-                  isLoading={isSchemaLoading}
-                  error={schemaError}
-                  onRefresh={fetchSchema}
-                  onTableClick={handleTableClick}
-                  onColumnClick={handleColumnClick}
-                />
-              </Box>
-              <Divider orientation="vertical" />
-            </>
+          {isSchemaOpen && (
+            <Box flex="0 0 30%" minW="300px" h="full">
+              <DatabaseSchemaBrowser
+                schema={schema}
+                isLoading={isSchemaLoading}
+                error={schemaError}
+                onRefresh={fetchSchema}
+                onTableClick={handleTableClick}
+                onColumnClick={handleColumnClick}
+              />
+            </Box>
           )}
+
+          {/* Middle Toggle Control (always visible) */}
+          <Box flex="0 0 32px" display="flex" alignItems="center" justifyContent="center">
+            <IconButton
+              size="sm"
+              variant="ghost"
+              aria-label={isSchemaOpen ? 'Collapse schema' : 'Expand schema'}
+              onClick={() => setIsSchemaOpen((v) => !v)}
+              icon={<Icon as={isSchemaOpen ? FiChevronLeft : FiChevronRight} />}
+            />
+          </Box>
 
           {/* Query Editor and History Panel */}
           <Box flex="1" minW="650px">
@@ -120,24 +110,32 @@ export function QueryAssetPage({ userType }: QueryAssetPageProps) {
           </Box>
         </Flex>
       ) : (
-        // Small/Medium screen: 2-row layout (Schema | Query+History)
+        // Small/Medium screen: 2-row layout (Schema | Toggle | Query)
         <Flex direction="column" gap={4} p={6}>
           {/* Top Panel - Schema Browser (conditional) */}
-          {showDatabaseSchema && (
-            <>
-              <Box flex="0 0 40%" minH="300px">
-                <DatabaseSchemaBrowser
-                  schema={schema}
-                  isLoading={isSchemaLoading}
-                  error={schemaError}
-                  onRefresh={fetchSchema}
-                  onTableClick={handleTableClick}
-                  onColumnClick={handleColumnClick}
-                />
-              </Box>
-              <Divider />
-            </>
+          {isSchemaOpen && (
+            <Box flex="0 0 40%" minH="300px">
+              <DatabaseSchemaBrowser
+                schema={schema}
+                isLoading={isSchemaLoading}
+                error={schemaError}
+                onRefresh={fetchSchema}
+                onTableClick={handleTableClick}
+                onColumnClick={handleColumnClick}
+              />
+            </Box>
           )}
+
+          {/* Middle Toggle Control (always visible) */}
+          <Box display="flex" alignItems="center" justifyContent="center">
+            <IconButton
+              size="sm"
+              variant="ghost"
+              aria-label={isSchemaOpen ? 'Collapse schema' : 'Expand schema'}
+              onClick={() => setIsSchemaOpen((v) => !v)}
+              icon={<Icon as={isSchemaOpen ? FiChevronUp : FiChevronDown} />}
+            />
+          </Box>
 
           {/* Bottom Panel - SharedQueryComponent */}
           <Box flex="1" minH="400px">

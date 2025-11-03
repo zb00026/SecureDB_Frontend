@@ -34,5 +34,4 @@ export interface AvailableFilters {
   canViewAllUsers: boolean;
   canViewAllActions: boolean;
   availableActions: string[];
-  availableResourceTypes: string[];
 }

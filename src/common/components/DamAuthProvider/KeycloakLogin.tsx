@@ -126,7 +126,7 @@ export default function KeycloakLogin({
         {!authenticating && (
           <Flex gap={3} direction={'row'} alignItems={'center'}>
             <Icon as={FiShield} boxSize={5} />
-            <Text mb={0}>Login with Keycloak</Text>
+            <Text mb={0}>Login</Text>
           </Flex>
         )}
       </Button>

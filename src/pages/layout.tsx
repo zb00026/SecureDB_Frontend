@@ -8,6 +8,7 @@ import {
   DamLoading,
   DamPageSearch,
 } from '@/common';
+import { TimezoneProvider } from '@common/contexts/TimezoneContext';
 import Login from "@pages/auth/login";
 import { AUTH_PROVIDER } from '@/constants/enums';
 
@@ -41,17 +42,19 @@ export function Component() {
   return (
     <DamIntlProvider>
       <DamChakraProvider>
-        <DamAuthProvider authProviders={auth_providers}>
-            <Login authProviders={auth_providers}>
-              <DamPageSearch>
-                <DamAlertRootContext.Provider value={myAlertRef}>
-                  <DamAlert ref={myAlertRef} />
-                  <DamLoading />
-                  <DamInitialState />
-                </DamAlertRootContext.Provider>
-              </DamPageSearch>
-            </Login>
-          </DamAuthProvider>
+        <TimezoneProvider>
+          <DamAuthProvider authProviders={auth_providers}>
+              <Login authProviders={auth_providers}>
+                <DamPageSearch>
+                  <DamAlertRootContext.Provider value={myAlertRef}>
+                    <DamAlert ref={myAlertRef} />
+                    <DamLoading />
+                    <DamInitialState />
+                  </DamAlertRootContext.Provider>
+                </DamPageSearch>
+              </Login>
+            </DamAuthProvider>
+        </TimezoneProvider>
       </DamChakraProvider>
     </DamIntlProvider>
   )

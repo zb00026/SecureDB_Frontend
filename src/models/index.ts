@@ -17,3 +17,6 @@ export * from './MaskingPolicy';
 // Audit stats models
 export * from './AuditStats';
 
+// Timezone models
+export * from './Timezone';
+

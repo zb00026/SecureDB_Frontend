@@ -4,7 +4,7 @@ import { DamBasePage } from "@common/components/DamBasePage";
 import { useRoleBasedAuditTrail } from "@common/hooks/useRoleBasedAuditTrail";
 
 import { FormattedMessage, useIntl } from "react-intl";
-import { DatePicker } from "antd";
+import { DatePicker, Select as AntSelect } from "antd";
 import dayjs from "dayjs";
 const { RangePicker } = DatePicker;
 import { PrimaryButton, useMyState, useAssetsForAudit, useDamToast } from "@common/index";
@@ -55,30 +55,12 @@ export function Component() {
     onChangesDialogOpen();
   };
 
-  const getHumanReadableDescription = (record: any) => {
-    const { action, previousValue, newValue, user } = record;
-
-    if (!previousValue && !newValue) {
-      return `Performed ${action}`;
-    }
-
-    if (!previousValue) {
-      return `Created new record with action ${action}`;
-    }
-
-    if (!newValue) {
-      return `Deleted record with action ${action}`;
-    }
-
-    return `Updated record with action ${action}`;
-  };
-
   const columns = [
     {
       title: 'Timestamp',
       dataIndex: 'timestamp',
       key: 'timestamp',
-      render: (text: string) => new Date(text).toLocaleString(),
+      // render: (text: string) => formatTimeWithTimezone(text, 'YYYY/MM/DD HH:mm:ss'),
     },
     {
       title: 'User',
@@ -103,6 +85,7 @@ export function Component() {
               maxW="300px"
               isTruncated
               cursor="help"
+              mb={0}
             >
               {text}
             </Text>
@@ -338,17 +321,20 @@ export function Component() {
                     </GridItem>
                   )}
 
-                  {/* Action Dropdown */}
+                  {/* Action Dropdown (searchable) */}
                   <GridItem>
-                    <Select
+                    <AntSelect
+                      allowClear
+                      showSearch
+                      size="large"
+                      style={{ width: '100%' }}
                       placeholder="Select Action"
-                      value={filters.action}
-                      onChange={(e) => setFilters({ ...filters, action: e.target.value })}
-                    >
-                      {availableFilters.availableActions.map((action: string) => (
-                        <option key={action} value={action}>{action}</option>
-                      ))}
-                    </Select>
+                      value={filters.action || undefined}
+                      onChange={(value) => setFilters({ ...filters, action: value ?? '' })}
+                      optionFilterProp="label"
+                      filterOption={(input, option) => ((option?.label as string) ?? '').toLowerCase().includes(input.toLowerCase())}
+                      options={availableFilters.availableActions.map((action: string) => ({ label: action, value: action }))}
+                    />
                   </GridItem>
 
                   {/* User Input - only show if user can view all users */}
@@ -431,11 +417,9 @@ export function Component() {
           <AuditChangesDialog
             isOpen={isChangesDialogOpen}
             onClose={onChangesDialogClose}
-            action={selectedAuditRecord.action}
             previousValue={selectedAuditRecord.previousValue}
             newValue={selectedAuditRecord.newValue}
-            timestamp={selectedAuditRecord.timestamp}
-            user={selectedAuditRecord.user}
+            readableDescription={selectedAuditRecord.readableDescription}
           />
         )}
       </Box>

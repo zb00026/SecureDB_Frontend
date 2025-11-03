@@ -40,7 +40,6 @@ export interface UseRoleBasedAuditTrailReturn {
     readonly canViewAllUsers: boolean;
     readonly canViewAllActions: boolean;
     readonly availableActions: string[];
-    readonly availableResourceTypes: string[];
   };
   readonly roleBasedMessage: string;
   readonly downloadAuditLogs: (filters?: AuditTrailFilters) => Promise<void>;
@@ -59,6 +58,9 @@ export const useRoleBasedAuditTrail = ({ user, assetId }: UseRoleBasedAuditTrail
     assetName: '',
     resourceType: '',
   });
+
+  // Actions available for filtering, loaded from API per role
+  const [availableActions, setAvailableActions] = useState<string[]>([]);
 
   // Determine API endpoint and restrictions based on user role
   const getApiEndpointAndRestrictions = () => {
@@ -111,6 +113,47 @@ export const useRoleBasedAuditTrail = ({ user, assetId }: UseRoleBasedAuditTrail
 
   const { endpoint, restrictions, message } = getApiEndpointAndRestrictions();
 
+  // Resolve actions endpoint by role
+  const getActionsEndpointByRole = (): string => {
+    if (!user) return '/api/audit-trails/actions';
+    if (userHasRole(user, USER_ROLE.ADMIN) || userHasRole(user, USER_ROLE.AUDITOR)) {
+      return '/api/audit-trails/actions';
+    }
+    if (userHasRole(user, USER_ROLE.ASSET_OWNER)) {
+      return '/api/asset_owner/audit-trails/actions';
+    }
+    if (userHasRole(user, USER_ROLE.APPROVER)) {
+      return '/api/approver/audit-trails/actions';
+    }
+    return '/api/developer/audit-trails/actions';
+  };
+
+  // Load available actions from API when user/role changes
+  useEffect(() => {
+    const loadActions = async () => {
+      try {
+        const url = getActionsEndpointByRole();
+        const data = await request(url, { method: 'GET' });
+        if (Array.isArray(data)) {
+          setAvailableActions(data as string[]);
+          return;
+        }
+        // Fallback if API shape is different
+        if (data && typeof data === 'object' && 'actions' in data && Array.isArray(data.actions)) {
+          setAvailableActions(data.actions);
+          return;
+        }
+        setAvailableActions([]);
+      } catch (err) {
+        // Handle error: log it and set minimal defaults
+        console.error('Error loading available actions:', err);
+        setAvailableActions([]);
+      }
+    };
+    loadActions();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user && (user.roles ?? [])]);
+
   // Merge role-based restrictions with user filters
   const getEffectiveFilters = () => {
     const effectiveFilters: any = {
@@ -155,12 +198,7 @@ export const useRoleBasedAuditTrail = ({ user, assetId }: UseRoleBasedAuditTrail
                     userHasRole(user, USER_ROLE.AUDITOR)) : false,
     canViewAllActions: user ? (userHasRole(user, USER_ROLE.ADMIN) || 
                       userHasRole(user, USER_ROLE.AUDITOR)) : false,
-    availableActions: user && (userHasRole(user, USER_ROLE.ADMIN) || userHasRole(user, USER_ROLE.AUDITOR))
-      ? ['CREATE', 'UPDATE', 'DELETE', 'ACCESS_GRANTED', 'ACCESS_REVOKED', 'LOGIN', 'LOGOUT']
-      : ['CREATE', 'UPDATE', 'DELETE', 'ACCESS_GRANTED', 'ACCESS_REVOKED'],
-    availableResourceTypes: user && (userHasRole(user, USER_ROLE.ADMIN) || userHasRole(user, USER_ROLE.AUDITOR))
-      ? ['ASSET', 'USER', 'ACCESS_REQUEST', 'CREDENTIAL', 'ROLE', 'SYSTEM']
-      : ['ASSET', 'ACCESS_REQUEST', 'USER_ACCESS']
+    availableActions
   };
 
   const handleSetFilters = (newFilters: AuditTrailFilters) => {

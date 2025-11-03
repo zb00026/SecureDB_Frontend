@@ -112,6 +112,7 @@ export function AuditStatsCharts({
   colorMode
 }: AuditStatsChartsProps) {
   const { showError } = useDamToast();
+  
   const [statsData, setStatsData] = useState<AuditStatsData | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [localFilters, setLocalFilters] = useState<AuditTrailFilters>(filters);
@@ -119,6 +120,7 @@ export function AuditStatsCharts({
   // Color mode values
   const axisColor = useColorModeValue('#666', '#ccc');
   const gridColor = useColorModeValue('#e0e0e0', '#444');
+  const headingColor = useColorModeValue('gray.800', 'gray.100');
 
   // Get role-based endpoint
   const getStatsEndpoint = () => {
@@ -160,7 +162,6 @@ export function AuditStatsCharts({
       
       // If no data is returned, show sample data for testing
       if (!data || (!data.topAssets && !data.topUsers && !data.topIpAddresses)) {
-        console.log('No data received, showing sample data');
         const sampleData = {
           timeSeriesData: [
             { timestamp: '2024-01-15T10:00:00', eventCount: 5 },
@@ -254,9 +255,6 @@ export function AuditStatsCharts({
     labelKey: keyof T, 
     valueKey: keyof T
   ) => {
-    console.log('Raw data for formatting:', data);
-    console.log('Label key:', labelKey, 'Value key:', valueKey);
-    
     if (!data || data.length === 0) {
       console.log('No data to format');
       return [];
@@ -266,7 +264,6 @@ export function AuditStatsCharts({
       name: String(item[labelKey]),
       value: Number(item[valueKey])
     }));
-    console.log('Formatted chart data:', formatted);
     return formatted;
   };
 
@@ -337,7 +334,7 @@ export function AuditStatsCharts({
               <CardHeader>
                 <HStack>
                   <FiBarChart />
-                  <Heading size="md">
+                  <Heading size="md" color={headingColor}>
                     <FormattedMessage id="text.top_assets" />
                   </Heading>
                 </HStack>
@@ -374,7 +371,7 @@ export function AuditStatsCharts({
               <CardHeader>
                 <HStack>
                   <FiUsers />
-                  <Heading size="md">
+                  <Heading size="md" color={headingColor}>
                     <FormattedMessage id="text.top_users" />
                   </Heading>
                 </HStack>
@@ -411,7 +408,7 @@ export function AuditStatsCharts({
               <CardHeader>
                 <HStack>
                   <FiGlobe />
-                  <Heading size="md">
+                  <Heading size="md" color={headingColor}>
                     <FormattedMessage id="text.top_ip_addresses" />
                   </Heading>
                 </HStack>
@@ -457,7 +454,7 @@ export function AuditStatsCharts({
                       <FormattedMessage id="text.total_events" />
                     </Text>
                     <Text fontSize="2xl" fontWeight="bold">
-                      {statsData.totalEvents.toLocaleString()}
+                      {statsData!.totalEvents.toLocaleString()}
                     </Text>
                   </Box>
                   <Box>
@@ -465,7 +462,7 @@ export function AuditStatsCharts({
                       <FormattedMessage id="text.date_range" />
                     </Text>
                     <Text>
-                      {dayjs(statsData.startDate).format('MMM DD, YYYY')} - {dayjs(statsData.endDate).format('MMM DD, YYYY')}
+                      {dayjs(statsData!.startDate).format('MMM DD, YYYY')} - {dayjs(statsData!.endDate).format('MMM DD, YYYY')}
                     </Text>
                   </Box>
                 </Grid>

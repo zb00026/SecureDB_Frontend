@@ -20,22 +20,19 @@ import { Global, css } from '@emotion/react';
 interface AuditChangesDialogProps {
   readonly isOpen: boolean;
   readonly onClose: () => void;
-  readonly action: string;
   readonly previousValue: any;
   readonly newValue: any;
-  readonly timestamp: string;
-  readonly user: string;
+  readonly readableDescription: string;
 }
 
 export function AuditChangesDialog({
   isOpen,
   onClose,
-  action,
   previousValue,
   newValue,
-  timestamp,
-  user,
+  readableDescription,
 }: AuditChangesDialogProps) {
+  
   const bgColor = useColorModeValue('white', 'gray.800');
   const textColor = useColorModeValue('gray.800', 'white');
   const borderColor = useColorModeValue('gray.200', 'gray.600');
@@ -63,29 +60,6 @@ export function AuditChangesDialog({
   const oldValue = formatValue(previousValue);
   const newValueFormatted = formatValue(newValue);
 
-  // Debug logging
-  console.log('AuditChangesDialog - Raw values:', { previousValue, newValue });
-  console.log('AuditChangesDialog - Formatted values:', { oldValue, newValueFormatted });
-  console.log('AuditChangesDialog - Are values equal?', oldValue === newValueFormatted);
-  console.log('AuditChangesDialog - Old value length:', oldValue.length);
-  console.log('AuditChangesDialog - New value length:', newValueFormatted.length);
-
-  // Generate human-readable description
-  const getHumanReadableDescription = () => {
-    if (!previousValue && !newValue) {
-      return `User ${user} performed ${action} at ${new Date(timestamp).toLocaleString()}`;
-    }
-
-    if (!previousValue) {
-      return `User ${user} created new record with action ${action} at ${new Date(timestamp).toLocaleString()}`;
-    }
-
-    if (!newValue) {
-      return `User ${user} deleted record with action ${action} at ${new Date(timestamp).toLocaleString()}`;
-    }
-
-    return `User ${user} updated record with action ${action} at ${new Date(timestamp).toLocaleString()}`;
-  };
 
   const diffViewerStyles = css`
     .diff-viewer {
@@ -184,7 +158,7 @@ export function AuditChangesDialog({
                 <FormattedMessage id="text.audit_changes" />
               </Text>
               <Text fontSize="sm" color={useColorModeValue('gray.600', 'gray.300')}>
-                {getHumanReadableDescription()}
+                {readableDescription}
               </Text>
             </VStack>
           </ModalHeader>

@@ -40,9 +40,18 @@ export default function DamAuthCard({ children }: AuthCardProps) {
         fontSize="sm" 
         color="gray.500" 
         mt={4}
+        mb={0}
         textAlign="center"
       >
-        © {new Date().getFullYear()} Hagrid Database Access Management
+        © {new Date().getFullYear()} Hagrid Access Management
+      </Text>
+      <Text 
+        fontSize="sm" 
+        color="gray.500" 
+        mt={0}
+        textAlign="center"
+      >
+        Database And Server
       </Text>
     </>
   );

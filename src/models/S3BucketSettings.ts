@@ -8,4 +8,5 @@ export interface S3BucketSettings {
   isActive?: boolean;
   createdAt?: Date;
   updatedAt?: Date;
+  localRetentionDays: number;
 }

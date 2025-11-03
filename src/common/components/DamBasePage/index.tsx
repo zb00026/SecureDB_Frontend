@@ -108,11 +108,17 @@ export function DamBasePage({
       
       for (const role of filteredRoles) {
         const roleName = (role.name || '').toLowerCase().replace(' ', '_');
-        links.push({
-          label: role.name,
-          to: `/${roleName}`,
-          icon: roleIcons[roleName] || FiDatabase,
-        });
+        if (roleName === 'asset_owner') {
+          links.push({ label: 'Assets Operations', to: '/asset_owner', icon: roleIcons[roleName] });
+        } else if (roleName === 'developer') {
+          links.push({ label: 'Access Assets', to: '/developer', icon: roleIcons[roleName] });
+        } else {
+          links.push({
+            label: role.name,
+            to: `/${roleName}`,
+            icon: roleIcons[roleName] || FiDatabase,
+          });
+        }
       }
     }
 
@@ -127,11 +133,11 @@ export function DamBasePage({
 
     const canSeeAuditTrail = user && (userHasRole(user, USER_ROLE.ADMIN) || userHasRole(user, USER_ROLE.AUDITOR) || userHasRole(user, USER_ROLE.ASSET_OWNER) || userHasRole(user, USER_ROLE.APPROVER));
     if (canSeeAuditTrail) {
-      links.push({ label: 'Audit Trail', to: '/auditor/audit-trail', icon: FiBarChart });
+      links.push({ label: 'DB Audit', to: '/auditor/audit-trail', icon: FiBarChart });
     }
     const canSeeTerminal = user && (userHasRole(user, USER_ROLE.ADMIN) || userHasRole(user, USER_ROLE.AUDITOR));
     if (canSeeTerminal) {
-      links.push({ label: 'Terminal Audit', to: '/auditor/terminal-audit', icon: FiTerminal });
+      links.push({ label: 'SSH Audit', to: '/auditor/terminal-audit', icon: FiTerminal });
     }
     const canSeeUnixGroups = user && userHasRole(user, USER_ROLE.ASSET_OWNER);
     if (canSeeUnixGroups) {
