@@ -1,5 +1,5 @@
 import {
-  Box, Button, Flex, Input, Text, Select,
+  Box, Button, Flex, Input, Select,
   useDisclosure
 } from "@chakra-ui/react";
 import { DamBasePage } from "@common/components/DamBasePage";

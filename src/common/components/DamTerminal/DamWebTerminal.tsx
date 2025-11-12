@@ -33,6 +33,7 @@ interface DamWebTerminalProps {
   readonly onClose: () => void;
   readonly isFullscreen?: boolean;
   readonly onToggleFullscreen?: () => void;
+  readonly userAccessType?: string;
 }
 
 export function DamWebTerminal({
@@ -42,7 +43,8 @@ export function DamWebTerminal({
   portNumber,
   onClose,
   isFullscreen = false,
-  onToggleFullscreen
+  onToggleFullscreen,
+  userAccessType
 }: DamWebTerminalProps) {
   const terminalRef = useRef<HTMLDivElement>(null);
   const terminalInstanceRef = useRef<Terminal | null>(null);
@@ -244,7 +246,8 @@ export function DamWebTerminal({
       }
 
       const { token, provider } = authData;
-      const wsUrl = `${import.meta.env.VITE_WEBSOCKET_URL || 'ws://127.0.0.1:8080'}/ws/terminal/connect?assetId=${assetId}&host=${hostAddress}&port=${portNumber}&token=${encodeURIComponent(token)}&authProvider=${encodeURIComponent(provider)}`;
+      const userAccessTypeParam = userAccessType ? `&userAccessType=${encodeURIComponent(userAccessType)}` : '';
+      const wsUrl = `${import.meta.env.VITE_WEBSOCKET_URL || 'ws://127.0.0.1:8080'}/ws/terminal/connect?assetId=${assetId}&host=${hostAddress}&port=${portNumber}&token=${encodeURIComponent(token)}&authProvider=${encodeURIComponent(provider)}${userAccessTypeParam}`;
       const ws = new WebSocket(wsUrl);
 
       ws.onopen = () => {
@@ -260,7 +263,8 @@ export function DamWebTerminal({
           authProvider: provider,
           userId: user?.id,
           username: user?.username || user?.email,
-          assetId: assetId
+          assetId: assetId,
+          userAccessType: userAccessType
         }));
 
         // Send initial terminal size after terminal is ready
@@ -278,6 +282,7 @@ export function DamWebTerminal({
           } else if (message.type === 'error') {
             setConnectionError(message.message || 'Connection error occurred');
             setIsConnected(false);
+            setIsConnecting(false);
           } else if (message.type === 'ssh_error') {
             // Handle SSH connection errors
             setConnectionError(`${message.message || 'Authentication failed'}`);
@@ -289,6 +294,25 @@ export function DamWebTerminal({
               terminalInstanceRef.current.write(`\r\n\x1b[31mSSH Connection Error: ${message.message || 'Authentication failed'}\x1b[0m\r\n`);
               terminalInstanceRef.current.write('\x1b[33mTerminal session terminated. Please check your SSH credentials.\x1b[0m\r\n');
             }
+          } else if (message.type === 'ssh_connection_failed') {
+            // Handle SSH connection failure
+            setConnectionError(message.message || 'SSH connection failed');
+            setIsConnected(false);
+            setIsConnecting(false);
+
+            // Write error message to terminal
+            if (terminalInstanceRef.current) {
+              terminalInstanceRef.current.write(`\r\n\x1b[31mSSH Connection Failed: ${message.message || 'Connection failed'}\x1b[0m\r\n`);
+              terminalInstanceRef.current.write('\x1b[33mTerminal session terminated. Please check your SSH credentials.\x1b[0m\r\n');
+            }
+          } else if (message.type === 'ssh_connected') {
+            // SSH connection established successfully
+            setIsConnected(true);
+            setIsConnecting(false);
+          } else if (message.type === 'authentication_success') {
+            // Authentication successful
+            setIsConnecting(false);
+            console.log('WebSocket authentication successful, sessionId:', message.sessionId);
           }
         } catch (error) {
           console.error('Failed to parse WebSocket message:', error);

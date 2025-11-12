@@ -4,10 +4,10 @@ import {
   Modal, ModalOverlay, ModalContent, ModalHeader, ModalCloseButton, ModalBody,
   useDisclosure,
   Alert, AlertIcon, AlertTitle, AlertDescription, CloseButton, Box,
-  Checkbox, Text
+  Checkbox, Text, Icon
 } from "@chakra-ui/react";
 import { DamBasePage } from "@common/components/DamBasePage";
-import { DamCardBody, DamCard, request, useDamToast, DamCardDivider, stateActions, ActionMenu, ActionMenuItem } from "@common/index";
+import { DamCardBody, DamCard, request, useDamToast, DamCardDivider, stateActions, ActionMenu, ActionMenuItem, state, userHasRole } from "@common/index";
 import { handleRowClick, handleCheckboxClick } from "@common/libs/utils/tableSelection";
 import { AssetCredential } from "@models/assets/AssetCredential";
 import { Asset } from "@models/assets/Asset";
@@ -25,7 +25,9 @@ import { MaskingPolicies, MaskingPoliciesRef } from "./components/masking_polici
 import { DamViewAccessModal } from "@common/components/DamDialog/DamViewAccessModal";
 import { useViewAccess } from "@common/hooks/useViewAccess";
 import { FiEdit, FiSave, FiX, FiShield, FiDatabase, FiTerminal, FiSearch, FiCheckCircle } from "react-icons/fi";
+import { FaFire } from "react-icons/fa";
 import { useNavigate, useLocation } from "react-router-dom";
+import { USER_ROLE } from "@/constants/enums";
 
 export const isSearchable = true;
 export const displayName = 'Asset Owner Main Page';
@@ -63,7 +65,7 @@ const isValidTab = (tab: string | null): tab is ActiveTab => {
 
 // Helper function to check if credential needs setup
 const needsCredentialSetup = (credential: AssetCredential): boolean => {
-  return !credential.username && !credential.sshKeyFile;
+  return !credential.username && credential.isTemporaryPassword === true;
 };
 
 // Helper function to check if asset is database type
@@ -556,9 +558,13 @@ export function Component() {
     const items: ActionMenuItem[] = [
       { label: 'Edit Asset', onClick: () => handleEditAsset(selectedCredential), colorScheme: 'orange', variant: 'outline' },
       { label: 'View Access', onClick: () => viewAssetAccess(selectedCredential), colorScheme: 'blue', variant: 'outline' },
-      { label: 'Query Database', onClick: () => handleOpenQuery(selectedCredential.asset as Asset), colorScheme: 'green', variant: 'outline' }
+      { label: 'Relinquish Credential', onClick: () => { setSelectedCredential(selectedCredential); setIsDelDlgOpen(true); }, colorScheme: 'red', variant: 'outline' }
     ];
     
+    if (!selectedCredential.isTemporaryPassword) {
+      items.push({ label: 'Query Database', onClick: () => handleOpenQuery(selectedCredential.asset as Asset), colorScheme: 'green', variant: 'outline' });
+    }
+
     if (!hasDatabaseCredentials(selectedCredential)) {
       items.push({ label: 'Set Credential', onClick: () => { setSelectedCredential(selectedCredential); setIsDialogOpen(true); }, colorScheme: 'green', variant: 'outline' });
       return items;
@@ -566,7 +572,6 @@ export function Component() {
     
     items.push(
       { label: 'Update Credential', onClick: () => { setSelectedCredential(selectedCredential); setIsDialogOpen(true); }, colorScheme: 'yellow', variant: 'outline' },
-      { label: 'Relinquish Credential', onClick: () => { setSelectedCredential(selectedCredential); setIsDelDlgOpen(true); }, colorScheme: 'red', variant: 'outline' }
     );
     return items;
   }, [handleEditAsset, viewAssetAccess, handleOpenQuery, setSelectedCredential, setIsDialogOpen, setIsDelDlgOpen]);
@@ -685,7 +690,19 @@ export function Component() {
                   onClick={(e) => e.stopPropagation()}
                 />
               </Td>
-              <Td>{renderAssetCell(credential.asset, 'name', isEditing)}</Td>
+              <Td>
+                <Flex align="center" gap={2}>
+                  {renderAssetCell(credential.asset, 'name', isEditing)}
+                  {/* Show fire icon if credential needs setup */}
+                  {needsCredentialSetup(credential) && (
+                    <Tooltip label="Credential setup required" placement="top" hasArrow>
+                      <Box display="inline-flex" cursor="pointer">
+                        <Icon as={FaFire} color="red.500" boxSize={4} />
+                      </Box>
+                    </Tooltip>
+                  )}
+                </Flex>
+              </Td>
               <Td>{credential.asset?.type}</Td>
               <Td>{isDatabase ? (credential.asset?.databaseType ?? '-') : (credential.asset?.unixServerType ?? '-')}</Td>
               <Td>{renderAssetCell(credential.asset, 'hostAddress', isEditing)}</Td>
@@ -897,13 +914,18 @@ export function Component() {
         />
 
         {/* Terminal Modal */}
-        {terminalAsset && (
-          <DamTerminalModal
-            isOpen={isTerminalModalOpen}
-            onClose={handleCloseTerminal}
-            asset={terminalAsset}
-          />
-        )}
+        {terminalAsset && (() => {
+          const user = state.session.user;
+          const userAccessType = userHasRole(user, USER_ROLE.ASSET_OWNER) ? USER_ROLE.ASSET_OWNER : undefined;
+          return (
+            <DamTerminalModal
+              isOpen={isTerminalModalOpen}
+              onClose={handleCloseTerminal}
+              asset={terminalAsset}
+              userAccessType={userAccessType}
+            />
+          );
+        })()}
 
       </VStack>
     </DamBasePage>

@@ -79,71 +79,6 @@ export function AssetsTable({
     </Flex>
   )
 
-  const renderActions = (asset: Asset) => (
-    <HStack spacing={2} justify="center">
-      {userHasRole(user, USER_ROLE.ADMIN) && onEditAsset && (
-        <Tooltip label={intl.formatMessage({ id: "text.edit" })}>
-          <IconButton
-            aria-label={intl.formatMessage({ id: "text.edit" })}
-            icon={<EditIcon />}
-            size="sm"
-            colorScheme="green"
-            variant="ghost"
-            onClick={e => {
-              e.stopPropagation();
-              onEditAsset(asset);
-            }}
-          />
-        </Tooltip>
-      )}
-
-      {canViewAccess && onViewAccess && (
-        <Tooltip label={intl.formatMessage({ id: "text.view_access" })}>
-          <IconButton
-            aria-label={intl.formatMessage({ id: "text.view_access" })}
-            icon={<ViewIcon />}
-            size="sm"
-            colorScheme="blue"
-            variant="ghost"
-            onClick={e => {
-              e.stopPropagation();
-              onViewAccess(asset);
-            }}
-          />
-        </Tooltip>
-      )}
-
-      {userHasRole(user, USER_ROLE.ADMIN) && onManageUsers && (
-        <Tooltip label={intl.formatMessage({ id: "text.manage_users" })}>
-          <IconButton
-            aria-label={intl.formatMessage({ id: "text.manage_users" })}
-            icon={<AtSignIcon />}
-            size="sm"
-            colorScheme="purple"
-            variant="ghost"
-            onClick={e => {
-              e.stopPropagation();
-              onManageUsers(asset, "owners");
-            }}
-          />
-        </Tooltip>
-      )}
-
-      <Tooltip label={intl.formatMessage({ id: "text.delete" })}>
-        <IconButton
-          aria-label={intl.formatMessage({ id: "text.delete" })}
-          icon={<DeleteIcon />}
-          size="sm"
-          colorScheme="red"
-          variant="ghost"
-          onClick={e => {
-            e.stopPropagation();
-            onDeleteAsset(asset);
-          }}
-        />
-      </Tooltip>
-    </HStack>
-  );
 
   const canManageUsers = userHasRole(user, USER_ROLE.ADMIN);
   const canLockAsset = userHasRole(user, USER_ROLE.ADMIN);
@@ -153,7 +88,6 @@ export function AssetsTable({
       assets={assets}
       selectedAsset={selectedAsset}
       onSelectAsset={onSelectAsset}
-      renderActions={renderActions}
       showLockAsset={true}
       lockActions={lockActions}
       onTerminalAsset={onTerminalAsset}

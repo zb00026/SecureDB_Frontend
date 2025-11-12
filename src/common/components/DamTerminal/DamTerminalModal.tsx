@@ -16,9 +16,10 @@ interface DamTerminalModalProps {
   readonly isOpen: boolean;
   readonly onClose: () => void;
   readonly asset: Asset;
+  readonly userAccessType?: string;
 }
 
-export function DamTerminalModal({ isOpen, onClose, asset }: DamTerminalModalProps) {
+export function DamTerminalModal({ isOpen, onClose, asset, userAccessType }: DamTerminalModalProps) {
   const [isFullscreen, setIsFullscreen] = useState(false);
   
   const modalBg = useColorModeValue('white', 'gray.800');
@@ -78,6 +79,7 @@ export function DamTerminalModal({ isOpen, onClose, asset }: DamTerminalModalPro
             onClose={handleClose}
             isFullscreen={isFullscreen}
             onToggleFullscreen={handleToggleFullscreen}
+            userAccessType={userAccessType}
           />
         </ModalBody>
       </ModalContent>

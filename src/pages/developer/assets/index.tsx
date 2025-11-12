@@ -1,8 +1,8 @@
 import { Flex } from "@chakra-ui/react";
 import { DamBasePage } from "@common/components/DamBasePage";
-import { DamCardDivider, useListPage } from "@common/index";
+import { useListPage, state, userHasRole } from "@common/index";
 import { Asset } from "@models/assets/Asset";
-import { AssetType } from "@/constants/enums";
+import { AssetType, USER_ROLE } from "@/constants/enums";
 import { useEffect, useState } from "react";
 import { useIntl } from "react-intl";
 import { useNavigate } from "react-router-dom";
@@ -185,13 +185,18 @@ export function Component() {
       )}
 
       {/* Terminal Modal */}
-      {terminalAsset && (
-        <DamTerminalModal
-          isOpen={isTerminalModalOpen}
-          onClose={handleCloseTerminal}
-          asset={terminalAsset}
-        />
-      )}
+      {terminalAsset && (() => {
+        const user = state.session.user;
+        const userAccessType = userHasRole(user, USER_ROLE.DEVELOPER) ? USER_ROLE.DEVELOPER : undefined;
+        return (
+          <DamTerminalModal
+            isOpen={isTerminalModalOpen}
+            onClose={handleCloseTerminal}
+            asset={terminalAsset}
+            userAccessType={userAccessType}
+          />
+        );
+      })()}
     </DamBasePage>
   );
 }

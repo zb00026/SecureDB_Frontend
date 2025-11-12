@@ -132,9 +132,14 @@ export function UnixAccessApprovalDialog({
 
   const getStatusColor = (status: string) => {
     switch (status) {
-      case 'PENDING': return 'orange';
+      case 'REQUESTED': return 'orange';
+      case 'APPROVAL_IN_PROGRESS': return 'blue';
       case 'APPROVED': return 'green';
       case 'REJECTED': return 'red';
+      case 'EXPIRED': return 'yellow';
+      case 'RELINQUISHED_AFTER_APPROVED':
+      case 'RELINQUISHED_BEFORE_APPROVAL':
+        return 'gray';
       default: return 'gray';
     }
   };
@@ -188,7 +193,7 @@ export function UnixAccessApprovalDialog({
               <Text fontWeight="bold" mb={2}>Requested Group Memberships</Text>
               <VStack align="start" spacing={2}>
                 {accessRequest.groupMemberships?.map((membership) => (
-                  <HStack key={membership.id} spacing={2}>
+                  <HStack key={membership.id} spacing={2} alignItems="center">
                     <Checkbox
                       isChecked={approvalData.approvedGroupIds.includes(membership.unixGroupId)}
                       onChange={(e) => {
@@ -199,9 +204,9 @@ export function UnixAccessApprovalDialog({
                         }
                       }}
                     />
-                    <Text fontSize="sm">{membership.unixGroup.name}</Text>
+                    <Text fontSize="sm" mb={0} lineHeight="1.5">{membership.unixGroup.groupName}</Text>
                     {membership.unixGroup.description && (
-                      <Text fontSize="xs" color={gray600} mb={0}>
+                      <Text fontSize="xs" color={gray600} mb={0} lineHeight="1.5">
                         - {membership.unixGroup.description}
                       </Text>
                     )}

@@ -2,9 +2,13 @@ import { Asset } from './Asset';
 import { User } from '../User';
 import { AssetCredential } from './AssetCredential';
 export enum ApprovalStatus {
-  PENDING = 'PENDING',
+  REQUESTED = 'REQUESTED',
+  APPROVAL_IN_PROGRESS = 'APPROVAL_IN_PROGRESS',
   APPROVED = 'APPROVED',
-  REJECTED = 'REJECTED'
+  REJECTED = 'REJECTED',
+  EXPIRED = 'EXPIRED',
+  RELINQUISHED_AFTER_APPROVED = 'RELINQUISHED_AFTER_APPROVED',
+  RELINQUISHED_BEFORE_APPROVAL = 'RELINQUISHED_BEFORE_APPROVAL'
 }
 
 export interface AccessRequest {
@@ -43,7 +47,7 @@ export interface UnixGroupMembership {
 
 export interface UnixGroup {
   id: number;
-  name: string;
+  groupName: string;
   description?: string;
   assetId: number;
 } 

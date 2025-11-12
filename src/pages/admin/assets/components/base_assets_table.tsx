@@ -1,21 +1,22 @@
-import { Flex, Table, TableContainer, Tbody, Td, Th, Thead, Tr, Text, Tooltip, Checkbox } from "@chakra-ui/react";
+import { Flex, Table, TableContainer, Tbody, Td, Th, Thead, Tr, Text, Tooltip, Checkbox, Box, Icon } from "@chakra-ui/react";
 import { DamCard, DamCardBody, DamCardDivider, ActionMenu, ActionMenuItem } from "@common/index";
-import { ApprovalStatus } from "@models/assets/AccessRequest";
+import { ApprovalStatus, AccessRequest } from "@models/assets/AccessRequest";
 import { Asset } from "@models/assets/Asset";
 import { FormattedMessage } from "react-intl";
 import { WarningIcon } from "@chakra-ui/icons";
 import { AssetType } from "@/constants/enums";
 import { useState, useMemo } from "react";
 import { handleRowClick, handleCheckboxClick } from "@common/libs/utils/tableSelection";
+import { FaFire } from "react-icons/fa";
 
 interface BaseAssetsTableProps {
   readonly assets: Asset[];
   readonly selectedAsset: Asset | null;
   readonly onSelectAsset: (asset: Asset) => void;
+  readonly showHighlightRow?: boolean;
   readonly showFetchTemplate?: boolean;
   readonly showQueryButton?: boolean;
   readonly renderDetailButton?: (asset: Asset) => React.ReactNode;
-  readonly renderActions: (asset: Asset) => React.ReactNode;
   readonly onQueryAsset?: (asset: Asset) => void;
   readonly onTerminalAsset?: (asset: Asset) => void;
   readonly showAccessRequestStatus?: boolean;
@@ -28,6 +29,9 @@ interface BaseAssetsTableProps {
   readonly onManageUsers?: (asset: Asset, userType: 'owners' | 'approvers') => void;
   readonly onLockAsset?: (asset: Asset) => void;
   readonly onUnlockAsset?: (asset: Asset) => void;
+  readonly onRequestAccess?: (asset: Asset) => void;
+  readonly onRelinquishAccess?: (accessRequest: AccessRequest | null) => void;
+  readonly onUpdatePassword?: (accessRequest: AccessRequest | null) => void;
   // Permission flags for role-based access
   readonly canManageUsers?: boolean;
   readonly canLockAsset?: boolean;
@@ -39,8 +43,15 @@ const getStatusColor = (status: string | undefined): string => {
       return 'green.500';
     case 'REJECTED':
       return 'red.500';
-    case 'PENDING':
+    case 'EXPIRED':
+      return 'yellow.500';
+    case 'REQUESTED':
       return 'orange.500';
+    case 'APPROVAL_IN_PROGRESS':
+      return 'blue.500';
+    case 'RELINQUISHED_AFTER_APPROVED':
+    case 'RELINQUISHED_BEFORE_APPROVAL':
+      return 'gray.500';
     default:
       return 'gray.500';
   }
@@ -50,21 +61,20 @@ export function BaseAssetsTable({
   assets,
   selectedAsset,
   onSelectAsset,
+  showHighlightRow = false,
   showFetchTemplate = false,
-  showQueryButton = false,
-  renderDetailButton,
-  renderActions,
   onQueryAsset,
   onTerminalAsset,
   showAccessRequestStatus,
-  showLockAsset,
-  lockActions,
   onViewAccess,
   onEditAsset,
   onDeleteAsset,
   onManageUsers,
   onLockAsset,
   onUnlockAsset,
+  onRequestAccess,
+  onRelinquishAccess,
+  onUpdatePassword,
   canManageUsers = false,
   canLockAsset = false
 }: BaseAssetsTableProps) {
@@ -120,8 +130,7 @@ export function BaseAssetsTable({
   const addQueryItem = (items: ActionMenuItem[], selectedAssetForActions: Asset) => {
     if (!onQueryAsset) return;
     
-    const canQuery = selectedAssetForActions.accessRequest && 
-      !selectedAssetForActions.accessRequest?.isTempPassword &&
+    const canQuery = selectedAssetForActions.accessRequest &&
       selectedAssetForActions.accessRequest?.assetApproverStatus === ApprovalStatus.APPROVED;
     
     if (canQuery) {
@@ -188,6 +197,48 @@ export function BaseAssetsTable({
     }
   };
 
+  // Helper function to check if access can be requested
+  const canRequestAccess = (asset: Asset): boolean => {
+    if (!asset.accessRequest) {
+      return true;
+    }
+    const status = asset.accessRequest.assetApproverStatus;
+    return status === ApprovalStatus.REJECTED ||
+           status === ApprovalStatus.EXPIRED ||
+           status === ApprovalStatus.RELINQUISHED_AFTER_APPROVED ||
+           status === ApprovalStatus.RELINQUISHED_BEFORE_APPROVAL;
+  };
+
+  const addRequestAccessItems = (items: ActionMenuItem[], selectedAssetForActions: Asset) => {
+    if (!onRequestAccess && !onRelinquishAccess && !onUpdatePassword) {
+      return;
+    }
+
+    if (canRequestAccess(selectedAssetForActions)) {
+      if (onRequestAccess) {
+        items.push({
+          label: 'Request Access',
+          onClick: () => onRequestAccess(selectedAssetForActions),
+          colorScheme: 'green',
+          variant: 'outline',
+        });
+      }
+    } else if (selectedAssetForActions.accessRequest) {
+      const status = selectedAssetForActions.accessRequest.assetApproverStatus;
+      
+      // Relinquish/Cancel Access
+      if (onRelinquishAccess) {
+        const isApproved = status === ApprovalStatus.APPROVED;
+        items.push({
+          label: isApproved ? 'Relinquish Access' : 'Cancel Request',
+          onClick: () => onRelinquishAccess(selectedAssetForActions.accessRequest ?? null),
+          colorScheme: 'red',
+          variant: 'outline',
+        });
+      }
+    }
+  };
+
   // Build action menu items based on selected rows
   const actionMenuItems: ActionMenuItem[] = useMemo(() => {
     const items: ActionMenuItem[] = [];
@@ -201,12 +252,13 @@ export function BaseAssetsTable({
     addEditItem(items, selectedAssetForActions);
     addViewAccessItem(items, selectedAssetForActions);
     addQueryItem(items, selectedAssetForActions);
+    addRequestAccessItems(items, selectedAssetForActions);
     addManageUsersItem(items, selectedAssetForActions);
     addLockUnlockItems(items, selectedAssetForActions);
     addDeleteItem(items, selectedAssetForActions);
 
     return items;
-  }, [selectedRows, onEditAsset, onViewAccess, onQueryAsset, onTerminalAsset, onManageUsers, onLockAsset, onUnlockAsset, onDeleteAsset, canManageUsers, canLockAsset]);
+  }, [selectedRows, onEditAsset, onViewAccess, onQueryAsset, onTerminalAsset, onRequestAccess, onRelinquishAccess, onUpdatePassword, onManageUsers, onLockAsset, onUnlockAsset, onDeleteAsset, canManageUsers, canLockAsset]);
 
   return (
     <DamCard mt={4}>
@@ -310,7 +362,20 @@ export function BaseAssetsTable({
                             onClick={(e) => e.stopPropagation()}
                           />
                         </Td>
-                        <Td>{asset.name}</Td>
+                        <Td>
+                          <Flex align="center" gap={2}>
+                            <Text mb={0}>{asset.name}</Text>
+                            {/* Show fire icon if access is approved but credentials need to be set (for developers) */}
+                            {showHighlightRow && asset.accessRequest?.assetApproverStatus === ApprovalStatus.APPROVED && 
+                             asset.accessRequest?.isTempPassword && (
+                              <Tooltip label="Approved access request" placement="top" hasArrow>
+                                <Box display="inline-flex" cursor="pointer">
+                                  <Icon as={FaFire} color="red.500" boxSize={4} />
+                                </Box>
+                              </Tooltip>
+                            )}
+                          </Flex>
+                        </Td>
                         <Td>{asset.type}</Td>
                         <Td>{asset.databaseType ?? '-'}</Td>
                         <Td>{asset.hostAddress}</Td>

@@ -280,55 +280,55 @@ const components = {
     parts: ['table', 'thead', 'tbody', 'tr', 'th', 'td'],
     baseStyle: {
       th: {
-        px: '10px',
-        py: '5px',
+        px: '12px',
+        py: '8px',
       },
       td: {
-        px: '10px',
-        py: '5px',
+        px: '12px',
+        py: '8px',
       },
     },
     sizes: {
       sm: {
         th: {
-          px: '10px',
-          py: '5px',
+          px: '12px',
+          py: '8px',
         },
         td: {
-          px: '10px',
-          py: '5px',
+          px: '12px',
+          py: '8px',
         },
       },
       md: {
         th: {
-          px: '10px',
-          py: '5px',
+          px: '12px',
+          py: '8px',
         },
         td: {
-          px: '10px',
-          py: '5px',
+          px: '12px',
+          py: '8px',
         },
       },
       lg: {
         th: {
-          px: '10px',
-          py: '5px',
+          px: '12px',
+          py: '8px',
         },
         td: {
-          px: '10px',
-          py: '5px',
+          px: '12px',
+          py: '8px',
         },
       },
     },
     variants: {
       simple: {
         th: {
-          px: '10px',
-          py: '5px',
+          px: '12px',
+          py: '8px',
         },
         td: {
-          px: '10px',
-          py: '5px',
+          px: '12px',
+          py: '8px',
         },
       },
     },

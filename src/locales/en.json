@@ -168,7 +168,7 @@
   "text.failed_to_approve_access_request": "Failed to approve request access",
   "text.are_you_sure_reject_access_request": "Are you sure to reject this request? You can't undo this action afterwards.",
   "text.failed_to_reject_access_request": "Failed to reject request access",
-  "text.access_request_approved_to_update_psd": "Your access request has been approved, you need to update temporary password of asset",
+  "text.access_request_approved_to_update_psd": "Your access request has been approved",
   "text.update_password": "Update Password",
   "text.password_updated": "Password Updated",
   "text.password_update_success": "Password has been updated successfully",

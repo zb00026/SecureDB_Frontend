@@ -3,7 +3,8 @@ import {
   Modal, ModalOverlay, ModalContent, ModalHeader, ModalBody, ModalFooter,
   Button, VStack, Text, useColorModeValue, Divider, FormControl,
   FormLabel, Input, Textarea, Checkbox, CheckboxGroup, Stack, Alert,
-  AlertIcon, AlertDescription
+  AlertIcon, AlertDescription,
+  Flex
 } from '@chakra-ui/react';
 import { FormattedMessage } from 'react-intl';
 import { Asset } from '@models/assets/Asset';
@@ -245,18 +246,18 @@ export function UnixAccessRequestDialog({
                 <Stack spacing={2}>
                   {availableGroups.map((group) => (
                     <Checkbox key={group.id} value={String(group.id)}>
-                      <VStack align="start" spacing={0}>
-                        <Text fontWeight="medium" mb={0}>{group.name}</Text>
+                      <Flex gap={2} alignItems="center">
+                        <Text fontWeight="medium" mb={0} lineHeight="1.5">{group.groupName}</Text>
                         {group.description ? (
-                          <Text fontSize="sm" color={gray600} mb={0}>
-                            {group.description}
+                          <Text fontSize="sm" color={gray600} mb={0} lineHeight="1.5">
+                            {'(' + group.description + ')'}
                           </Text>
                         ) : (
-                          <Text fontSize="sm" color={gray400} mb={0}>
-                            No description available
+                          <Text fontSize="sm" color={gray400} mb={0} lineHeight="1.5">
+                            (No description available)
                           </Text>
                         )}
-                      </VStack>
+                      </Flex>
                     </Checkbox>
                   ))}
                 </Stack>

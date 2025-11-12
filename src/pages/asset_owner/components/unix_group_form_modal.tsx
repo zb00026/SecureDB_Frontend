@@ -34,6 +34,7 @@ import {
 } from '../../../models/unix/UnixGroup';
 import { getAuthToken, stateActions } from '@common/index';
 import { useDamToast } from '@common/hooks/useDamToast';
+import { USER_ROLE } from '@/constants/enums';
 
 // Reusable component for suggestion items
 interface SuggestionItemProps {
@@ -203,7 +204,6 @@ export const UnixGroupFormModal: React.FC<UnixGroupFormModalProps> = ({
       }
 
       websocket.onopen = () => {
-        console.log('WebSocket connected for folder suggestions');
         setWs(websocket);
         setIsConnecting(true);
 
@@ -214,7 +214,8 @@ export const UnixGroupFormModal: React.FC<UnixGroupFormModalProps> = ({
             connectionType: 'unix-groups',
             token: token,
             assetId: assetId,
-            authProvider: provider
+            authProvider: provider,
+            userAccessType: USER_ROLE.ASSET_OWNER
           }));
         }
       };
@@ -261,7 +262,6 @@ export const UnixGroupFormModal: React.FC<UnixGroupFormModalProps> = ({
       };
 
       websocket.onclose = () => {
-        console.log('WebSocket disconnected');
         setWs(null);
         setIsSSHConnected(false);
         setIsConnecting(false);

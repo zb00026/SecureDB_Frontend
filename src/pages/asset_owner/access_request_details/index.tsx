@@ -156,7 +156,7 @@ export function Component() {
           />
         </Flex>
         <DamCardDivider />
-        {accessRequest?.assetApproverStatus === 'PENDING' && (
+        {(accessRequest?.assetApproverStatus === 'REQUESTED' || accessRequest?.assetApproverStatus === 'APPROVAL_IN_PROGRESS') && (
           <Flex w='full' my={4} alignItems={'center'} justifyContent={'center'} gap={4}>
             <Button onClick={approveRequestAccess} colorScheme="green" id="btnApprove">
               <FormattedMessage id="text.approve_access_request" />
