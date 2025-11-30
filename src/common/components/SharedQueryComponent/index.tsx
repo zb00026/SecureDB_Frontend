@@ -1,4 +1,4 @@
-import { Flex, Text, Box, VStack, HStack, Badge, IconButton, Textarea, Checkbox } from "@chakra-ui/react";
+import { Flex, Text, Box, VStack, HStack, Badge, IconButton, Textarea, Checkbox, Input } from "@chakra-ui/react";
 import { PrimaryButton, useDamToast } from "@common/index";
 import { useEffect, useState, forwardRef, useImperativeHandle } from "react";
 import { FormattedMessage, useIntl } from "react-intl";
@@ -71,6 +71,8 @@ export const SharedQueryComponent = forwardRef<SharedQueryComponentRef, SharedQu
   const [ticketReference, setTicketReference] = useState('');
   const [changeDescription, setChangeDescription] = useState('');
   const [isChangeRequest, setIsChangeRequest] = useState(false);
+  const [naturalLanguageQuery, setNaturalLanguageQuery] = useState<string>('');
+  const [isConverting, setIsConverting] = useState(false);
   // Expose setQuery method to parent component
   useImperativeHandle(ref, () => ({
     setQuery: (newQuery: string) => {
@@ -178,6 +180,62 @@ export const SharedQueryComponent = forwardRef<SharedQueryComponentRef, SharedQu
   const confirmSaveAsChangeRequest = () => {
     setIsSaveDlgOpen(false);
     runQuery();
+  };
+
+  // Convert natural language to SQL
+  const convertNaturalLanguageToSql = () => {
+    if (!naturalLanguageQuery.trim()) {
+      showError({ description: 'Please enter a natural language query' });
+      return;
+    }
+
+    if (!asset?.id) {
+      showError({ description: 'Asset not selected' });
+      return;
+    }
+
+    // Validate required parameters based on user type
+    if (userType === 'developer' && !accessRequestId) {
+      showError({ description: 'Access request ID is required' });
+      return;
+    }
+
+    setIsConverting(true);
+    
+    // Use different API endpoints based on user type
+    const apiEndpoint = userType === 'developer' 
+      ? '/api/developer/assets/convert_nl_to_sql'
+      : '/api/asset_owner/assets/convert_nl_to_sql';
+    
+    const requestData = userType === 'developer'
+      ? {
+          naturalLanguageQuery: naturalLanguageQuery.trim(),
+          requestId: accessRequestId
+        }
+      : {
+          naturalLanguageQuery: naturalLanguageQuery.trim(),
+          assetId: asset.id
+        };
+    
+    handleRequest(apiEndpoint, 'POST', requestData,
+      {
+        onSuccess: (data: any) => {
+          if (data.sqlQuery) {
+            setQuery(data.sqlQuery);
+            showSuccess({ 
+              description: 'Natural language query converted to SQL successfully' 
+            });
+          } else {
+            showError({ description: 'No SQL query returned from conversion' });
+          }
+          setIsConverting(false);
+        },
+        onError: (error: any) => {
+          setIsConverting(false);
+        },
+        errorDescriptionId: 'text.failed_to_convert_nl_to_sql'
+      }
+    );
   };
 
   const runQuery = () => {
@@ -395,10 +453,43 @@ export const SharedQueryComponent = forwardRef<SharedQueryComponentRef, SharedQu
     return <>{historySection}</>;
   }
 
+  // Natural language to SQL conversion section
+  const naturalLanguageSection = (
+    <Flex direction={'column'} gap={3} mb={4}>
+      <Text fontSize="md" fontWeight="bold" mb={0}>
+        <FormattedMessage id="text.natural_language_query" />
+      </Text>
+      <HStack gap={3} align="flex-end">
+        <Box flex={1}>
+          <Input
+            placeholder="e.g., get me a count of all employees"
+            value={naturalLanguageQuery}
+            onChange={(e) => setNaturalLanguageQuery(e.target.value)}
+            onKeyPress={(e) => {
+              if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                convertNaturalLanguageToSql();
+              }
+            }}
+          />
+        </Box>
+        <PrimaryButton
+          onClick={convertNaturalLanguageToSql}
+          isLoading={isConverting}
+          minW="150px"
+        >
+          <FormattedMessage id="text.convert_to_sql" />
+        </PrimaryButton>
+      </HStack>
+    </Flex>
+  );
+
   // If only showing query editor, return just the query editor
   if (showQueryEditor && !showHistory) {
     return (
       <Flex direction={'column'} gap={3} h="full">
+        {naturalLanguageSection}
+        
         <Text fontSize="md" fontWeight="bold" mb={0}>
           <FormattedMessage id="text.query_to_run" />
         </Text>
@@ -425,6 +516,8 @@ export const SharedQueryComponent = forwardRef<SharedQueryComponentRef, SharedQu
     <>
       <Flex direction="row" gap={4} h="full" minH="500px">
         <Flex direction={'column'} gap={3} flex={2} h="full">
+          {naturalLanguageSection}
+          
           <Text fontSize="md" fontWeight="bold" mb={0}>
             <FormattedMessage id="text.query_to_run" />
           </Text>
