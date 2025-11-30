@@ -1,9 +1,9 @@
-import { AUTH_PROVIDER, USER_ROLE } from "@/constants/enums";
+import { AUTH_PROVIDER, USER_ROLE, FEATURE_FLAGS } from "@/constants/enums";
 import { passwordRequirements } from "@common/components/DamPasswordInput";
 import { getGoogleToken, state } from "@common/index";
 import keycloak from "@common/keycloak/keycloak";
 import { Role } from "@models/Role";
-import { User } from "@models/User";
+import type { User } from "@models/User";
 
 /**
  * Maps character codes to DOM key codes for terminal input
@@ -114,11 +114,13 @@ export function isAuthorizedPath(path: string, user?: User): boolean {
   }> = [
       { pathPrefix: '/admin', allowedRoles: [USER_ROLE.ADMIN] },
       { pathPrefix: '/developer', allowedRoles: [USER_ROLE.DEVELOPER] },
-      { pathPrefix: '/approver', allowedRoles: [USER_ROLE.APPROVER] },
+      ...(FEATURE_FLAGS.ENABLE_APPROVER_ROLE ? [{ pathPrefix: '/approver', allowedRoles: [USER_ROLE.APPROVER] }] : []),
       { pathPrefix: '/auditor', allowedRoles: [USER_ROLE.AUDITOR] },
       {
         pathPrefix: '/auditor/audit-trail',
-        allowedRoles: [USER_ROLE.ADMIN, USER_ROLE.AUDITOR, USER_ROLE.ASSET_OWNER, USER_ROLE.APPROVER]
+        allowedRoles: FEATURE_FLAGS.ENABLE_APPROVER_ROLE
+          ? [USER_ROLE.ADMIN, USER_ROLE.AUDITOR, USER_ROLE.ASSET_OWNER, USER_ROLE.APPROVER]
+          : [USER_ROLE.ADMIN, USER_ROLE.AUDITOR, USER_ROLE.ASSET_OWNER]
       },
       {
         pathPrefix: '/auditor/terminal-audit',
@@ -364,3 +366,61 @@ function getCircularReplacer() {
 
 // Timezone utilities
 export * from './timezone';
+
+// Search utilities
+import { PageRoute } from '@models/PageRoute';
+
+/**
+ * Formats a shortcut string for display
+ * @param shortcut - The shortcut string (e.g., "Ctrl+J", "Meta+K")
+ * @returns Array of formatted key names
+ */
+export function formatShortcutForDisplay(shortcut: string): string[] {
+  if (!shortcut) return ['Ctrl', 'J'];
+  
+  const parts = shortcut.split('+');
+  const keys: string[] = [];
+  const metaKeyName = getMetaKeyName();
+  
+  parts.forEach(part => {
+    const trimmed = part.trim();
+    if (trimmed === metaKeyName || trimmed === 'Meta' || trimmed === 'Cmd' || trimmed === '⌘' || trimmed === '⊞') {
+      keys.push(metaKeyName);
+    } else if (trimmed === 'Ctrl' || trimmed === 'Control') {
+      keys.push('Ctrl');
+    } else if (trimmed === 'Alt') {
+      keys.push('Alt');
+    } else if (trimmed === 'Shift') {
+      keys.push('Shift');
+    } else {
+      keys.push(trimmed.length === 1 ? trimmed.toUpperCase() : trimmed);
+    }
+  });
+  
+  return keys;
+}
+
+/**
+ * Filters searchable page routes based on query and user authorization
+ * @param pageRoutes - Array of page routes to filter (readonly array)
+ * @param searchQuery - Search query string (will be lowercased)
+ * @param user - Current user for authorization check
+ * @param limit - Maximum number of results (default: 8)
+ * @returns Filtered array of page routes
+ */
+export function filterSearchableRoutes(
+  pageRoutes: readonly PageRoute[],
+  searchQuery: string,
+  user?: User,
+  limit: number = 8
+): PageRoute[] {
+  const query = searchQuery.toLowerCase();
+  return pageRoutes
+    .filter((route: PageRoute) => {
+      // Only show searchable routes that user has access to
+      return route.isSearchable && 
+             isAuthorizedPath(route.path, user) &&
+             route.title.toLowerCase().includes(query);
+    })
+    .slice(0, limit);
+}

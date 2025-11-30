@@ -24,7 +24,7 @@ import { FiMoon, FiSun, FiLogOut, FiHome, FiMenu, FiChevronLeft, FiDatabase, FiU
 import { useLicenseStatus } from "@common/hooks/useLicenseStatus";
 import { DamLicenseBanner } from "@common/components/DamLicenseBanner";
 import { useState, useMemo } from "react";
-import { USER_ROLE } from "@/constants/enums";
+import { USER_ROLE, FEATURE_FLAGS } from "@/constants/enums";
 import { userHasRole } from "@common/index";
 
 export type DamPageProps = Readonly<{
@@ -97,52 +97,103 @@ export function DamBasePage({
     'asset_owner': FiUsers,
   };
   const isAdmin = user && userHasRole(user, USER_ROLE.ADMIN);
+
+  // Helper function to filter roles
+  const filterRoles = (roles: any[]): any[] => {
+    return roles.filter((r: any) => {
+      const roleName = (r.name || '').toLowerCase();
+      const shouldFilterApprover = !FEATURE_FLAGS.ENABLE_APPROVER_ROLE && roleName === 'approver';
+      return roleName !== 'admin' && roleName !== 'none' && !shouldFilterApprover;
+    });
+  };
+
+  // Helper function to add role-based link
+  const addRoleLink = (
+    links: Array<{ label: string; to: string; icon: any }>,
+    role: any,
+    roleName: string
+  ): void => {
+    if (roleName === 'asset_owner') {
+      links.push({ label: 'Assets Operations', to: '/asset_owner', icon: roleIcons[roleName] });
+    } else if (roleName === 'developer') {
+      links.push({ label: 'Access Assets', to: '/developer', icon: roleIcons[roleName] });
+    } else {
+      links.push({
+        label: role.name,
+        to: `/${roleName}`,
+        icon: roleIcons[roleName] || FiDatabase,
+      });
+    }
+  };
+
+  // Helper function to add role-based links
+  const addRoleBasedLinks = (
+    links: Array<{ label: string; to: string; icon: any }>,
+    user: any
+  ): void => {
+    if (!user?.roles) return;
+    
+    const filteredRoles = filterRoles(user.roles);
+    for (const role of filteredRoles) {
+      const roleName = (role.name || '').toLowerCase().replace(' ', '_');
+      addRoleLink(links, role, roleName);
+    }
+  };
+
+  // Helper function to add admin links
+  const addAdminLinks = (
+    links: Array<{ label: string; to: string; icon: any }>,
+    isAdmin: boolean
+  ): void => {
+    if (!isAdmin) return;
+    
+    links.push(
+      { label: 'Users', to: '/admin/users', icon: FiUser },
+      { label: 'Settings', to: '/admin/settings', icon: FiSettings },
+      { label: 'Assets', to: '/admin/assets', icon: FiHardDrive },
+      { label: 'License', to: '/admin/license', icon: FiKey },
+    );
+  };
+
+  // Helper function to check if user can see audit trail
+  const canSeeAuditTrail = (user: any): boolean => {
+    if (!user) return false;
+    return userHasRole(user, USER_ROLE.ADMIN) || 
+           userHasRole(user, USER_ROLE.AUDITOR) || 
+           userHasRole(user, USER_ROLE.ASSET_OWNER) ||
+           (FEATURE_FLAGS.ENABLE_APPROVER_ROLE && userHasRole(user, USER_ROLE.APPROVER));
+  };
+
+  // Helper function to check if user can see terminal audit
+  const canSeeTerminal = (user: any): boolean => {
+    if (!user) return false;
+    return userHasRole(user, USER_ROLE.ADMIN) || userHasRole(user, USER_ROLE.AUDITOR);
+  };
+
+  // Helper function to add audit links
+  const addAuditLinks = (
+    links: Array<{ label: string; to: string; icon: any }>,
+    user: any
+  ): void => {
+    if (canSeeAuditTrail(user)) {
+      links.push({ label: 'DB Audit', to: '/auditor/audit-trail', icon: FiBarChart });
+    }
+    if (canSeeTerminal(user)) {
+      links.push({ label: 'SSH Audit', to: '/auditor/terminal-audit', icon: FiTerminal });
+    }
+    if (user && userHasRole(user, USER_ROLE.ASSET_OWNER)) {
+      links.push({ label: 'Unix Groups', to: '/asset_owner/unix-groups', icon: FiUsers });
+    }
+  };
+
   const navLinks = useMemo(() => {
     const links: Array<{ label: string; to: string; icon: any }> = [
       { label: 'Dashboard', to: '/', icon: FiHome },
     ];
 
-    if (user?.roles) {
-      const filteredRoles = user.roles
-        .filter((r: any) => (r.name || '').toLowerCase() !== 'admin' && (r.name || '').toLowerCase() !== 'none');
-      
-      for (const role of filteredRoles) {
-        const roleName = (role.name || '').toLowerCase().replace(' ', '_');
-        if (roleName === 'asset_owner') {
-          links.push({ label: 'Assets Operations', to: '/asset_owner', icon: roleIcons[roleName] });
-        } else if (roleName === 'developer') {
-          links.push({ label: 'Access Assets', to: '/developer', icon: roleIcons[roleName] });
-        } else {
-          links.push({
-            label: role.name,
-            to: `/${roleName}`,
-            icon: roleIcons[roleName] || FiDatabase,
-          });
-        }
-      }
-    }
-
-    if (isAdmin) {
-      links.push(
-        { label: 'Users', to: '/admin/users', icon: FiUser },
-        { label: 'Settings', to: '/admin/settings', icon: FiSettings },
-        { label: 'Assets', to: '/admin/assets', icon: FiHardDrive },
-        { label: 'License', to: '/admin/license', icon: FiKey },
-      );
-    }
-
-    const canSeeAuditTrail = user && (userHasRole(user, USER_ROLE.ADMIN) || userHasRole(user, USER_ROLE.AUDITOR) || userHasRole(user, USER_ROLE.ASSET_OWNER) || userHasRole(user, USER_ROLE.APPROVER));
-    if (canSeeAuditTrail) {
-      links.push({ label: 'DB Audit', to: '/auditor/audit-trail', icon: FiBarChart });
-    }
-    const canSeeTerminal = user && (userHasRole(user, USER_ROLE.ADMIN) || userHasRole(user, USER_ROLE.AUDITOR));
-    if (canSeeTerminal) {
-      links.push({ label: 'SSH Audit', to: '/auditor/terminal-audit', icon: FiTerminal });
-    }
-    const canSeeUnixGroups = user && userHasRole(user, USER_ROLE.ASSET_OWNER);
-    if (canSeeUnixGroups) {
-      links.push({ label: 'Unix Groups', to: '/asset_owner/unix-groups', icon: FiUsers });
-    }
+    addRoleBasedLinks(links, user);
+    addAdminLinks(links, isAdmin);
+    addAuditLinks(links, user);
 
     return links;
   }, [user, isAdmin]);

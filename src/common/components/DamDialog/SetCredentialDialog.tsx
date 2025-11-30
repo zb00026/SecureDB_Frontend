@@ -10,6 +10,8 @@ import {
   Flex,
   Input,
   Text,
+  FormControl,
+  FormLabel,
 } from "@chakra-ui/react";
 import { FormattedMessage } from "react-intl";
 import { DamPasswordInput } from '../DamPasswordInput';
@@ -119,18 +121,44 @@ export function SetCredentialDialog({
           <AlertDialogBody id='credentialDialogBody'>
             <div data-form-type="other" data-lpignore="true" data-1p-ignore="true" data-browser-ignore="true">
               {!isTemporaryPassword && (
-                <Input
-                  placeholder={usernamePlaceholder}
-                  id="userField"
-                  name="user_field"
-                  value={username}
-                  onChange={(e) => setUsername(e.target.value)}
-                  onFocus={(e) => {
-                    if (isReadonly) {
-                      e.target.removeAttribute('readonly');
-                      setIsReadonly(false);
-                    }
-                  }}
+                <FormControl mb={3}>
+                  <FormLabel mb={1}>
+                    <FormattedMessage id="text.username" defaultMessage="Username" />
+                  </FormLabel>
+                  <Input
+                    id="userField"
+                    name="user_field"
+                    value={username}
+                    onChange={(e) => setUsername(e.target.value)}
+                    onFocus={(e) => {
+                      if (isReadonly) {
+                        e.target.removeAttribute('readonly');
+                        setIsReadonly(false);
+                      }
+                    }}
+                    autoComplete="off"
+                    readOnly={isReadonly}
+                    data-form-type="other"
+                    data-lpignore="true"
+                    data-1p-ignore="true"
+                    data-save="false"
+                    data-browser-ignore="true"
+                    data-no-autofill="true"
+                  />
+                </FormControl>
+              )}
+              <FormControl mb={showConfirmPassword ? 3 : 0}>
+                <FormLabel mb={1}>
+                  <FormattedMessage id="text.password" />
+                </FormLabel>
+                <DamPasswordInput
+                  placeholder=""
+                  id="keyField"
+                  name="key_field"
+                  value={password}
+                  onChange={setPassword}
+                  showRequirements={showPasswordRequirements}
+                  onValidationChange={(isValid) => setIsPasswordValid(isValid)}
                   autoComplete="off"
                   readOnly={isReadonly}
                   data-form-type="other"
@@ -139,29 +167,15 @@ export function SetCredentialDialog({
                   data-save="false"
                   data-browser-ignore="true"
                   data-no-autofill="true"
-                  mb={3}
-                />)}
-              <DamPasswordInput
-                placeholder={passwordPlaceholder}
-                id="keyField"
-                name="key_field"
-                value={password}
-                onChange={setPassword}
-                showRequirements={showPasswordRequirements}
-                onValidationChange={(isValid) => setIsPasswordValid(isValid)}
-                autoComplete="off"
-                readOnly={isReadonly}
-                data-form-type="other"
-                data-lpignore="true"
-                data-1p-ignore="true"
-                data-save="false"
-                data-browser-ignore="true"
-                data-no-autofill="true"
-              />
+                />
+              </FormControl>
               {showConfirmPassword && (
-                <Flex pt={2}>
+                <FormControl pt={2}>
+                  <FormLabel mb={1}>
+                    <FormattedMessage id="text.confirm_password" defaultMessage="Confirm Password" />
+                  </FormLabel>
                   <DamPasswordInput
-                    placeholder={confirmPasswordPlaceholder}
+                    placeholder=""
                     id="confirmKeyField"
                     name="confirm_key_field"
                     value={confirmPassword}
@@ -177,8 +191,7 @@ export function SetCredentialDialog({
                     data-browser-ignore="true"
                     data-no-autofill="true"
                   />
-                </Flex>
-
+                </FormControl>
               )}
               {showPasswordWarning && isPasswordWeak && password.length > 0 && (
                 <Text fontSize="sm" color="orange.500" mt={2} mb={0}>

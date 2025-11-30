@@ -1,4 +1,4 @@
-# UI/UX Improvements for DAM Frontend
+# UI/UX Improvements for Hagrids: AI Power Secured DB access
 
 ## Overview
 This document outlines the comprehensive UI/UX improvements made to the Database Access Management (DAM) frontend application to create a more modern, professional, and enterprise-ready user interface.

@@ -1,8 +1,7 @@
-import { AssetType, DatabaseType, UnixServerType } from "@/constants/enums";
+import { AssetType, DatabaseType, UnixServerType, LockType } from "@/constants/enums";
 import { AssetCredential } from "./AssetCredential";
 import { User } from "../User";
 import { AccessRequest } from "./AccessRequest";
-import { LockType } from "@/pages/admin/assets/components/asset_lock_dialog";
 
 export interface Asset {
     id?: number;
@@ -23,5 +22,5 @@ export interface Asset {
     credentials?: Array<AssetCredential>;
     approvers?: Array<User>;
     locked?: boolean;
-    lockType?: LockType;
+    lockType?: LockType | null;
 }

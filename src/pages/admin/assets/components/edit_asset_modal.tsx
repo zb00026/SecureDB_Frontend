@@ -14,7 +14,7 @@ import {
   Select,
   Flex
 } from "@chakra-ui/react";
-import { FormattedMessage, useIntl } from "react-intl";
+import { FormattedMessage } from "react-intl";
 import { Asset } from "@models/assets/Asset";
 import { AssetDTO } from "@models/assets/AssetDTO";
 import { AssetType, DatabaseType } from "@/constants/enums";
@@ -36,7 +36,6 @@ export function EditAssetModal({
   onSave,
   isLoading = false
 }: EditAssetModalProps) {
-  const intl = useIntl();
   const [formState, setFormState] = useState<Partial<AssetDTO>>({
     name: '',
     type: '' as AssetType | '',
@@ -104,7 +103,6 @@ export function EditAssetModal({
               <Select
                 value={formState.type}
                 onChange={(e) => setFormState(prev => ({ ...prev, type: e.target.value as AssetType }))}
-                placeholder={intl.formatMessage({ id: 'text.select_asset_type' })}
               >
                 <option value={AssetType.DATABASE}>{AssetType.DATABASE}</option>
                 <option value={AssetType.UNIX_SERVER}>{AssetType.UNIX_SERVER}</option>
@@ -120,7 +118,6 @@ export function EditAssetModal({
                 <Select
                   value={formState.databaseType || ''}
                   onChange={(e) => setFormState(prev => ({ ...prev, databaseType: e.target.value as DatabaseType || null }))}
-                  placeholder={intl.formatMessage({ id: 'text.select_db_type' })}
                 >
                   {Object.values(DatabaseType).map((type: DatabaseType) => (
                     <option key={type} value={type}>{type}</option>
@@ -138,7 +135,6 @@ export function EditAssetModal({
                 <Input
                   value={formState.name}
                   onChange={(e) => setFormState(prev => ({ ...prev, name: e.target.value }))}
-                  placeholder={intl.formatMessage({ id: 'text.asset_name' })}
                 />
               </Box>
               <Box flex={1}>
@@ -148,7 +144,6 @@ export function EditAssetModal({
                 <Input
                   value={formState.hostAddress}
                   onChange={(e) => setFormState(prev => ({ ...prev, hostAddress: e.target.value }))}
-                  placeholder={intl.formatMessage({ id: 'text.host_address' })}
                 />
               </Box>
             </Flex>
@@ -161,7 +156,6 @@ export function EditAssetModal({
                 <Input
                   value={formState.portNumber}
                   onChange={(e) => setFormState(prev => ({ ...prev, portNumber: e.target.value }))}
-                  placeholder={intl.formatMessage({ id: 'text.port_number' })}
                 />
               </Box>
               <Box flex={1}>
@@ -171,7 +165,10 @@ export function EditAssetModal({
                 <Input
                   value={formState.databaseName}
                   onChange={(e) => setFormState(prev => ({ ...prev, databaseName: e.target.value }))}
-                  placeholder={intl.formatMessage({ id: 'text.database_name' })}
+                  isReadOnly
+                  bg="gray.50"
+                  _dark={{ bg: "gray.700" }}
+                  cursor="not-allowed"
                 />
               </Box>
             </Flex>
@@ -184,7 +181,6 @@ export function EditAssetModal({
               <Input
                 value={formState.description}
                 onChange={(e) => setFormState(prev => ({ ...prev, description: e.target.value }))}
-                placeholder={intl.formatMessage({ id: 'text.description' })}
               />
             </Box>
           </VStack>

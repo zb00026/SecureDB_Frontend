@@ -90,3 +90,4 @@ const DamAlertComponent = (props: any, ref: any) => {
 
 export const DamAlert = React.forwardRef(DamAlertComponent)
 export { DamRejectDialog } from './DamRejectDialog';
+export { AssetLockDialog, LockAction } from './AssetLockDialog';

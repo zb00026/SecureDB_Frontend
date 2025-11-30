@@ -22,7 +22,10 @@ import {
   Heading,
   IconButton,
   Tooltip,
-  useDisclosure
+  useDisclosure,
+  FormControl,
+  FormLabel,
+  useBreakpointValue
 } from '@chakra-ui/react';
 import { ViewIcon, SearchIcon } from '@chakra-ui/icons';
 import { FormattedMessage, useIntl } from 'react-intl';
@@ -55,6 +58,9 @@ export const Component: React.FC = () => {
     handleSearch,
     handleFilterChange
   } = useTerminalAudit();
+
+  // Responsive layout: horizontal on lg+, vertical on smaller screens
+  const isHorizontal = useBreakpointValue({ base: false, lg: true });
 
   const [selectedSession, setSelectedSession] = useState<TerminalSessionRecording | null>(null);
   const [selectedCommand, setSelectedCommand] = useState<TerminalCommandAudit | null>(null);
@@ -361,7 +367,7 @@ export const Component: React.FC = () => {
 
         {/* Filters and View Mode */}
         <Box mb={6} mt={4}>
-          <Flex gap={4} align="center" wrap="wrap" mb={4}>
+          <Flex gap={4} align={isHorizontal ? "center" : "stretch"} direction={isHorizontal ? "row" : "column"} wrap={isHorizontal ? "nowrap" : "wrap"} mb={4}>
             <HStack>
               <Text fontWeight="medium" mb={0}>
                 <FormattedMessage id="terminal.audit.viewMode" />:
@@ -379,26 +385,57 @@ export const Component: React.FC = () => {
                 </option>
               </Select>
             </HStack>
-            <HStack>
-              <HStack>
-                <Text fontWeight="medium" mb={0}>
-                  <FormattedMessage id="terminal.audit.dateRange" />:
-                </Text>
-              </HStack>
-              <HStack>
-                <DatePicker
-                  placeholder={intl.formatMessage({ id: 'terminal.audit.startDate' })}
-                  value={filters.startDate}
-                  onChange={(date: string | null) => handleFilterChange('startDate', date || undefined)}
-                />
-                <Text mb={0}>to</Text>
-                <DatePicker
-                  placeholder={intl.formatMessage({ id: 'terminal.audit.endDate' })}
-                  value={filters.endDate}
-                  onChange={(date: string | null) => handleFilterChange('endDate', date || undefined)}
-                />
-              </HStack>
-            </HStack>
+            {isHorizontal ? (
+              <>
+                <FormControl>
+                  <HStack spacing={3} align="center">
+                    <FormLabel mb={0} minW="80px">
+                      <FormattedMessage id="terminal.audit.startDate" />
+                    </FormLabel>
+                    <DatePicker
+                      placeholder=""
+                      value={filters.startDate}
+                      onChange={(date: string | null) => handleFilterChange('startDate', date || undefined)}
+                    />
+                  </HStack>
+                </FormControl>
+                <FormControl>
+                  <HStack spacing={3} align="center">
+                    <FormLabel mb={0} minW="70px">
+                      <FormattedMessage id="terminal.audit.endDate" />
+                    </FormLabel>
+                    <DatePicker
+                      placeholder=""
+                      value={filters.endDate}
+                      onChange={(date: string | null) => handleFilterChange('endDate', date || undefined)}
+                    />
+                  </HStack>
+                </FormControl>
+              </>
+            ) : (
+              <VStack gap={4} align="stretch" w="full">
+                <FormControl>
+                  <FormLabel mb={1}>
+                    <FormattedMessage id="terminal.audit.startDate" />
+                  </FormLabel>
+                  <DatePicker
+                    placeholder=""
+                    value={filters.startDate}
+                    onChange={(date: string | null) => handleFilterChange('startDate', date || undefined)}
+                  />
+                </FormControl>
+                <FormControl>
+                  <FormLabel mb={1}>
+                    <FormattedMessage id="terminal.audit.endDate" />
+                  </FormLabel>
+                  <DatePicker
+                    placeholder=""
+                    value={filters.endDate}
+                    onChange={(date: string | null) => handleFilterChange('endDate', date || undefined)}
+                  />
+                </FormControl>
+              </VStack>
+            )}
             {viewMode === 'commands' && (
               <>
                 <HStack>
@@ -435,19 +472,45 @@ export const Component: React.FC = () => {
               </>
             )}
 
-            <HStack>
-              <Input
-                placeholder={intl.formatMessage({ id: 'terminal.audit.search' })}
-                value={filters.searchQuery || ''}
-                onChange={(e) => handleFilterChange('searchQuery', e.target.value || undefined)}
-                w="200px"
-              />
-              <IconButton
-                aria-label={intl.formatMessage({ id: 'common.search' })}
-                icon={<SearchIcon />}
-                onClick={handleSearch}
-              />
-            </HStack>
+            {isHorizontal ? (
+              <FormControl>
+                <HStack spacing={3} align="center">
+                  <FormLabel mb={0} minW="80px">
+                    <FormattedMessage id="terminal.audit.search" />
+                  </FormLabel>
+                  <HStack>
+                    <Input
+                      value={filters.searchQuery || ''}
+                      onChange={(e) => handleFilterChange('searchQuery', e.target.value || undefined)}
+                      w="200px"
+                    />
+                    <IconButton
+                      aria-label={intl.formatMessage({ id: 'common.search' })}
+                      icon={<SearchIcon />}
+                      onClick={handleSearch}
+                    />
+                  </HStack>
+                </HStack>
+              </FormControl>
+            ) : (
+              <FormControl w="full">
+                <FormLabel mb={1}>
+                  <FormattedMessage id="terminal.audit.search" />
+                </FormLabel>
+                <HStack>
+                  <Input
+                    value={filters.searchQuery || ''}
+                    onChange={(e) => handleFilterChange('searchQuery', e.target.value || undefined)}
+                    w="200px"
+                  />
+                  <IconButton
+                    aria-label={intl.formatMessage({ id: 'common.search' })}
+                    icon={<SearchIcon />}
+                    onClick={handleSearch}
+                  />
+                </HStack>
+              </FormControl>
+            )}
           </Flex>
         </Box>
 

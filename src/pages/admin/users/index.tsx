@@ -1,22 +1,23 @@
 import {
-  Box, Button, Text, Flex, Input, Table, TableContainer, Tbody, Td, Th, Thead, Tr, useColorModeValue,
-  IconButton, useDisclosure, HStack, InputGroup, InputLeftElement, Badge, Tooltip, VStack, Checkbox
+  Text, Flex, useDisclosure, HStack, useBreakpointValue
 } from "@chakra-ui/react";
-import { DamButton, DamCard, DamCardBody, request, stateActions, useListPage, useDamToast, userHasRole, BulkUploadModal, BulkUploadConfig, ActionMenu, ActionMenuItem } from "@common/index";
+import { DamButton, DamCard, DamCardBody, request, useListPage, useDamToast, userHasRole, BulkUploadModal, BulkUploadConfig, ActionMenu, ActionMenuItem } from "@common/index";
 import { handleRowClick, handleCheckboxClick } from "@common/libs/utils/tableSelection";
 import { DamAlertDialog } from "@common/components/DamDialog/DamAlertDialog";
 import { useApiRequest } from "@common/hooks/useApiRequest";
 import { Role } from "@models/Role";
 import { User } from "@models/User";
-import { ConfigProvider } from "antd";
 import { useEffect, useState, useCallback, useMemo } from "react";
 import { FormattedMessage, useIntl } from "react-intl";
-import { MultiValue, Select } from 'chakra-react-select';
-import { AUTH_PROVIDER, USER_ROLE } from "@/constants/enums";
-import { CloseIcon, SearchIcon } from "@chakra-ui/icons";
+import { MultiValue } from 'chakra-react-select';
+import { AUTH_PROVIDER, USER_ROLE, FEATURE_FLAGS } from "@/constants/enums";
 
 import { DamBasePage } from "@common/components/DamBasePage";
 import { UserApproversDlg } from "./components/user_approvers_dlg";
+import { useRoles } from "./hooks/useRoles";
+import { UserForm } from "./components/UserForm";
+import { UserSearchSection } from "./components/UserSearchSection";
+import { UsersTable } from "./components/UsersTable";
 
 export type RoleOption = {
   label: string;  // The display name of the role
@@ -26,10 +27,200 @@ export type RoleOption = {
 export const isSearchable = true;
 export const displayName = 'User Management Page';
 
+// Helper function to build edit action menu item
+const buildEditMenuItem = (selectedUser: User, handleSelectUser: (user: User) => void): ActionMenuItem => ({
+  label: 'Edit',
+  onClick: () => handleSelectUser(selectedUser),
+  colorScheme: 'blue',
+  variant: 'outline',
+});
+
+// Helper function to build approver action menu items
+const buildApproverMenuItems = (
+  selectedUser: User,
+  canSetApprover: (user: User) => boolean,
+  setIsApproversDlgOpen: (open: boolean) => void,
+  setIsUnsetApproverDlgOpen: (open: boolean) => void
+): ActionMenuItem[] => {
+  // Only build approver menu items if feature flag is enabled
+  if (!FEATURE_FLAGS.ENABLE_APPROVER_ROLE) {
+    return [];
+  }
+  
+  const items: ActionMenuItem[] = [];
+  
+  if (!selectedUser.approver && canSetApprover(selectedUser)) {
+    items.push({
+      label: 'Set Approver',
+      onClick: () => setIsApproversDlgOpen(true),
+      colorScheme: 'green',
+      variant: 'outline',
+    });
+  }
+  
+  if (selectedUser.approver) {
+    items.push({
+      label: 'Unset Approver',
+      onClick: () => setIsUnsetApproverDlgOpen(true),
+      colorScheme: 'orange',
+      variant: 'outline',
+    });
+  }
+  
+  return items;
+};
+
+// Helper function to build status action menu items
+const buildStatusMenuItems = (
+  selectedUser: User,
+  selectedRows: User[],
+  handleUserOperation: (promise: Promise<any>, successTitle: string, successDescription: string, errorMessageId: string) => void,
+  handleActivateUser: (user: User) => Promise<any>,
+  handleDeactivateUser: (user: User) => Promise<any>
+): ActionMenuItem[] => {
+  const items: ActionMenuItem[] = [];
+  const inactiveUsers = selectedRows.filter(user => !user.isActive);
+  const activeUsers = selectedRows.filter(user => user.isActive);
+  
+  if (inactiveUsers.length > 0) {
+    items.push({
+      label: 'Activate',
+      onClick: () => {
+        handleUserOperation(
+          handleActivateUser(selectedUser),
+          'text.user_activated',
+          'text.user_activation_success',
+          'text.user_activation_failed'
+        );
+      },
+      colorScheme: 'green',
+      variant: 'outline',
+    });
+  }
+  
+  if (activeUsers.length > 0) {
+    items.push({
+      label: 'Deactivate',
+      onClick: () => {
+        handleUserOperation(
+          handleDeactivateUser(selectedUser),
+          'text.user_deactivated',
+          'text.user_deactivation_success',
+          'text.user_deactivation_failed'
+        );
+      },
+      colorScheme: 'orange',
+      variant: 'outline',
+    });
+  }
+  
+  return items;
+};
+
+// Helper function to build delete action menu item
+const buildDeleteMenuItem = (selectedUser: User, askDelete: (id: number) => void): ActionMenuItem => ({
+  label: 'Delete',
+  onClick: () => {
+    askDelete(selectedUser.id);
+  },
+  colorScheme: 'red',
+  variant: 'outline',
+});
+
+// Helper function to validate email format
+const isValidEmail = (email: string): boolean => {
+  const trimmedEmail = email.trim();
+  const atIndex = trimmedEmail.indexOf('@');
+  const dotIndex = trimmedEmail.lastIndexOf('.');
+  
+  return atIndex > 0 && 
+         dotIndex > atIndex + 1 && 
+         dotIndex < trimmedEmail.length - 1 &&
+         !trimmedEmail.includes(' ') &&
+         !trimmedEmail.includes('\t') &&
+         !trimmedEmail.includes('\n');
+};
+
+// Helper function to validate basic fields
+const validateBasicFields = (
+  firstName: string,
+  lastName: string,
+  email: string,
+  setFirstNameError: (error: string) => void,
+  setLastNameError: (error: string) => void,
+  setEmailError: (error: string) => void,
+  intl: any
+): boolean => {
+  const trimmedFirstName = firstName.trim();
+  const trimmedLastName = lastName.trim();
+  const trimmedEmail = email.trim().toLowerCase();
+  
+  let hasErrors = false;
+  
+  if (!trimmedFirstName) {
+    setFirstNameError(intl.formatMessage({ id: 'text.first_name_required' }));
+    hasErrors = true;
+  }
+  
+  if (!trimmedLastName) {
+    setLastNameError(intl.formatMessage({ id: 'text.last_name_required' }));
+    hasErrors = true;
+  }
+  
+  if (!trimmedEmail) {
+    setEmailError(intl.formatMessage({ id: 'text.email_required' }));
+    hasErrors = true;
+  } else if (!isValidEmail(trimmedEmail)) {
+    setEmailError(intl.formatMessage({ id: 'text.please_enter_valid_email' }));
+    hasErrors = true;
+  }
+  
+  return hasErrors;
+};
+
+// Helper function to check for duplicate email
+const checkDuplicateEmail = (
+  email: string,
+  users: User[],
+  excludeUserId?: number
+): User | undefined => {
+  const trimmedEmail = email.trim().toLowerCase();
+  return users.find(user => 
+    user.email.toLowerCase() === trimmedEmail && 
+    (!excludeUserId || user.id !== excludeUserId)
+  );
+};
+
+// Helper function to get search suggestions
+const getSearchSuggestionsHelper = (searchTerm: string, roles: Role[]): string[] => {
+  if (!searchTerm) return [];
+  
+  const suggestions: string[] = [];
+  const term = searchTerm.toLowerCase();
+  
+  if ('active'.includes(term) || 'enabled'.includes(term)) {
+    suggestions.push('active');
+  }
+  if ('inactive'.includes(term) || 'disabled'.includes(term)) {
+    suggestions.push('inactive');
+  }
+  
+  roles.forEach(role => {
+    if (role.name.toLowerCase().includes(term)) {
+      suggestions.push(role.name);
+    }
+  });
+  
+  return suggestions.slice(0, 3);
+};
+
 export function Component() {
   const { showError, showSuccess } = useDamToast();
   const [users, setUsers] = useState<Array<User>>([]);
   const intl = useIntl();
+  
+  // Responsive layout: horizontal on lg+, vertical on smaller screens
+  const isHorizontal = useBreakpointValue({ base: false, lg: true });
 
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
   const [isEdit, setIsEdit] = useState(false);
@@ -38,10 +229,8 @@ export function Component() {
   const [email, setEmail] = useState('');
   const [selectedRoles, setSelectedRoles] = useState<Array<Role>>([]);
   const [isDelDlgOpen, setIsDelDlgOpen] = useState(false);
-  const [roles, setRoles] = useState<Array<Role>>([]);
   const [deleteUserId, setDeleteUserId] = useState<number | null>(null);
-  const [roleOptions, setRoleOptions] = useState<Array<RoleOption>>([]);
-  const defauleDark = useColorModeValue("ant", "antdark");
+  const { roles, roleOptions } = useRoles();
   const [approvers, setApprovers] = useState<Array<User>>([]);
   const [isApproversDlgOpen, setIsApproversDlgOpen] = useState<boolean>(false);
   const [isUnsetApproverDlgOpen, setIsUnsetApproverDlgOpen] = useState<boolean>(false);
@@ -118,59 +307,22 @@ export function Component() {
   };
 
   // Get search suggestions based on current input
-  const getSearchSuggestions = () => {
-    if (!searchTerm) return [];
-    
-    const suggestions = [];
-    const term = searchTerm.toLowerCase();
-    
-    // Suggest status searches
-    if ('active'.includes(term) || 'enabled'.includes(term)) {
-      suggestions.push('active');
-    }
-    if ('inactive'.includes(term) || 'disabled'.includes(term)) {
-      suggestions.push('inactive');
-    }
-    
-    // Suggest role searches
-    roles.forEach(role => {
-      if (role.name.toLowerCase().includes(term)) {
-        suggestions.push(role.name);
-      }
-    });
-    
-    return suggestions.slice(0, 3); // Limit to 3 suggestions
-  };
+  const getSearchSuggestions = useCallback(() => {
+    return getSearchSuggestionsHelper(searchTerm, roles);
+  }, [searchTerm, roles]);
 
   useEffect(() => {
     const tmpUsers = Array.isArray(getData) ? getData : getData.content;
     if (tmpUsers) {
       setUsers(tmpUsers);
-      setApprovers(tmpUsers.filter(user => userHasRole(user, USER_ROLE.APPROVER)));
+      // Only set approvers if feature flag is enabled
+      if (FEATURE_FLAGS.ENABLE_APPROVER_ROLE) {
+        setApprovers(tmpUsers.filter(user => userHasRole(user, USER_ROLE.APPROVER)));
+      } else {
+        setApprovers([]);
+      }
     }
   }, [getData]);
-  useEffect(() => {
-    stateActions.addLoading();
-    request(`/api/admin/roles`, {
-      method: 'GET',
-      data: {}
-    }).then((res: any) => {
-      if (res) {
-        stateActions.subLoading();
-        setRoles(res);
-        setRoleOptions(res.map((role: Role) => ({ label: role.name, value: role.id.toString() })));
-      } else {
-        setRoleOptions([]);
-        setRoles([]);
-      }
-    }).catch((e) => {
-      setRoleOptions([]);
-      setRoles([]);
-      showError({
-        description: e?.response?.data?.error ?? intl.formatMessage({ id: 'text.failed_getting_roles' })
-      });
-    });
-  }, []);
 
   const clearForm = () => {
     setFirstName('');
@@ -190,7 +342,11 @@ export function Component() {
     setFirstName(user.firstName);
     setLastName(user.lastName);
     setEmail(user.email);
-    setSelectedRoles(user.roles || []);
+    // Filter out 'Approver' role from selected roles if feature flag is disabled
+    const filteredRoles = FEATURE_FLAGS.ENABLE_APPROVER_ROLE 
+      ? (user.roles || [])
+      : (user.roles || []).filter(role => role.name !== USER_ROLE.APPROVER);
+    setSelectedRoles(filteredRoles);
     setIsEdit(true);
     setIsShowEditForm(true);
   };
@@ -216,71 +372,38 @@ export function Component() {
     );
   };
   // Validation function to check for duplicate names and emails
-  const validateUserUniqueness = (firstName: string, lastName: string, email: string, excludeUserId?: number) => {
-    const trimmedFirstName = firstName.trim();
-    const trimmedLastName = lastName.trim();
-    const trimmedEmail = email.trim().toLowerCase();
-    
+  const validateUserUniqueness = useCallback((firstName: string, lastName: string, email: string, excludeUserId?: number) => {
     // Clear previous errors
     setFirstNameError('');
     setLastNameError('');
     setEmailError('');
     
-    let hasErrors = false;
-    
     // Basic field validation
-    if (!trimmedFirstName) {
-      setFirstNameError(intl.formatMessage({ id: 'text.first_name_required' }));
-      hasErrors = true;
-    }
+    const hasBasicErrors = validateBasicFields(
+      firstName,
+      lastName,
+      email,
+      setFirstNameError,
+      setLastNameError,
+      setEmailError,
+      intl
+    );
     
-    if (!trimmedLastName) {
-      setLastNameError(intl.formatMessage({ id: 'text.last_name_required' }));
-      hasErrors = true;
-    }
-    
-    if (!trimmedEmail) {
-      setEmailError(intl.formatMessage({ id: 'text.email_required' }));
-      hasErrors = true;
-    } else {
-      // Basic email format validation using string operations to prevent ReDoS
-      const isValidEmail = (email: string): boolean => {
-        const trimmedEmail = email.trim();
-        const atIndex = trimmedEmail.indexOf('@');
-        const dotIndex = trimmedEmail.lastIndexOf('.');
-        
-        return atIndex > 0 && 
-               dotIndex > atIndex + 1 && 
-               dotIndex < trimmedEmail.length - 1 &&
-               !trimmedEmail.includes(' ') &&
-               !trimmedEmail.includes('\t') &&
-               !trimmedEmail.includes('\n');
-      };
-      
-      if (!isValidEmail(trimmedEmail)) {
-        setEmailError(intl.formatMessage({ id: 'text.please_enter_valid_email' }));
-        hasErrors = true;
-      }
-    }
-    
-    // If there are basic validation errors, don't check for duplicates
-    if (hasErrors) {
+    if (hasBasicErrors) {
       return false;
     }
     
     // Check for duplicate email
-    const existingUserWithEmail = users.find(user => 
-      user.email.toLowerCase() === trimmedEmail && 
-      (!excludeUserId || user.id !== excludeUserId)
-    );
+    const trimmedEmail = email.trim().toLowerCase();
+    const existingUserWithEmail = checkDuplicateEmail(trimmedEmail, users, excludeUserId);
     
     if (existingUserWithEmail) {
       setEmailError(intl.formatMessage({ id: 'text.email_already_exists' }));
-      hasErrors = true;
+      return false;
     }
     
-    return !hasErrors;
-  };
+    return true;
+  }, [users, intl]);
 
   const handleCreate = async () => {
     if (selectedUser) return;
@@ -322,7 +445,8 @@ export function Component() {
         const role = roles.find(role => role.id === parseInt(roleOption.value.toString()));
         return role || null;  // If role not found, return null
       })
-      .filter((role): role is Role => role !== null);  // Filter out any null values
+      .filter((role): role is Role => role !== null)  // Filter out any null values
+      .filter(role => FEATURE_FLAGS.ENABLE_APPROVER_ROLE || role.name !== USER_ROLE.APPROVER);  // Filter out 'Approver' role if feature flag is disabled
 
     // Update the state with the selected roles
     setSelectedRoles(selectedRoles);
@@ -452,221 +576,59 @@ export function Component() {
 
   // Build action menu items based on selected rows
   const actionMenuItems: ActionMenuItem[] = useMemo(() => {
-    const items: ActionMenuItem[] = [];
     const singleSelected = selectedRows.length === 1;
     const selectedUserForActions = singleSelected ? selectedRows[0] : null;
 
-    // Edit User (single selection only)
-    if (singleSelected && selectedUserForActions) {
-      items.push({
-        label: 'Edit',
-        onClick: () => handleSelectUser(selectedUserForActions),
-        colorScheme: 'blue',
-        variant: 'outline',
-      });
+    if (!selectedUserForActions) {
+      return [];
     }
 
-    // Set Approver (single selection only)
-    if (singleSelected && selectedUserForActions && !selectedUserForActions.approver && canSetApprover(selectedUserForActions)) {
-      items.push({
-        label: 'Set Approver',
-        onClick: () => setIsApproversDlgOpen(true),
-        colorScheme: 'green',
-        variant: 'outline',
-      });
-    }
-
-    // Unset Approver (single selection only)
-    if (singleSelected && selectedUserForActions?.approver) {
-      items.push({
-        label: 'Unset Approver',
-        onClick: () => setIsUnsetApproverDlgOpen(true),
-        colorScheme: 'orange',
-        variant: 'outline',
-      });
-    }
-
-    // Activate User (single selection only)
-    const inactiveUsers = selectedRows.filter(user => !user.isActive);
-    if (singleSelected && inactiveUsers.length > 0 && selectedUserForActions) {
-      items.push({
-        label: 'Activate',
-        onClick: () => {
-          handleUserOperation(
-            handleActivateUser(selectedUserForActions),
-            'text.user_activated',
-            'text.user_activation_success',
-            'text.user_activation_failed'
-          );
-        },
-        colorScheme: 'green',
-        variant: 'outline',
-      });
-    }
-
-    // Deactivate User (single selection only)
-    const activeUsers = selectedRows.filter(user => user.isActive);
-    if (singleSelected && activeUsers.length > 0 && selectedUserForActions) {
-      items.push({
-        label: 'Deactivate',
-        onClick: () => {
-          handleUserOperation(
-            handleDeactivateUser(selectedUserForActions),
-            'text.user_deactivated',
-            'text.user_deactivation_success',
-            'text.user_deactivation_failed'
-          );
-        },
-        colorScheme: 'orange',
-        variant: 'outline',
-      });
-    }
-
-    // Delete User (single selection only)
-    if (singleSelected && selectedUserForActions) {
-      items.push({
-        label: 'Delete',
-        onClick: () => {
-          askDelete(selectedUserForActions.id);
-        },
-        colorScheme: 'red',
-        variant: 'outline',
-      });
-    }
-
-    return items;
-  }, [selectedRows, approvers, handleSelectUser, askDelete, canSetApprover, handleActivateUser, handleDeactivateUser, intl, showSuccess, showError, getList]);
+    return [
+      buildEditMenuItem(selectedUserForActions, handleSelectUser),
+      ...buildApproverMenuItems(selectedUserForActions, canSetApprover, setIsApproversDlgOpen, setIsUnsetApproverDlgOpen),
+      ...buildStatusMenuItems(selectedUserForActions, selectedRows, handleUserOperation, handleActivateUser, handleDeactivateUser),
+      buildDeleteMenuItem(selectedUserForActions, askDelete)
+    ];
+  }, [selectedRows, handleSelectUser, canSetApprover, setIsApproversDlgOpen, setIsUnsetApproverDlgOpen, handleUserOperation, handleActivateUser, handleDeactivateUser, askDelete]);
 
   return (
     <DamBasePage
       title={intl.formatMessage({ id: 'text.user_management' })}
     >
       <Flex flexDir="column" w="100%" maxW="100%">
-        {isShowEditForm && <Flex w="100%">
-          <Flex pt={5} w="100%">
-            <Flex id="flexUserForm" direction={'column'} w='full' pr={4}>
-              <Flex gap={4}>
-                <Flex w='full' direction="column">
-                  <Input
-                    id="inputFirstName"
-                    value={firstName}
-                    onChange={(e) => {
-                      setFirstName(e.target.value);
-                      setFirstNameError(''); // Clear error when user types
-                    }}
-                    placeholder={intl.formatMessage({ id: 'text.first_name' })}
-                    isInvalid={!!firstNameError}
-                    borderColor={firstNameError ? 'red.300' : undefined}
-                  />
-                  {firstNameError && (
-                    <Text fontSize="xs" color="red.500" mt={1}>
-                      {firstNameError}
-                    </Text>
-                  )}
-                </Flex>
-                <Flex w='full' direction="column">
-                  <Input
-                    id="inputLastName"
-                    value={lastName}
-                    onChange={(e) => {
-                      setLastName(e.target.value);
-                      setLastNameError(''); // Clear error when user types
-                    }}
-                    placeholder={intl.formatMessage({ id: 'text.last_name' })}
-                    isInvalid={!!lastNameError}
-                    borderColor={lastNameError ? 'red.300' : undefined}
-                  />
-                  {lastNameError && (
-                    <Text fontSize="xs" color="red.500" mt={1}>
-                      {lastNameError}
-                    </Text>
-                  )}
-                </Flex>
-                <Flex w='full' direction="column">
-                  <Input
-                    id="inputEmail"
-                    value={email}
-                    onChange={(e) => {
-                      setEmail(e.target.value);
-                      setEmailError(''); // Clear error when user types
-                    }}
-                    placeholder={intl.formatMessage({ id: 'text.email' })}
-                    isInvalid={!!emailError}
-                    borderColor={emailError ? 'red.300' : undefined}
-                  />
-                  {emailError && (
-                    <Text fontSize="xs" color="red.500" mt={1}>
-                      {emailError}
-                    </Text>
-                  )}
-                </Flex>
-              </Flex>
-              <Flex gap={4} mt={4}>
-                <Flex w={'full'}>
-                  <Box w="100%" minW="100%">
-                    <Select
-                      id="selectRoles"
-                      isMulti
-                      value={selectedRoles.map(role => ({ label: role.name, value: role.id.toString() }))}
-                      options={roleOptions}
-                      onChange={handleRoleChange}
-                      placeholder="Select Roles"
-                      closeMenuOnSelect={false} // Allow multi-selection without closing the menu
-                      isSearchable={false} // Disable search functionality
-                      size="md"
-                      chakraStyles={{
-                        container: (provided) => ({
-                          ...provided,
-                          width: "100%"
-                        })
-                      }}
-                    />
-                  </Box>
-                </Flex>
-              </Flex>
-              {!isEdit && (
-                <Flex mt={2}>
-                  <Text fontSize="sm" color="gray.600">
-                    <FormattedMessage id="text.user_will_receive_email" />
-                  </Text>
-                </Flex>
-              )}
-              <Flex mt={2}>
-                <Text fontSize="xs" color="gray.500">
-                  <FormattedMessage id="text.user_validation_rules" />
-                </Text>
-              </Flex>
-            </Flex>
-            <Flex direction={'column'} gap={4} alignItems={'center'} w='110px'>
-              <Button
-                id="btnSaveUser"
-                colorScheme={isEdit ? "green" : "blue"}
-                w='full'
-                onClick={isEdit ? handleUpdate : handleCreate}
-                disabled={!firstName || !lastName || !email}
-                pr="30px"
-                pl="30px"
-                borderRadius="5px"
-                data-testid="submit-button"
-              >
-                <FormattedMessage id="text.save" />
-              </Button>
-              {isEdit && (
-                <DamButton
-                  borderRadius="5px" pr="30px" pl="30px"
-                  w='full'
-                  colorScheme="red"
-                  onClick={() => {
-                    clearForm();
-                    setIsEdit(false);
-                    setIsShowEditForm(false);
-                  }}>
-                  <FormattedMessage id='text.cancel' />
-                </DamButton>
-              )}
-            </Flex>
-          </Flex>
-        </Flex>}
+        {isShowEditForm && (
+          <UserForm
+            isHorizontal={isHorizontal ?? false}
+            firstName={firstName}
+            lastName={lastName}
+            email={email}
+            selectedRoles={selectedRoles}
+            roleOptions={roleOptions}
+            firstNameError={firstNameError}
+            lastNameError={lastNameError}
+            emailError={emailError}
+            isEdit={isEdit}
+            onFirstNameChange={(value) => {
+              setFirstName(value);
+              setFirstNameError('');
+            }}
+            onLastNameChange={(value) => {
+              setLastName(value);
+              setLastNameError('');
+            }}
+            onEmailChange={(value) => {
+              setEmail(value);
+              setEmailError('');
+            }}
+            onRoleChange={handleRoleChange}
+            onSave={isEdit ? handleUpdate : handleCreate}
+            onCancel={() => {
+              clearForm();
+              setIsEdit(false);
+              setIsShowEditForm(false);
+            }}
+          />
+        )}
         <Flex flexWrap="wrap" w="100%">
           <Flex pt={5} flexDir="column" w="100%">
             <DamCard mt="4" w="100%" overflow="hidden">
@@ -689,74 +651,14 @@ export function Component() {
                   </Flex>
                   
                   {/* Search Section */}
-                  <Flex flex="1" justify="center" maxW={{ base: "100%", md: "400px" }} mx={4}>
-                    <VStack w="100%" spacing={2}>
-                      <InputGroup size="md" w="100%">
-                        <InputLeftElement pointerEvents="none">
-                          <SearchIcon color="gray.400" />
-                        </InputLeftElement>
-                        <Input
-                          placeholder={intl.formatMessage({ id: 'text.search_users_placeholder' })}
-                          value={searchTerm}
-                          onChange={(e) => handleSearchChange(e.target.value)}
-                          bg={useColorModeValue('white', 'gray.700')}
-                          border="1px solid"
-                          borderColor={isSearchActive ? 'blue.400' : 'gray.300'}
-                          _hover={{ borderColor: 'gray.400' }}
-                          _focus={{ borderColor: 'blue.500', boxShadow: '0 0 0 1px #3182ce' }}
-                          pr={searchTerm ? "40px" : "12px"}
-                        />
-                        {searchTerm && (
-                          <Tooltip label={intl.formatMessage({ id: 'text.search_clear' })} fontSize="xs">
-                            <IconButton
-                              aria-label={intl.formatMessage({ id: 'text.search_clear' })}
-                              icon={<CloseIcon />}
-                              size="xs"
-                              variant="ghost"
-                              position="absolute"
-                              right="8px"
-                              top="50%"
-                              transform="translateY(-50%)"
-                              onClick={clearSearch}
-                              zIndex={2}
-                            />
-                          </Tooltip>
-                        )}
-                      </InputGroup>
-                      
-                      {/* Search Suggestions */}
-                      {searchTerm && getSearchSuggestions().length > 0 && (
-                        <HStack spacing={2} w="100%" justify="flex-start" flexWrap="wrap">
-                          <Text fontSize="xs" color="gray.500">
-                            <FormattedMessage id="text.search_suggestions_try" />
-                          </Text>
-                          {getSearchSuggestions().map((suggestion, index) => (
-                            <Badge
-                              key={suggestion}
-                              variant="outline"
-                              colorScheme="blue"
-                              cursor="pointer"
-                              fontSize="xs"
-                              onClick={() => handleSearchChange(suggestion)}
-                              _hover={{ bg: 'blue.50' }}
-                            >
-                              {suggestion}
-                            </Badge>
-                          ))}
-                        </HStack>
-                      )}
-                      
-                      {/* Search Status */}
-                      {isSearchActive && (
-                        <Text fontSize="xs" color="blue.600" w="100%" textAlign="center">
-                          {users.length} {users.length === 1 
-                            ? intl.formatMessage({ id: 'text.search_results_count' })
-                            : intl.formatMessage({ id: 'text.search_results_count_plural' })
-                          } for "{searchTerm}"
-                        </Text>
-                      )}
-                    </VStack>
-                  </Flex>
+                  <UserSearchSection
+                    searchTerm={searchTerm}
+                    isSearchActive={isSearchActive}
+                    usersCount={users.length}
+                    suggestions={getSearchSuggestions()}
+                    onSearchChange={handleSearchChange}
+                    onClearSearch={clearSearch}
+                  />
                   
                   <Flex
                     justify="flex-end"
@@ -799,131 +701,19 @@ export function Component() {
                     </HStack>
                   </Flex>
                 </Flex>
-                <ConfigProvider prefixCls={defauleDark}>
-                  <TableContainer w='100%' sx={{ overflowX: 'scroll' }}>
-                    <Table variant='simple' size='md' w='100%'>
-                      <Thead>
-                        <Tr>
-                          <Th width="40px">
-                            <Checkbox
-                              isChecked={isAllSelected}
-                              isIndeterminate={isIndeterminate}
-                              onChange={(e) => e.target.checked ? selectAll() : deselectAll()}
-                            />
-                          </Th>
-                          <Th><FormattedMessage id='text.id' /></Th>
-                          <Th><FormattedMessage id='text.first_name' /></Th>
-                          <Th><FormattedMessage id='text.last_name' /></Th>
-                          <Th><FormattedMessage id='text.email' /></Th>
-                          <Th><FormattedMessage id='text.status' /></Th>
-                          <Th><FormattedMessage id='text.approver' /></Th>
-                          <Th><FormattedMessage id='text.role' /></Th>
-                        </Tr>
-                      </Thead>
-                      <Tbody>
-                        {users && users.length > 0 ? (
-                          users.map((user) => {
-                            if (!user.id) return null;
-                            const isRowSelected = selectedRowKeys.includes(String(user.id));
-                            const isSelectedUser = user.id === selectedUser?.id;
-                            
-                            // Determine row background style
-                            let rowBackgroundStyle = {};
-                            if (isRowSelected) {
-                              rowBackgroundStyle = {
-                                backgroundColor: 'blue.50 !important',
-                                _dark: {
-                                  backgroundColor: 'blue.900 !important'
-                                }
-                              };
-                            } else if (isSelectedUser) {
-                              rowBackgroundStyle = {
-                                _light: {
-                                  backgroundColor: 'gray.200'
-                                },
-                                _dark: {
-                                  backgroundColor: 'gray.600'
-                                }
-                              };
-                            }
-
-                            return (
-                              <Tr key={user.id}
-                                onClick={() => {
-                                  // Rule 1 & 2: Handle row click (not checkbox)
-                                  handleUserRowClick(user.id);
-                                  // Also select user for editing
-                                  handleSelectUser(user);
-                                }}
-                                cursor={'pointer'}
-                                sx={{
-                                  _hover: {
-                                    backgroundColor: 'gray.100',
-                                    _dark: {
-                                      backgroundColor: 'gray.700'
-                                    }
-                                  },
-                                  ...rowBackgroundStyle
-                                }}>
-                                <Td onClick={(e) => e.stopPropagation()}>
-                                  <Checkbox
-                                    isChecked={isRowSelected}
-                                    onChange={(e) => {
-                                      e.stopPropagation();
-                                      user.id && handleUserCheckboxClick(user.id, e.target.checked);
-                                    }}
-                                    onClick={(e) => e.stopPropagation()}
-                                  />
-                                </Td>
-                                <Td>{user.id}</Td>
-                                <Td>{user.firstName}</Td>
-                                <Td>{user.lastName}</Td>
-                                <Td>{user.email}</Td>
-                                <Td>
-                                  <Text
-                                    color={user.isActive ? 'green.500' : 'red.500'}
-                                    fontWeight="bold"
-                                    fontSize="sm"
-                                    mb={0}
-                                  >
-                                    {user.isActive ? 'Active' : 'Inactive'}
-                                  </Text>
-                                </Td>
-                                <Td>
-                                  {user.approver ? (
-                                    <Text
-                                      textDecoration={'underline'}
-                                      mb={0}
-                                      onClick={(e) => {
-                                        e.stopPropagation();
-                                        setIsApproversDlgOpen(true);
-                                      }}
-                                      cursor="pointer">
-                                      {user.approver.email}
-                                    </Text>
-                                  ) : (
-                                    <Text mb={0}>-</Text>
-                                  )}
-                                </Td>
-                                <Td>
-                                  <Text mb={0}>
-                                    {user.roles?.map(role => role.name).join(', ') ?? 'NONE'}
-                                  </Text>
-                                </Td>
-                              </Tr>
-                            );
-                          })
-                        ) : (
-                          <Tr>
-                            <Td colSpan={9} textAlign="center">
-                              <FormattedMessage id="text.noUsers" defaultMessage="No users are registered" />
-                            </Td>
-                          </Tr>
-                        )}
-                      </Tbody>
-                    </Table>
-                  </TableContainer>
-                </ConfigProvider>
+                <UsersTable
+                  users={users}
+                  selectedRowKeys={selectedRowKeys}
+                  selectedUser={selectedUser}
+                  onUserRowClick={handleUserRowClick}
+                  onUserCheckboxClick={handleUserCheckboxClick}
+                  onSelectUser={handleSelectUser}
+                  isAllSelected={isAllSelected}
+                  isIndeterminate={isIndeterminate}
+                  onSelectAll={selectAll}
+                  onDeselectAll={deselectAll}
+                  onApproverClick={() => setIsApproversDlgOpen(true)}
+                />
               </DamCardBody>
             </DamCard>
           </Flex>
@@ -939,22 +729,26 @@ export function Component() {
         confirmButtonId="btnConfirmDeleteUser"
       />
 
-      <DamAlertDialog
-        isOpen={isUnsetApproverDlgOpen}
-        onClose={() => setIsUnsetApproverDlgOpen(false)}
-        onConfirm={handleUnsetApprover}
-        title="text.unset_approver"
-        message="text.are_you_sure_unset_approver"
-        confirmButtonId="btnConfirmUnsetApprover"
-      />
+      {FEATURE_FLAGS.ENABLE_APPROVER_ROLE && (
+        <>
+          <DamAlertDialog
+            isOpen={isUnsetApproverDlgOpen}
+            onClose={() => setIsUnsetApproverDlgOpen(false)}
+            onConfirm={handleUnsetApprover}
+            title="text.unset_approver"
+            message="text.are_you_sure_unset_approver"
+            confirmButtonId="btnConfirmUnsetApprover"
+          />
 
-      <UserApproversDlg
-        approvers={approvers}
-        selectedUser={selectedRows.length === 1 ? selectedRows[0] : selectedUser}
-        isOpen={isApproversDlgOpen}
-        onSaveApprover={onSaveApprover}
-        confirmButtonId="btnConfirmSaveApprover"
-      />
+          <UserApproversDlg
+            approvers={approvers}
+            selectedUser={selectedRows.length === 1 ? selectedRows[0] : selectedUser}
+            isOpen={isApproversDlgOpen}
+            onSaveApprover={onSaveApprover}
+            confirmButtonId="btnConfirmSaveApprover"
+          />
+        </>
+      )}
 
       <BulkUploadModal
         isOpen={isBulkUploadOpen}

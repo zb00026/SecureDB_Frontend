@@ -42,6 +42,7 @@ export function DamTerminalModal({ isOpen, onClose, asset, userAccessType }: Dam
       onClose={handleClose}
       size={isFullscreen ? 'full' : '6xl'}
       isCentered={!isFullscreen}
+      closeOnOverlayClick={false}
     >
       <ModalOverlay />
       <ModalContent

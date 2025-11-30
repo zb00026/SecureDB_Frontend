@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { Asset } from '@models/assets/Asset';
 import { AssetCredential } from '@models/assets/AssetCredential';
 import { User } from '@models/User';
-import { USER_ROLE } from '@/constants/enums';
+import { USER_ROLE, FEATURE_FLAGS } from '@/constants/enums';
 import { userHasRole, request } from '@common/index';
 
 export interface AssetWithPasswordStatus extends Asset {
@@ -39,7 +39,7 @@ export const useAssetsForAudit = ({ user }: UseAssetsForAuditProps): UseAssetsFo
       return '/api/asset_owner/assets/credentials'; // Use credentials endpoint for asset owners
     }
 
-    if (userHasRole(user, USER_ROLE.APPROVER)) {
+    if (FEATURE_FLAGS.ENABLE_APPROVER_ROLE && userHasRole(user, USER_ROLE.APPROVER)) {
       return '/api/approver/assets'; // Assets they can approve
     }
 

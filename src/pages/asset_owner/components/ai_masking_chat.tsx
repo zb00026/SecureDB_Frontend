@@ -340,18 +340,6 @@ const PolicyConfirmationModal: React.FC<PolicyConfirmationModalProps> = ({ isOpe
       <ModalBody>
         {pendingPolicy && (
           <VStack spacing={4} align="stretch">
-            <Alert status="info">
-              <AlertIcon />
-              <Box>
-                <AlertTitle>
-                  <FormattedMessage id="text.policy_summary" />
-                </AlertTitle>
-                <AlertDescription>
-                  {pendingPolicy.originalRequest}
-                </AlertDescription>
-              </Box>
-            </Alert>
-
             <FormControl>
               <FormLabel>
                 <FormattedMessage id="text.masking_strategy" />
@@ -1088,13 +1076,6 @@ export function AIMaskingChat({ credentials, onPolicyCreated }: Readonly<AIMaski
                       </Text>
                     </Box>
                     <Flex flex={1} flexDirection="column" alignItems="flex-end">
-                      <Badge
-                        colorScheme={getSensitivityColorScheme(suggestion.sensitivityLevel)}
-                        size="sm"
-                        mb={2}
-                      >
-                        {suggestion.suggestedStrategy}
-                      </Badge>
                       <Checkbox
                         ml={2}
                         isChecked={suggestion.isSelected}

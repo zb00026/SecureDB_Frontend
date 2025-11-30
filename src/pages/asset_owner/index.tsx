@@ -4,7 +4,7 @@ import {
   Modal, ModalOverlay, ModalContent, ModalHeader, ModalCloseButton, ModalBody,
   useDisclosure,
   Alert, AlertIcon, AlertTitle, AlertDescription, CloseButton, Box,
-  Checkbox, Text, Icon
+  Checkbox, Text, Icon, Badge
 } from "@chakra-ui/react";
 import { DamBasePage } from "@common/components/DamBasePage";
 import { DamCardBody, DamCard, request, useDamToast, DamCardDivider, stateActions, ActionMenu, ActionMenuItem, state, userHasRole } from "@common/index";
@@ -24,10 +24,11 @@ import { AIMaskingChat } from "./components/ai_masking_chat";
 import { MaskingPolicies, MaskingPoliciesRef } from "./components/masking_policies";
 import { DamViewAccessModal } from "@common/components/DamDialog/DamViewAccessModal";
 import { useViewAccess } from "@common/hooks/useViewAccess";
+import { AssetLockDialog, LockAction } from "@common/components/DamDialog";
 import { FiEdit, FiSave, FiX, FiShield, FiDatabase, FiTerminal, FiSearch, FiCheckCircle } from "react-icons/fi";
 import { FaFire } from "react-icons/fa";
 import { useNavigate, useLocation } from "react-router-dom";
-import { USER_ROLE } from "@/constants/enums";
+import { USER_ROLE, LockType } from "@/constants/enums";
 
 export const isSearchable = true;
 export const displayName = 'Asset Owner Main Page';
@@ -154,6 +155,12 @@ export function Component() {
   const [activeTab, setActiveTab] = useState<ActiveTab>('assets');
   const [newAssetsRequiringCredentials, setNewAssetsRequiringCredentials] = useState<AssetCredential[]>([]);
   const [showNewAssetsAlert, setShowNewAssetsAlert] = useState(false);
+  
+  // Lock/Unlock states
+  const [isLockDialogOpen, setIsLockDialogOpen] = useState(false);
+  const [lockDialogAsset, setLockDialogAsset] = useState<Asset | null>(null);
+  const [lockDialogAction, setLockDialogAction] = useState<LockAction>(LockAction.LOCK);
+  const [isLockLoading, setIsLockLoading] = useState(false);
 
   // Helper function to set tab from URL parameter
   const setTabFromUrl = () => {
@@ -187,6 +194,8 @@ export function Component() {
   }, [location.search, navigate]);
   const selectedRowBg = useColorModeValue('gray.200', 'gray.700');
   const borderColor = useColorModeValue('gray.200', 'gray.600');
+  const inputBorderColor = useColorModeValue('gray.300', 'gray.600');
+  const inputFocusBorderColor = useColorModeValue('blue.500', 'blue.300');
 
   // Ref for MaskingPolicies component to call refresh function
   const maskingPoliciesRef = useRef<MaskingPoliciesRef>(null);
@@ -286,7 +295,7 @@ export function Component() {
       })
       .catch((e) => {
         showError({
-          description: e.data?.error ?? intl.formatMessage({ id: 'text.error_occurred_setting_ssh_credentials' }),
+          description: e.data?.error ? e.data?.details : intl.formatMessage({ id: 'text.error_occurred_setting_ssh_credentials' }),
         });
       })
       .finally(() => {
@@ -375,7 +384,7 @@ export function Component() {
   // Helper function to handle asset update error
   const handleAssetUpdateError = (e: any) => {
     showError({
-      description: e.data?.error ?? intl.formatMessage({ id: 'text.error_occurred_updating_asset' }),
+      description: e.data?.error ? e.data?.details : intl.formatMessage({ id: 'text.error_occurred_updating_asset' }),
     });
   };
 
@@ -414,121 +423,73 @@ export function Component() {
   };
 
   const handleOpenQuery = (asset: Asset) => {
+    if (asset.locked) {
+      showError({ description: 'This asset is locked. You cannot run queries on a locked asset.' });
+      return;
+    }
     navigate(`/asset_owner/query_asset?assetId=${asset.id}`);
   };
 
-  // Helper function to render credential status buttons
-  const renderCredentialStatus = (credential: AssetCredential) => {
-    const assetType = credential.asset?.type;
-    if (assetType === 'DATABASE') {
-      return renderDatabaseCredentialStatus(credential);
-    }
-    if (assetType === 'UNIX_SERVER') {
-      return renderSSHCredentialStatus(credential);
-    }
-    return null;
+  // Lock/Unlock handlers
+  const handleLockAsset = (credential: AssetCredential) => {
+    const asset = credential.asset as Asset;
+    if (!asset) return;
+    setLockDialogAsset(asset);
+    setLockDialogAction(LockAction.LOCK);
+    setIsLockDialogOpen(true);
   };
 
-  // Helper function for database credential status
-  const renderDatabaseCredentialStatus = (credential: AssetCredential) => {
-    if (!hasDatabaseCredentials(credential)) {
-      return (
-        <Flex gap={2} justifyContent={'center'} w='full'>
-          <Button
-            size="sm"
-            className="btn-set-credential"
-            colorScheme="green"
-            onClick={(e) => {
-              e.stopPropagation();
-              setSelectedCredential(credential);
-              setIsDialogOpen(true);
-            }}
-          >
-            <FormattedMessage id="text.set_credential" />
-          </Button>
-        </Flex>
-      );
-    }
-    return (
-      <Flex flexDirection={'row'} gap={2} justifyContent={'center'} w='full'>
-        <Button
-          size="sm"
-          className="btn-update-credential"
-          colorScheme="yellow"
-          onClick={(e) => {
-            e.stopPropagation();
-            setSelectedCredential(credential);
-            setIsDialogOpen(true);
-          }}
-        >
-          <FormattedMessage id="text.update_credential" />
-        </Button>
-        <Button
-          size="sm"
-          className="btn-relinquish-credential"
-          colorScheme="red"
-          onClick={(e) => {
-            e.stopPropagation();
-            setSelectedCredential(credential);
-            setIsDelDlgOpen(true);
-          }}
-        >
-          <FormattedMessage id="text.relinquish_credential" />
-        </Button>
-      </Flex>
-    );
+  const handleUnlockAsset = (credential: AssetCredential) => {
+    const asset = credential.asset as Asset;
+    if (!asset) return;
+    setLockDialogAsset(asset);
+    setLockDialogAction(LockAction.UNLOCK);
+    setIsLockDialogOpen(true);
   };
 
-  // Helper function for SSH credential status
-  const renderSSHCredentialStatus = (credential: AssetCredential) => {
-    if (!hasSSHCredentials(credential)) {
-      return (
-        <Flex gap={2} justifyContent={'center'} w='full'>
-          <Button
-            size="sm"
-            className="btn-set-ssh-credential"
-            colorScheme="green"
-            onClick={(e) => {
-              e.stopPropagation();
-              setSelectedCredential(credential);
-              setIsSSHDialogOpen(true);
-            }}
-          >
-            <FormattedMessage id="text.set_ssh_credential" />
-          </Button>
-        </Flex>
-      );
+  const closeLockDialog = () => {
+    if (!isLockLoading) {
+      setIsLockDialogOpen(false);
+      setLockDialogAsset(null);
+      setLockDialogAction(LockAction.LOCK);
     }
-    return (
-      <Flex flexDirection={'row'} gap={2} justifyContent={'center'} w='full'>
-        <Button
-          size="sm"
-          className="btn-update-ssh-credential"
-          colorScheme="yellow"
-          onClick={(e) => {
-            e.stopPropagation();
-            setSelectedCredential(credential);
-            setIsSSHDialogOpen(true);
-          }}
-        >
-          <FormattedMessage id="text.update_ssh_credential" />
-        </Button>
-        <Button
-          size="sm"
-          className="btn-relinquish-ssh-credential"
-          colorScheme="red"
-          onClick={(e) => {
-            e.stopPropagation();
-            setSelectedCredential(credential);
-            setIsDelDlgOpen(true);
-          }}
-        >
-          <FormattedMessage id="text.relinquish_ssh_credential" />
-        </Button>
-      </Flex>
-    );
   };
 
+  const handleLockConfirm = async (asset: Asset, lockAction: LockAction) => {
+    setIsLockLoading(true);
+
+    try {
+      if (!asset?.id) {
+        throw new Error('Invalid asset selected');
+      }
+
+      const endpoint = lockAction === LockAction.LOCK
+        ? `/api/asset_owner/assets/${asset.id}/lockout`
+        : `/api/asset_owner/assets/${asset.id}/unlock`;
+
+      await request(endpoint, {
+        method: 'POST',
+        data: {}
+      });
+
+      showSuccess({
+        title: lockAction === LockAction.LOCK ? 'text.asset_locked' : 'text.asset_unlocked',
+        description: lockAction === LockAction.LOCK ? 'text.asset_lock_success' : 'text.asset_unlock_success'
+      });
+
+      fetchAssignedCredentials();
+
+      closeLockDialog();
+    } catch (error: any) {
+      console.error(`${lockAction} operation failed:`, error);
+      showError({
+        description: error?.response?.data?.error ?? `Failed to ${lockAction.toLowerCase()} asset access. Please try again.`
+      });
+    } finally {
+      setIsLockLoading(false);
+    }
+  };
+  
   const selectedRows = useMemo(() => {
     return credentials.filter(cred => cred.id && selectedRowKeys.includes(String(cred.id)));
   }, [credentials, selectedRowKeys]);
@@ -553,16 +514,52 @@ export function Component() {
   const isAllSelected = credentials.length > 0 && selectedRowKeys.length === credentials.length;
   const isIndeterminate = selectedRowKeys.length > 0 && selectedRowKeys.length < credentials.length;
 
-  // Helper function to build action menu items for database assets
-  const buildDatabaseMenuItems = useCallback((selectedCredential: AssetCredential): ActionMenuItem[] => {
-    const items: ActionMenuItem[] = [
-      { label: 'Edit Asset', onClick: () => handleEditAsset(selectedCredential), colorScheme: 'orange', variant: 'outline' },
-      { label: 'View Access', onClick: () => viewAssetAccess(selectedCredential), colorScheme: 'blue', variant: 'outline' },
-      { label: 'Relinquish Credential', onClick: () => { setSelectedCredential(selectedCredential); setIsDelDlgOpen(true); }, colorScheme: 'red', variant: 'outline' }
+  // Helper function to get editing menu items (Save/Cancel)
+  const getEditingMenuItems = useCallback((): ActionMenuItem[] => {
+    return [
+      { label: 'Save', onClick: () => handleSaveAsset(), colorScheme: 'green', variant: 'outline' },
+      { label: 'Cancel', onClick: () => handleCancelEdit(), colorScheme: 'gray', variant: 'outline' }
     ];
+  }, [handleSaveAsset, handleCancelEdit]);
+
+  // Helper function to add Edit Asset menu item if not locked
+  const addEditAssetMenuItem = useCallback((items: ActionMenuItem[], selectedCredential: AssetCredential, isLocked: boolean) => {
+    if (!isLocked) {
+      items.push({ label: 'Edit Asset', onClick: () => handleEditAsset(selectedCredential), colorScheme: 'orange', variant: 'outline' });
+    }
+  }, [handleEditAsset]);
+
+  // Helper function to build action menu items for database assets
+  const buildDatabaseMenuItems = useCallback((selectedCredential: AssetCredential, isEditing: boolean): ActionMenuItem[] => {
+    const asset = selectedCredential.asset as Asset;
+    const isLocked = asset?.locked ?? false;
+    const lockType = asset?.lockType;
     
-    if (!selectedCredential.isTemporaryPassword) {
-      items.push({ label: 'Query Database', onClick: () => handleOpenQuery(selectedCredential.asset as Asset), colorScheme: 'green', variant: 'outline' });
+    // If editing, show only Save and Cancel buttons
+    if (isEditing) {
+      return getEditingMenuItems();
+    }
+    
+    const items: ActionMenuItem[] = [];
+    
+    // Only add Edit Asset if asset is not locked
+    addEditAssetMenuItem(items, selectedCredential, isLocked);
+    
+    items.push(
+      { label: 'View Access', onClick: () => viewAssetAccess(selectedCredential), colorScheme: 'blue', variant: 'outline', isDisabled: isLocked },
+      { label: 'Relinquish Credential', onClick: () => { setSelectedCredential(selectedCredential); setIsDelDlgOpen(true); }, colorScheme: 'red', variant: 'outline' }
+    );
+    
+    if (!isLocked) {
+      if (lockType === LockType.LOCK_ALL_DB_USERS) {
+        items.push({ label: 'Unlock', onClick: () => handleUnlockAsset(selectedCredential), colorScheme: 'green', variant: 'outline' });
+      } else {
+        items.push({ label: 'Lockout', onClick: () => handleLockAsset(selectedCredential), colorScheme: 'orange', variant: 'outline' });
+      }
+    }
+    
+    if (!selectedCredential.isTemporaryPassword && !isLocked) {
+      items.push({ label: 'Query Database', onClick: () => handleOpenQuery(asset), colorScheme: 'green', variant: 'outline' });
     }
 
     if (!hasDatabaseCredentials(selectedCredential)) {
@@ -574,13 +571,22 @@ export function Component() {
       { label: 'Update Credential', onClick: () => { setSelectedCredential(selectedCredential); setIsDialogOpen(true); }, colorScheme: 'yellow', variant: 'outline' },
     );
     return items;
-  }, [handleEditAsset, viewAssetAccess, handleOpenQuery, setSelectedCredential, setIsDialogOpen, setIsDelDlgOpen]);
+  }, [getEditingMenuItems, addEditAssetMenuItem, viewAssetAccess, handleOpenQuery, handleLockAsset, handleUnlockAsset, hasDatabaseCredentials, setSelectedCredential, setIsDialogOpen, setIsDelDlgOpen]);
 
   // Helper function to build action menu items for Unix server assets
-  const buildUnixServerMenuItems = useCallback((selectedCredential: AssetCredential): ActionMenuItem[] => {
-    const items: ActionMenuItem[] = [
-      { label: 'Edit Asset', onClick: () => handleEditAsset(selectedCredential), colorScheme: 'orange', variant: 'outline' }
-    ];
+  const buildUnixServerMenuItems = useCallback((selectedCredential: AssetCredential, isEditing: boolean): ActionMenuItem[] => {
+    const asset = selectedCredential.asset as Asset;
+    const isLocked = asset?.locked ?? false;
+    
+    // If editing, show only Save and Cancel buttons
+    if (isEditing) {
+      return getEditingMenuItems();
+    }
+    
+    const items: ActionMenuItem[] = [];
+    
+    // Only add Edit Asset if asset is not locked
+    addEditAssetMenuItem(items, selectedCredential, isLocked);
     
     if (!hasSSHCredentials(selectedCredential)) {
       items.push({ label: 'Set SSH Credential', onClick: () => { setSelectedCredential(selectedCredential); setIsSSHDialogOpen(true); }, colorScheme: 'green', variant: 'outline' });
@@ -593,7 +599,7 @@ export function Component() {
       { label: 'Relinquish SSH Credential', onClick: () => { setSelectedCredential(selectedCredential); setIsDelDlgOpen(true); }, colorScheme: 'red', variant: 'outline' }
     );
     return items;
-  }, [handleEditAsset, handleOpenTerminal, setSelectedCredential, setIsSSHDialogOpen, setIsDelDlgOpen]);
+  }, [getEditingMenuItems, addEditAssetMenuItem, hasSSHCredentials, handleOpenTerminal, setSelectedCredential, setIsSSHDialogOpen, setIsDelDlgOpen]);
 
   // Build action menu items based on selected rows
   const actionMenuItems: ActionMenuItem[] = useMemo(() => {
@@ -604,16 +610,26 @@ export function Component() {
       return [];
     }
 
+    const isEditing = editingAssetId === selectedCredential.asset?.id;
     const assetType = selectedCredential.asset?.type;
+    
     if (assetType === 'DATABASE') {
-      return buildDatabaseMenuItems(selectedCredential);
+      return buildDatabaseMenuItems(selectedCredential, isEditing);
     }
     if (assetType === 'UNIX_SERVER') {
-      return buildUnixServerMenuItems(selectedCredential);
+      return buildUnixServerMenuItems(selectedCredential, isEditing);
+    }
+    
+    // For other asset types, show Edit/Save/Cancel based on editing state
+    if (isEditing) {
+      return [
+        { label: 'Save', onClick: () => handleSaveAsset(), colorScheme: 'green', variant: 'outline' },
+        { label: 'Cancel', onClick: () => handleCancelEdit(), colorScheme: 'gray', variant: 'outline' }
+      ];
     }
     
     return [{ label: 'Edit Asset', onClick: () => handleEditAsset(selectedCredential), colorScheme: 'orange', variant: 'outline' }];
-  }, [selectedRows, buildDatabaseMenuItems, buildUnixServerMenuItems, handleEditAsset]);
+  }, [selectedRows, editingAssetId, buildDatabaseMenuItems, buildUnixServerMenuItems, handleEditAsset, handleSaveAsset, handleCancelEdit]);
 
   const renderAssetCell = (asset: Asset | undefined, field: keyof Asset, isEditing: boolean) => {
     if (!asset) return '-';
@@ -629,6 +645,12 @@ export function Component() {
           value={String(editFormState[fieldKey] || '')}
           onChange={(e) => setEditFormState(prev => ({ ...prev, [fieldKey]: e.target.value }))}
           onClick={(e) => e.stopPropagation()}
+          borderColor={inputBorderColor}
+          borderWidth="1px"
+          _focus={{
+            borderColor: inputFocusBorderColor,
+            boxShadow: `0 0 0 1px ${inputFocusBorderColor}`
+          }}
         />
       );
     }
@@ -643,7 +665,7 @@ export function Component() {
     if (credentials.length === 0) {
       return (
         <Tr>
-          <Td colSpan={10} textAlign={'center'}>
+          <Td colSpan={11} textAlign={'center'}>
             <FormattedMessage id="text.no_asset_credentials" />
           </Td>
         </Tr>
@@ -709,6 +731,31 @@ export function Component() {
               <Td>{renderAssetCell(credential.asset, 'portNumber', isEditing)}</Td>
               <Td>{isDatabase ? renderAssetCell(credential.asset, 'databaseName', isEditing) : '-'}</Td>
               <Td>{renderAssetCell(credential.asset, 'description', isEditing)}</Td>
+              <Td textAlign={'center'}>
+                {(() => {
+                  const asset = credential.asset;
+                  const isLocked = asset?.locked ?? false;
+                  const lockType = asset?.lockType;
+                  
+                  // Show lock status if asset is locked OR if lockType is LOCK_ALL_DB_USERS
+                  const shouldShowLocked = isLocked || lockType === LockType.LOCK_ALL_DB_USERS;
+                  
+                  if (!shouldShowLocked) {
+                    return <Text mb={0} color="gray.400">-</Text>;
+                  }
+                  
+                  // Show "Locked for all users" if lockType is LOCK_ALL_DB_USERS, otherwise "Locked"
+                  const lockStatusText = lockType === LockType.LOCK_ALL_DB_USERS 
+                    ? 'Locked for all users' 
+                    : 'Locked';
+                  
+                  return (
+                    <Badge colorScheme="red" variant="solid">
+                      {lockStatusText}
+                    </Badge>
+                  );
+                })()}
+              </Td>
             </Tr>
           );
         })}
@@ -816,6 +863,11 @@ export function Component() {
                         <Th><FormattedMessage id='text.port_number' /></Th>
                         <Th><FormattedMessage id='text.database_name' /></Th>
                         <Th><FormattedMessage id='text.description' /></Th>
+                        <Th textAlign="center">
+                          <Text whiteSpace="pre-line" mb={0}>
+                            <FormattedMessage id='text.lock_status' />
+                          </Text>
+                        </Th>
                       </Tr>
                     </Thead>
                     <Tbody maxHeight={500}>
@@ -885,6 +937,8 @@ export function Component() {
           usernamePlaceholder="Enter DB Username"
           passwordPlaceholder="Enter DB Password"
           confirmPasswordPlaceholder="Re-enter DB Password"
+          titleId={selectedCredential && hasDatabaseCredentials(selectedCredential) ? "text.update_credential" : "text.set_credential"}
+          saveButtonTextId={selectedCredential && hasDatabaseCredentials(selectedCredential) ? "text.update" : "text.save"}
         />
 
         <SetSSHCredentialDialog
@@ -926,6 +980,16 @@ export function Component() {
             />
           );
         })()}
+
+        {/* Asset Lock Dialog */}
+        <AssetLockDialog
+          isOpen={isLockDialogOpen}
+          onClose={closeLockDialog}
+          asset={lockDialogAsset}
+          action={lockDialogAction}
+          onConfirm={handleLockConfirm}
+          isLoading={isLockLoading}
+        />
 
       </VStack>
     </DamBasePage>

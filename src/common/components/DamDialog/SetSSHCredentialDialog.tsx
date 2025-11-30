@@ -144,7 +144,6 @@ export function SetSSHCredentialDialog({
                   <FormattedMessage id="text.username" />
                 </FormLabel>
                 <Input
-                  placeholder="Enter username"
                   id="inputSSHCredentialUsername"
                   value={username}
                   onChange={(e) => setUsername(e.target.value)}
@@ -159,7 +158,6 @@ export function SetSSHCredentialDialog({
                   <FormattedMessage id="text.ssh_private_key" />
                 </FormLabel>
                 <Textarea
-                  placeholder="-----BEGIN OPENSSH PRIVATE KEY-----&#10;...&#10;-----END OPENSSH PRIVATE KEY-----"
                   id="inputSSHCredentialPrivateKey"
                   value={sshPrivateKey}
                   onChange={(e) => setSshPrivateKey(e.target.value)}

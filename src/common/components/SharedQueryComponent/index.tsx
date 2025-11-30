@@ -1,4 +1,4 @@
-import { Flex, Text, Box, VStack, HStack, Badge, IconButton, Textarea, Checkbox, Input } from "@chakra-ui/react";
+import { Flex, Text, Box, VStack, HStack, Badge, IconButton, Textarea, Checkbox, Input, FormControl, FormLabel } from "@chakra-ui/react";
 import { PrimaryButton, useDamToast } from "@common/index";
 import { useEffect, useState, forwardRef, useImperativeHandle } from "react";
 import { FormattedMessage, useIntl } from "react-intl";
@@ -456,23 +456,23 @@ export const SharedQueryComponent = forwardRef<SharedQueryComponentRef, SharedQu
   // Natural language to SQL conversion section
   const naturalLanguageSection = (
     <Flex direction={'column'} gap={3} mb={4}>
-      <Text fontSize="md" fontWeight="bold" mb={0}>
-        <FormattedMessage id="text.natural_language_query" />
-      </Text>
-      <HStack gap={3} align="flex-end">
-        <Box flex={1}>
-          <Input
-            placeholder="e.g., get me a count of all employees"
-            value={naturalLanguageQuery}
-            onChange={(e) => setNaturalLanguageQuery(e.target.value)}
-            onKeyPress={(e) => {
-              if (e.key === 'Enter' && !e.shiftKey) {
-                e.preventDefault();
-                convertNaturalLanguageToSql();
-              }
-            }}
-          />
-        </Box>
+      <FormControl>
+        <FormLabel mb={1}>
+          <FormattedMessage id="text.natural_language_query" />
+        </FormLabel>
+        <HStack gap={3} align="flex-end">
+          <Box flex={1}>
+            <Input
+              value={naturalLanguageQuery}
+              onChange={(e) => setNaturalLanguageQuery(e.target.value)}
+              onKeyPress={(e) => {
+                if (e.key === 'Enter' && !e.shiftKey) {
+                  e.preventDefault();
+                  convertNaturalLanguageToSql();
+                }
+              }}
+            />
+          </Box>
         <PrimaryButton
           onClick={convertNaturalLanguageToSql}
           isLoading={isConverting}
@@ -481,6 +481,7 @@ export const SharedQueryComponent = forwardRef<SharedQueryComponentRef, SharedQu
           <FormattedMessage id="text.convert_to_sql" />
         </PrimaryButton>
       </HStack>
+      </FormControl>
     </Flex>
   );
 

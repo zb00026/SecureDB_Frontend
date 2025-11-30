@@ -1,19 +1,29 @@
-import { Box, Flex, Input, List, ListItem, Portal } from "@chakra-ui/react";
-import { getDisplayedKey, isAuthorizedPath } from "@common/index";
+import { 
+  Flex, 
+  Portal, 
+  VStack,
+  useColorModeValue
+} from "@chakra-ui/react";
+import { getDisplayedKey, formatShortcutForDisplay, filterSearchableRoutes, useKeyboardNavigation } from "@common/index";
+import { SpotlightSearch } from "@common/components/SpotlightSearch";
 import { stateActions, useMyState } from "@common/state";
 import { PageRoute } from "@models/PageRoute";
-import { useEffect, useLayoutEffect, useRef, useState } from "react";
-import { useNavigate } from "react-router";
+import { useEffect, useLayoutEffect, useRef, useState, useMemo, useCallback } from "react";
+import { useNavigate, useLocation } from "react-router";
 
 export function DamPageSearch({ children }: { children: React.ReactNode }) {
 
   const { snap } = useMyState();
+  const location = useLocation();
   const pageRoutes = snap.storage.pageRoutes;
   const [query, setQuery] = useState('');
   const [visible, setVisible] = useState<boolean>(false);
   const [filteredItems, setFilteredItems] = useState<PageRoute[]>([]);
+  const [selectedIndex, setSelectedIndex] = useState(0);
   const navigate = useNavigate();
   const inputRef = useRef<HTMLInputElement>(null);
+
+  const overlayBg = useColorModeValue('rgba(0, 0, 0, 0.1)', 'rgba(0, 0, 0, 0.7)');
 
   useEffect(() => {
     if (!snap.storage.hotKey) {
@@ -23,6 +33,11 @@ export function DamPageSearch({ children }: { children: React.ReactNode }) {
       const currentCombination = getDisplayedKey(e);
       if (snap.storage.hotKey == currentCombination) {
         e.preventDefault();
+        // If we're on the index page, dispatch event to focus the input instead
+        if (location.pathname === '/') {
+          globalThis.dispatchEvent(new CustomEvent('focusIndexSearch'));
+          return;
+        }
         setVisible(true);
       }
       if (e.key === 'Escape') {
@@ -30,11 +45,11 @@ export function DamPageSearch({ children }: { children: React.ReactNode }) {
         resetSearchCriteria(false);
       }
     }
-    window.addEventListener('keydown', handleKeyDown);
+    globalThis.addEventListener('keydown', handleKeyDown);
     return () => {
-      window.removeEventListener('keydown', handleKeyDown);
+      globalThis.removeEventListener('keydown', handleKeyDown);
     }
-  }, []);
+  }, [location.pathname, snap.storage.hotKey]);
 
   useLayoutEffect(() => {
     if (visible && inputRef.current) {
@@ -42,99 +57,89 @@ export function DamPageSearch({ children }: { children: React.ReactNode }) {
     }
   }, [visible])
 
-  const resetSearchCriteria = (visible: boolean) => {
+  const resetSearchCriteria = useCallback((visible: boolean) => {
     setFilteredItems([]);
     setQuery('');
+    setSelectedIndex(0);
     setVisible(visible);
-  }
+  }, []);
 
   // Update filtered items when query changes
-  const handleSearch = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const searchQuery = event.target.value.toLowerCase();
+  const handleSearch = useCallback((value: string) => {
+    const searchQuery = value.toLowerCase();
     if (!searchQuery) {
       resetSearchCriteria(true);
       return;
     }
     setQuery(searchQuery);
 
-    // Filter the items based on the search query and isSearchable flag
-    const results = pageRoutes.filter(
-      (item) =>
-        item.isSearchable &&
-        item.title.toLowerCase().includes(searchQuery) &&
-        isAuthorizedPath(item.path, snap.session.user)
-    );
+    // Filter the items using shared utility function
+    const results = filterSearchableRoutes(pageRoutes, searchQuery, snap.session.user, 8);
     setFilteredItems(results);
-  };
+    setSelectedIndex(0);
+  }, [pageRoutes, snap.session.user, resetSearchCriteria]);
 
   // Handle item click, navigate to the corresponding path
-  const handleItemClick = (path: string) => {
+  const handleItemClick = useCallback((path: string) => {
     resetSearchCriteria(false);
     navigate(path);
-  };
+  }, [resetSearchCriteria, navigate]);
+
+  // Handle keyboard navigation
+  useKeyboardNavigation({
+    enabled: visible,
+    filteredItems,
+    selectedIndex,
+    onEscape: () => resetSearchCriteria(false),
+    onNavigate: handleItemClick,
+    setSelectedIndex
+  });
+
+  // Get shortcut from storage or use default
+  const shortcutDisplay = useMemo(() => {
+    const currentHotKey = snap.storage?.hotKey || 'Ctrl+J';
+    return formatShortcutForDisplay(currentHotKey);
+  }, [snap.storage?.hotKey]);
 
 
   return (
-    visible ? (
-      <Portal>
-        <Flex
-          sx={{
-            position: "fixed",
-            top: 0,
-            left: 0,
-            right: 0,
-            bottom: 0,
-            display: "flex",
-            zIndex: "99999",
-          }}
-        >
-          <Box p={4} w='full'>
-            <Input
-              autoFocus={true}
-              ref={inputRef}
-              placeholder="Search..."
-              value={query}
-              onChange={handleSearch}
-              mb={4}
-              borderRadius="md"
-              boxShadow="sm"
-            />
-            <List spacing={2}>
-              {filteredItems.map((item) => (
-                <ListItem
-                  key={item.path}
-                  onClick={() => handleItemClick(item.path)}
-                  cursor="pointer"
-                  p={3}
-                  borderRadius="md"
-                  transition="all 0.2s ease"
-                  _hover={{
-                    bg: 'gray.200',
-                    transform: 'scale(1.01)',
-                    boxShadow: 'md',
-                  }}
-                  _active={{
-                    bg: 'gray.300',
-                  }}
-                  _dark={{
-                    bg: 'gray.700',
-                    _hover: {
-                      bg: 'gray.600',
-                      transform: 'scale(1.01)',
-                    },
-                  }}
-                >
-                  {item.title}
-                </ListItem>
-              ))}
-            </List>
-          </Box>
-        </Flex>
-      </Portal>
-    ) : (
-      <>
-        {children}
-      </>
-    )
+    <>
+      {children}
+      {visible && (
+        <Portal>
+          <Flex
+            position="fixed"
+            top={0}
+            left={0}
+            right={0}
+            bottom={0}
+            bg={overlayBg}
+            zIndex={99999}
+            justifyContent="center"
+            alignItems="flex-start"
+            pt={20}
+            onClick={(e) => {
+              if (e.target === e.currentTarget) {
+                resetSearchCriteria(false);
+              }
+            }}
+          >
+            <VStack spacing={4} align="stretch" maxW="800px" w="full" px={4}>
+              <SpotlightSearch
+                ref={inputRef}
+                query={query}
+                onQueryChange={handleSearch}
+                filteredItems={filteredItems}
+                selectedIndex={selectedIndex}
+                onItemClick={handleItemClick}
+                shortcutDisplay={shortcutDisplay}
+                autoFocus={true}
+                showHints={true}
+              />
+            </VStack>
+          </Flex>
+        </Portal>
+      )}
+    </>
   );
 }

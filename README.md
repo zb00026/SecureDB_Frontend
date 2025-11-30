@@ -1,4 +1,4 @@
-# React + TypeScript + Vite DAM Frontend
+# React + TypeScript + Vite Hagrids: AI Power Secured DB access
 
 # Steps to Test the React/Vite Project
 

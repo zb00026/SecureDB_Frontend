@@ -5,14 +5,16 @@ import {
   Icon,
   Input,
   Button,
-  Box
+  Box,
+  FormControl,
+  FormLabel
 } from "@chakra-ui/react";
 import { request, useDamToast, DamFullLoading } from "@common/index";
 import DamAuthLayout from "@common/components/DamAuthLayout";
 import DamAuthCard from "@common/components/DamAuthCard";
 import DamBackToLogin from "@common/components/DamBackToLogin";
 import { useState } from "react";
-import { useIntl } from "react-intl";
+import { FormattedMessage, useIntl } from "react-intl";
 import { FiMail } from 'react-icons/fi';
 
 export default function ForgotPassword() {
@@ -104,18 +106,22 @@ export default function ForgotPassword() {
           {!isSubmitted ? (
             <Box as="form" w="full" onSubmit={handleSubmit}>
               <VStack spacing={4} w="full">
-                <Input
-                  type="email"
-                  placeholder={intl.formatMessage({ id: 'text.enter_your_email' })}
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  size="lg"
-                  borderRadius="lg"
-                  _focus={{
-                    borderColor: 'brand.500',
-                    boxShadow: '0 0 0 1px var(--chakra-colors-brand-500)',
-                  }}
-                />
+                <FormControl isRequired>
+                  <FormLabel>
+                    <FormattedMessage id="text.email" />
+                  </FormLabel>
+                  <Input
+                    type="email"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    size="lg"
+                    borderRadius="lg"
+                    _focus={{
+                      borderColor: 'brand.500',
+                      boxShadow: '0 0 0 1px var(--chakra-colors-brand-500)',
+                    }}
+                  />
+                </FormControl>
                 
                 <Button
                   type="submit"

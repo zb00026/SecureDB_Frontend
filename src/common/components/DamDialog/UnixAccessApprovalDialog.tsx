@@ -223,7 +223,6 @@ export function UnixAccessApprovalDialog({
               <Textarea
                 value={rejectionData.rejectReason}
                 onChange={(e) => setRejectionData(prev => ({ ...prev, rejectReason: e.target.value }))}
-                placeholder="Explain why this request is being rejected"
                 rows={3}
               />
             </FormControl>

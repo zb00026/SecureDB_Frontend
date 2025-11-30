@@ -194,7 +194,6 @@ export function UnixAccessRequestDialog({
                   const error = validateUsername(value);
                   setUsernameError(error);
                 }}
-                placeholder="Enter desired username (lowercase, 3-32 chars)"
                 maxLength={32}
               />
               {usernameError ? (
@@ -227,7 +226,6 @@ export function UnixAccessRequestDialog({
               <Textarea
                 value={requestData.requestReason}
                 onChange={(e) => setRequestData(prev => ({ ...prev, requestReason: e.target.value }))}
-                placeholder="Explain why you need access to this Unix system"
                 rows={3}
               />
             </FormControl>

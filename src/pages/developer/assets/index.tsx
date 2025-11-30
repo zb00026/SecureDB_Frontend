@@ -99,6 +99,10 @@ export function Component() {
   };
 
   const handleQueryAsset = (asset: Asset) => {
+    if (asset.locked) {
+      // Asset is locked, cannot query
+      return;
+    }
     navigate(`/developer/assets/query_asset?assetId=${asset.id}&accessRequestId=${asset.accessRequest?.id}`);
   };
 

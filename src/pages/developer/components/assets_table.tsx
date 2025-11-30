@@ -15,6 +15,7 @@ interface AssetsTableProps {
   readonly onTerminalAsset?: (asset: Asset) => void;
   readonly onViewAccess: (asset: Asset) => void;
   readonly showQueryButton: boolean;
+  readonly userType?: 'admin' | 'developer';
 }
 
 
@@ -28,7 +29,7 @@ export function AssetsTable({
   showQueryButton,
   onQueryAsset,
   onTerminalAsset,
-  onViewAccess
+  userType = 'developer'
 }: AssetsTableProps) {
 
   return (
@@ -42,12 +43,10 @@ export function AssetsTable({
       onQueryAsset={onQueryAsset}
       onTerminalAsset={onTerminalAsset}
       showAccessRequestStatus={true}
-      onViewAccess={onViewAccess}
       onRequestAccess={onRequestAccess}
       onRelinquishAccess={onRelinquishAccess}
       onUpdatePassword={onUpdatePassword}
-      showLockAsset={false}
-      lockActions={() => null}
+      userType={userType}
     />
   );
 } 

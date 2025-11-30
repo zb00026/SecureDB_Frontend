@@ -1,4 +1,4 @@
-import { Box, Flex, Input, Select, Grid, GridItem, useColorMode, useColorModeValue, Alert, AlertIcon, Text, Button, useDisclosure, Tooltip, Tabs, TabList, TabPanels, Tab, TabPanel, IconButton, Icon } from "@chakra-ui/react";
+import { Box, Flex, Input, Select, Grid, GridItem, useColorMode, useColorModeValue, Alert, AlertIcon, Text, Button, useDisclosure, Tooltip, Tabs, TabList, TabPanels, Tab, TabPanel, IconButton, Icon, FormControl, FormLabel } from "@chakra-ui/react";
 import { Global, css } from "@emotion/react";
 import { DamBasePage } from "@common/components/DamBasePage";
 import { useRoleBasedAuditTrail } from "@common/hooks/useRoleBasedAuditTrail";
@@ -292,7 +292,10 @@ export function Component() {
                 >
                   {/* Date Range Row */}
                   <GridItem>
-                    <Flex gap={4}>
+                    <FormControl>
+                      <FormLabel mb={1}>
+                        <FormattedMessage id="text.date_range" defaultMessage="Date Range" />
+                      </FormLabel>
                       <RangePicker
                         size="large"
                         placeholder={[
@@ -310,61 +313,79 @@ export function Component() {
                         }}
                         className={colorMode === 'dark' ? 'dark-theme-picker' : ''}
                       />
-                    </Flex>
+                    </FormControl>
                   </GridItem>
 
                   {/* Asset Dropdown - only show if user can filter by asset */}
                   {availableFilters.canFilterByAsset && (
                     <GridItem>
-                      <Select
-                        value={filters.assetId?.toString() || 'all'}
-                        onChange={(e) => handleAssetChange(e.target.value)}
-                        isDisabled={assetsLoading}
-                      >
-                        <option value="all">All Assets</option>
-                        {assets.map(asset => (
-                          <option key={asset.id} value={asset.id?.toString()}>
-                            {asset.name}
-                          </option>
-                        ))}
-                      </Select>
+                      <FormControl>
+                        <FormLabel mb={1}>
+                          <FormattedMessage id="text.asset" />
+                        </FormLabel>
+                        <Select
+                          value={filters.assetId?.toString() || 'all'}
+                          onChange={(e) => handleAssetChange(e.target.value)}
+                          isDisabled={assetsLoading}
+                        >
+                          <option value="all">All Assets</option>
+                          {assets.map(asset => (
+                            <option key={asset.id} value={asset.id?.toString()}>
+                              {asset.name}
+                            </option>
+                          ))}
+                        </Select>
+                      </FormControl>
                     </GridItem>
                   )}
 
                   {/* Action Dropdown (searchable) */}
                   <GridItem>
-                    <AntSelect
-                      allowClear
-                      showSearch
-                      size="large"
-                      style={{ width: '100%' }}
-                      placeholder="Select Action"
-                      value={filters.action || undefined}
-                      onChange={(value) => setFilters({ ...filters, action: value ?? '' })}
-                      optionFilterProp="label"
-                      filterOption={(input, option) => ((option?.label as string) ?? '').toLowerCase().includes(input.toLowerCase())}
-                      options={availableFilters.availableActions.map((action: string) => ({ label: action, value: action }))}
-                    />
+                    <FormControl>
+                      <FormLabel mb={1}>
+                        <FormattedMessage id="text.action" />
+                      </FormLabel>
+                      <AntSelect
+                        allowClear
+                        showSearch
+                        size="large"
+                        style={{ width: '100%' }}
+                        placeholder=""
+                        value={filters.action || undefined}
+                        onChange={(value) => setFilters({ ...filters, action: value ?? '' })}
+                        optionFilterProp="label"
+                        filterOption={(input, option) => ((option?.label as string) ?? '').toLowerCase().includes(input.toLowerCase())}
+                        options={availableFilters.availableActions.map((action: string) => ({ label: action, value: action }))}
+                      />
+                    </FormControl>
                   </GridItem>
 
                   {/* User Input - only show if user can view all users */}
                   {availableFilters.canViewAllUsers && (
                     <GridItem>
-                      <Input
-                        placeholder="User"
-                        value={filters.user}
-                        onChange={(e) => setFilters({ ...filters, user: e.target.value })}
-                      />
+                      <FormControl>
+                        <FormLabel mb={1}>
+                          <FormattedMessage id="text.user" />
+                        </FormLabel>
+                        <Input
+                          value={filters.user}
+                          onChange={(e) => setFilters({ ...filters, user: e.target.value })}
+                        />
+                      </FormControl>
                     </GridItem>
                   )}
 
                   {/* IP Address */}
                   <GridItem>
-                    <Input
-                      placeholder="IP Address"
-                      value={filters.ipAddress}
-                      onChange={(e) => setFilters({ ...filters, ipAddress: e.target.value })}
-                    />
+                    <FormControl>
+                      <FormLabel mb={1}>
+                        <FormattedMessage id="text.ip_address" />
+                      </FormLabel>
+                      <Input
+                        value={filters.ipAddress}
+                        onChange={(e) => setFilters({ ...filters, ipAddress: e.target.value })}
+                      />
+                    </FormControl>
                   </GridItem>
 
                 </Grid>

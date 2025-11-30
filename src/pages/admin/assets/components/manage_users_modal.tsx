@@ -39,6 +39,8 @@ interface ManageUsersModalProps {
   readonly onAddUser: (user: User) => void;
   readonly onRemoveUser: (user: User) => void;
   readonly isLoading?: boolean;
+  readonly onCreateAsset?: () => void; // For creating new asset
+  readonly createButtonTextId?: string; // Text ID for create button
 }
 
 export function ManageUsersModal({
@@ -50,7 +52,9 @@ export function ManageUsersModal({
   userType,
   onAddUser,
   onRemoveUser,
-  isLoading = false
+  isLoading = false,
+  onCreateAsset,
+  createButtonTextId = 'text.create_asset_with_owners'
 }: ManageUsersModalProps) {
   const intl = useIntl();
   const [searchCriteria, setSearchCriteria] = useState('');
@@ -142,7 +146,12 @@ export function ManageUsersModal({
     setSelectedAssignedIds([]);
   };
 
-  const titleId = userType === 'owners' ? 'text.manage_asset_owners' : 'text.manage_asset_approvers';
+  let titleId: string;
+  if (asset) {
+    titleId = userType === 'owners' ? 'text.manage_asset_owners' : 'text.manage_asset_approvers';
+  } else {
+    titleId = 'text.select_asset_owners';
+  }
 
   return (
     <Modal isOpen={isOpen} onClose={handleClose} size="4xl">
@@ -297,6 +306,17 @@ export function ManageUsersModal({
           </VStack>
         </ModalBody>
         <ModalFooter>
+          {onCreateAsset && (
+            <DamButton
+              onClick={onCreateAsset}
+              disabled={localAssignedUsers.length === 0 || isLoading}
+              isLoading={isLoading}
+              loadingText={intl.formatMessage({ id: 'text.creating_asset' })}
+              mr={3}
+            >
+              <FormattedMessage id={createButtonTextId} />
+            </DamButton>
+          )}
           <DamButton variant="outline" onClick={handleClose}>
             <FormattedMessage id="text.close" />
           </DamButton>

@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { AuditTrail } from '@models/AuditTrail';
 import { User } from '@models/User';
-import { USER_ROLE } from '@/constants/enums';
+import { USER_ROLE, FEATURE_FLAGS } from '@/constants/enums';
 import { userHasRole } from '@common/index';
 import { useListPage } from './useListPage';
 import { request } from '@common/libs/request';
@@ -92,7 +92,7 @@ export const useRoleBasedAuditTrail = ({ user, assetId }: UseRoleBasedAuditTrail
       };
     }
 
-    if (userHasRole(user, USER_ROLE.APPROVER)) {
+    if (FEATURE_FLAGS.ENABLE_APPROVER_ROLE && userHasRole(user, USER_ROLE.APPROVER)) {
       return {
         endpoint: '/api/approver/audit-trails',
         restrictions: {
@@ -122,7 +122,7 @@ export const useRoleBasedAuditTrail = ({ user, assetId }: UseRoleBasedAuditTrail
     if (userHasRole(user, USER_ROLE.ASSET_OWNER)) {
       return '/api/asset_owner/audit-trails/actions';
     }
-    if (userHasRole(user, USER_ROLE.APPROVER)) {
+    if (FEATURE_FLAGS.ENABLE_APPROVER_ROLE && userHasRole(user, USER_ROLE.APPROVER)) {
       return '/api/approver/audit-trails/actions';
     }
     return '/api/developer/audit-trails/actions';

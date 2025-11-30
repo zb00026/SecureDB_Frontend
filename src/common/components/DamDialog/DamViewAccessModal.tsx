@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import {
   Modal,
   ModalOverlay,
@@ -19,6 +19,7 @@ import {
   Button,
   Flex
 } from "@chakra-ui/react";
+import { ChevronDownIcon, ChevronUpIcon } from "@chakra-ui/icons";
 import { FormattedMessage } from "react-intl";
 import { Asset } from "@models/assets/Asset";
 import { AssetCredential } from "@models/assets/AssetCredential";
@@ -33,6 +34,13 @@ interface DamViewAccessModalProps {
   readonly error: string | null;
 }
 
+interface GroupedPermission {
+  scope: string;
+  objectType: string;
+  types: string[];
+  hasGrantable: boolean;
+}
+
 export const DamViewAccessModal: React.FC<DamViewAccessModalProps> = ({
   isOpen,
   onClose,
@@ -41,6 +49,9 @@ export const DamViewAccessModal: React.FC<DamViewAccessModalProps> = ({
   isLoading,
   error
 }) => {
+  // State to track expanded users (by username-grantee key)
+  const [expandedUsers, setExpandedUsers] = useState<Set<string>>(new Set());
+
   // Helper function to get asset name
   const getAssetName = () => {
     if (!asset) return '';
@@ -58,6 +69,110 @@ export const DamViewAccessModal: React.FC<DamViewAccessModalProps> = ({
   };
 
   const assetDetails = getAssetDetails();
+
+  // Method to group permissions by scope
+  const groupPermissionsByScope = (permissions: AssetAccessDTO['users'][0]['permissions']): GroupedPermission[] => {
+    const grouped = permissions.reduce((acc, permission) => {
+      const key = permission.scope;
+      if (!acc[key]) {
+        acc[key] = {
+          scope: permission.scope,
+          objectType: permission.objectType,
+          types: [] as string[],
+          hasGrantable: false
+        };
+      }
+      acc[key].types.push(permission.type);
+      if (permission.grantable) {
+        acc[key].hasGrantable = true;
+      }
+      return acc;
+    }, {} as Record<string, GroupedPermission>);
+
+    return Object.values(grouped);
+  };
+
+  // Toggle expand/collapse for a user
+  const toggleUserExpand = (userKey: string) => {
+    setExpandedUsers(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(userKey)) {
+        newSet.delete(userKey);
+      } else {
+        newSet.add(userKey);
+      }
+      return newSet;
+    });
+  };
+
+  // Method to render permissions list for a user
+  const renderUserPermissions = (user: AssetAccessDTO['users'][0]) => {
+    const userKey = `${user.username}-${user.grantee}`;
+    const groupedPermissions = groupPermissionsByScope(user.permissions);
+    const isExpanded = expandedUsers.has(userKey);
+    const shouldShowExpand = groupedPermissions.length > 10;
+    const displayPermissions = shouldShowExpand && !isExpanded 
+      ? groupedPermissions.slice(0, 10) 
+      : groupedPermissions;
+    const remainingCount = groupedPermissions.length - 10;
+
+    return (
+      <VStack spacing={3} align="stretch">
+        {displayPermissions.map((group) => (
+          <Box key={group.scope} p={2} bg="white" borderRadius="md" border="1px solid" borderColor="gray.200">
+            <VStack spacing={2} align="start">
+              <Text fontSize="sm" fontWeight="semibold" color="gray.800">
+                {group.scope}
+              </Text>
+              <HStack spacing={2} flexWrap="wrap">
+                {group.types.map((type) => (
+                  <Badge key={type} colorScheme="blue" size="sm">
+                    {type}
+                  </Badge>
+                ))}
+                <Badge colorScheme="gray" variant="outline" size="sm">
+                  {group.objectType}
+                </Badge>
+                {group.hasGrantable && (
+                  <Badge colorScheme="orange" variant="outline" size="sm">
+                    GRANTABLE
+                  </Badge>
+                )}
+              </HStack>
+            </VStack>
+          </Box>
+        ))}
+        {shouldShowExpand && (
+          <Flex justify="center" pt={2}>
+            <Button
+              size="sm"
+              variant="ghost"
+              onClick={() => toggleUserExpand(userKey)}
+              rightIcon={
+                <HStack spacing={0}>
+                  {isExpanded ? (
+                    <>
+                      <ChevronUpIcon />
+                      <ChevronUpIcon />
+                    </>
+                  ) : (
+                    <>
+                      <ChevronDownIcon />
+                      <ChevronDownIcon />
+                    </>
+                  )}
+                </HStack>
+              }
+            >
+              {isExpanded 
+                ? 'Show Less' 
+                : `Show ${remainingCount} More`}
+            </Button>
+          </Flex>
+        )}
+      </VStack>
+    );
+  };
 
   // Function to render modal body content based on state
   const renderModalBodyContent = () => {
@@ -133,28 +248,7 @@ export const DamViewAccessModal: React.FC<DamViewAccessModalProps> = ({
                     </Text>
                     <Box>
                       <Text fontSize="sm" fontWeight="medium" mb={2} color="gray.700">Permissions:</Text>
-                      <Flex gap={2} flexWrap="wrap">
-                                                 {user.permissions.map((permission) => (
-                           <VStack key={`${permission.type}-${permission.objectType}-${permission.scope}`} spacing={1} align="start">
-                            <HStack>
-                              <Badge colorScheme="blue" size="sm">
-                                {permission.type}
-                              </Badge>
-                              <Badge colorScheme="gray" variant="outline" size="sm">
-                                {permission.objectType}
-                              </Badge>
-                              {permission.grantable && (
-                                <Badge colorScheme="orange" variant="outline" size="sm">
-                                  GRANTABLE
-                                </Badge>
-                              )}
-                            </HStack>
-                            <Text fontSize="xs" color="gray.600">
-                              {permission.scope}
-                            </Text>
-                          </VStack>
-                        ))}
-                      </Flex>
+                      {renderUserPermissions(user)}
                     </Box>
                   </Box>
                 ))}

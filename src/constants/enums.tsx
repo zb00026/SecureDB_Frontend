@@ -6,6 +6,18 @@ export const USER_ROLE = {
   AUDITOR: 'Auditor',
 }
 
+/**
+ * Feature Flags
+ * Control feature visibility via environment variables
+ * 
+ * To enable Approver role features:
+ * - Set VITE_ENABLE_APPROVER_ROLE=true in your .env file
+ * - Default: false (Approver role is hidden)
+ */
+export const FEATURE_FLAGS = {
+  ENABLE_APPROVER_ROLE: import.meta.env.VITE_ENABLE_APPROVER_ROLE === 'true' || false,
+} as const;
+
 export const AUTH_PROVIDER = {
   KEYCLOAK: 'keycloak',
   GOOGLE: 'google',
@@ -40,4 +52,9 @@ export enum ChangeRequestStatus {
   PENDING = "PENDING",
   APPROVED = "APPROVED",
   REJECTED = "REJECTED"
+}
+
+export enum LockType {
+  LOCK_HAGRID_ONLY = "LOCK_HAGRID_ONLY",
+  LOCK_ALL_DB_USERS = "LOCK_ALL_DB_USERS"
 }

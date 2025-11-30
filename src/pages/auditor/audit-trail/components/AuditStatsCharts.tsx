@@ -41,7 +41,7 @@ import { AuditStatsData, AvailableFilters } from "@models/AuditStats";
 import { AuditTrailFilters } from "@common/hooks/useRoleBasedAuditTrail";
 import { User } from "@models/User";
 import { Asset } from "@models/assets/Asset";
-import { USER_ROLE } from "@/constants/enums";
+import { USER_ROLE, FEATURE_FLAGS } from "@/constants/enums";
 import { SAMPLE_EMAILS, SAMPLE_ASSETS, SAMPLE_IPS } from "../sampleData";
 
 // Custom tooltip component moved outside to avoid hooks order issues
@@ -133,7 +133,7 @@ export function AuditStatsCharts({
     if (userHasRole(user, USER_ROLE.ASSET_OWNER)) {
       return '/api/asset_owner/audit-trails/stats/charts';
     }
-    if (userHasRole(user, USER_ROLE.APPROVER)) {
+    if (FEATURE_FLAGS.ENABLE_APPROVER_ROLE && userHasRole(user, USER_ROLE.APPROVER)) {
       return '/api/approver/audit-trails/stats/charts';
     }
     return '/api/developer/audit-trails/stats/charts';

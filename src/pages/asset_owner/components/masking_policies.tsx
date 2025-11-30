@@ -5,13 +5,6 @@ import {
   HStack,
   Text,
   Button,
-  Table,
-  Thead,
-  Tbody,
-  Tr,
-  Th,
-  Td,
-  TableContainer,
   Badge,
   IconButton,
   useColorModeValue,
@@ -34,6 +27,7 @@ import { FiEye, FiTrash2, FiShield, FiDatabase, FiPlay, FiPause, FiCheckCircle, 
 import { FormattedMessage, useIntl } from 'react-intl';
 import { request, useDamToast } from '@common/index';
 import { MaskingPolicy } from '@models/MaskingPolicy';
+import { DamTable } from '@common/components/DamTable';
 
 export interface MaskingPoliciesRef {
   readonly refreshPolicies: () => void;
@@ -45,6 +39,12 @@ export const MaskingPolicies = forwardRef<MaskingPoliciesRef>((props, ref) => {
   const [policies, setPolicies] = useState<MaskingPolicy[]>([]);
   const [selectedPolicy, setSelectedPolicy] = useState<MaskingPolicy | null>(null);
   const { isOpen, onOpen, onClose } = useDisclosure();
+  const [paginationMeta, setPaginationMeta] = useState({
+    total: 0,
+    current_page: 1,
+    per_page: 20
+  });
+  const [loading, setLoading] = useState(false);
 
   const bgColor = useColorModeValue('white', 'gray.800');
   // Define colors at component level to avoid hook usage in callbacks
@@ -52,23 +52,63 @@ export const MaskingPolicies = forwardRef<MaskingPoliciesRef>((props, ref) => {
   const roleTagBorder = useColorModeValue('blue.200', 'blue.700');
 
   useEffect(() => {
-    fetchPolicies();
+    fetchPolicies(1, 20);
   }, []);
 
   // Expose refresh function to parent components
   useImperativeHandle(ref, () => ({
-    refreshPolicies: fetchPolicies
-  }), []);
+    refreshPolicies: () => fetchPolicies(paginationMeta.current_page, paginationMeta.per_page)
+  }), [paginationMeta.current_page, paginationMeta.per_page]);
 
-  const fetchPolicies = async () => {
+  const fetchPolicies = async (page: number = 1, perPage: number = 20) => {
+    setLoading(true);
     try {
-      const response = await request('/api/asset_owner/masking-policies', {});
-      setPolicies(response.policies || []);
+      // Build query string for pagination
+      const queryParams = new URLSearchParams();
+      queryParams.append('page', String(page - 1)); // Backend might use 0-based indexing
+      queryParams.append('size', String(perPage));
+      const queryString = queryParams.toString();
+      const base = "/api/asset_owner/masking-policies";
+      const url = queryString ? `${base}?${queryString}` : base;
+      
+      const response = await request(url, {
+        method: 'GET'
+      });
+      
+      // Handle both paginated and non-paginated responses
+      if (response.content) {
+        // Paginated response (Spring Boot Page format)
+        setPolicies(response.content || []);
+        setPaginationMeta({
+          total: response.totalElements || response.total || 0,
+          current_page: (response.number || 0) + 1,
+          per_page: response.size || perPage
+        });
+      } else if (response.policies) {
+        // Non-paginated response (fallback)
+        setPolicies(response.policies || []);
+        setPaginationMeta({
+          total: response.policies.length,
+          current_page: 1,
+          per_page: perPage
+        });
+      } else {
+        // Array response (fallback)
+        const policiesArray = Array.isArray(response) ? response : [];
+        setPolicies(policiesArray);
+        setPaginationMeta({
+          total: policiesArray.length,
+          current_page: 1,
+          per_page: perPage
+        });
+      }
     } catch (error) {
       console.error('Error fetching policies:', error);
       showError({
         description: error instanceof Error ? error.message : intl.formatMessage({ id: 'text.error_fetching_policies' })
       });
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -82,7 +122,7 @@ export const MaskingPolicies = forwardRef<MaskingPoliciesRef>((props, ref) => {
         description: intl.formatMessage({ id: 'text.policy_deleted_success' })
       });
       
-      fetchPolicies();
+      fetchPolicies(paginationMeta.current_page, paginationMeta.per_page);
     } catch (error) {
       console.error('Error deleting policy:', error);
       showError({
@@ -102,7 +142,7 @@ export const MaskingPolicies = forwardRef<MaskingPoliciesRef>((props, ref) => {
         description: intl.formatMessage({ id: 'text.policy_status_updated' })
       });
       
-      fetchPolicies();
+      fetchPolicies(paginationMeta.current_page, paginationMeta.per_page);
     } catch (error) {
       console.error('Error updating policy status:', error);
       showError({
@@ -146,7 +186,12 @@ export const MaskingPolicies = forwardRef<MaskingPoliciesRef>((props, ref) => {
     return <FiPause size={12} />;
   };
 
-  const totalPolicies = policies.length;
+  const handlePaginationChange = (page: number, pageSize: number) => {
+    fetchPolicies(page, pageSize);
+  };
+
+  // Calculate statistics from all policies (may need to fetch separately if paginated)
+  const totalPolicies = paginationMeta.total;
   const activePolicies = policies.filter(p => p.isActive === true).length;
 
   return (
@@ -189,178 +234,182 @@ export const MaskingPolicies = forwardRef<MaskingPoliciesRef>((props, ref) => {
 
       {/* Policies Table */}
       <Box bg={bgColor}>
-
-        <TableContainer>
-          <Table variant="simple">
-            <Thead>
-              <Tr>
-                <Th>
-                  <FormattedMessage id="text.asset_name" />
-                </Th>
-                <Th>
-                  <FormattedMessage id="text.database_name" />
-                </Th>
-                <Th>
-                  <FormattedMessage id="text.field_name" />
-                </Th>
-                <Th>
-                  <FormattedMessage id="text.table_name" />
-                </Th>
-                <Th>
-                  <FormattedMessage id="text.strategy" />
-                </Th>
-                <Th>
-                  <FormattedMessage id="text.affected_roles" />
-                </Th>
-                <Th>
-                  <FormattedMessage id="text.status" />
-                </Th>
-                <Th>
-                  <FormattedMessage id="text.created" />
-                </Th>
-                <Th textAlign="center">
-                  <FormattedMessage id="text.actions" />
-                </Th>
-              </Tr>
-            </Thead>
-            <Tbody>
-              {policies.length > 0 ? (
-                policies.map((policy) => (
-                  <Tr key={policy.id}>
-                    <Td fontWeight="medium">{policy.asset.name}</Td>
-                    <Td>
-                      <HStack>
-                        <FiDatabase size={14} />
-                        <Text mb={0}>{policy.asset.databaseName}</Text>
-                      </HStack>
-                    </Td>
-                    <Td fontWeight="medium">{policy.fieldName}</Td>
-                    <Td>
-                      <HStack>
-                        <FiDatabase size={14} />
-                        <Text mb={0}>{policy.tableName}</Text>
-                      </HStack>
-                    </Td>
-                    <Td>
-                      <Flex direction="column" align="start">
-                        {getStrategyLabel(policy.maskingStrategy).split('(').map((part, index) => (
+        <DamTable
+          columns={[
+            {
+              title: intl.formatMessage({ id: 'text.asset_name' }),
+              dataIndex: 'asset',
+              key: 'asset_name',
+              render: (_: any, record: MaskingPolicy) => (
+                <Text fontWeight="medium" mb={0}>{record.asset.name}</Text>
+              )
+            },
+            {
+              title: intl.formatMessage({ id: 'text.database_name' }),
+              dataIndex: 'asset',
+              key: 'database_name',
+              render: (_: any, record: MaskingPolicy) => (
+                <HStack>
+                  <FiDatabase size={14} />
+                  <Text mb={0}>{record.asset.databaseName}</Text>
+                </HStack>
+              )
+            },
+            {
+              title: intl.formatMessage({ id: 'text.field_name' }),
+              dataIndex: 'fieldName',
+              key: 'field_name',
+              render: (text: string) => (
+                <Text fontWeight="medium" mb={0}>{text}</Text>
+              )
+            },
+            {
+              title: intl.formatMessage({ id: 'text.table_name' }),
+              dataIndex: 'tableName',
+              key: 'table_name',
+              render: (text: string, record: MaskingPolicy) => (
+                <HStack>
+                  <FiDatabase size={14} />
+                  <Text mb={0}>{text}</Text>
+                </HStack>
+              )
+            },
+            {
+              title: intl.formatMessage({ id: 'text.strategy' }),
+              dataIndex: 'maskingStrategy',
+              key: 'strategy',
+              render: (strategy: string, record: MaskingPolicy) => (
+                <Flex direction="column" align="start">
+                  {getStrategyLabel(strategy).split('(').map((part, index) => (
+                    <Text 
+                      key={`strategy-part-${record.id}-${part.slice(0, 10).replaceAll(/\s/g, '')}-${index}`} 
+                      fontSize={index === 0 ? "sm" : "xs"} 
+                      fontWeight={index === 0 ? "medium" : "normal"}
+                      color={index === 0 ? "inherit" : "gray.500"}
+                      mb={0}
+                    >
+                      {index === 0 ? part.trim() : `(${part.trim()}`}
+                    </Text>
+                  ))}
+                </Flex>
+              )
+            },
+            {
+              title: intl.formatMessage({ id: 'text.affected_roles' }),
+              dataIndex: 'roles',
+              key: 'affected_roles',
+              render: (roles: string[] | undefined, record: MaskingPolicy) => (
+                <Box maxW="200px">
+                  <VStack spacing={1} align="start">
+                    {roles && roles.length > 0 ? (
+                      <>
+                        {roles.slice(0, 3).map((role, index) => (
                           <Text 
-                            key={`strategy-part-${policy.id}-${part.slice(0, 10).replace(/\s/g, '')}-${index}`} 
-                            fontSize={index === 0 ? "sm" : "xs"} 
-                            fontWeight={index === 0 ? "medium" : "normal"}
-                            color={index === 0 ? "inherit" : "gray.500"}
+                            key={`role-${record.id}-${role}-${index}`} 
+                            fontSize="xs" 
+                            bg={roleTagBg} 
+                            px={2} 
+                            py={1} 
+                            borderRadius="sm"
                             mb={0}
                           >
-                            {index === 0 ? part.trim() : `(${part.trim()}`}
+                            {role}
                           </Text>
                         ))}
-                      </Flex>
-                    </Td>
-                    <Td maxW="200px">
-                      <VStack spacing={1} align="start">
-                        {policy.roles && policy.roles.length > 0 ? (
-                          <>
-                            {policy.roles.slice(0, 3).map((role, index) => (
-                              <Text 
-                                key={`role-${policy.id}-${role}-${index}`} 
-                                fontSize="xs" 
-                                bg={roleTagBg} 
-                                px={2} 
-                                py={1} 
-                                borderRadius="sm"
-                                mb={0}
-                              >
-                                {role}
-                              </Text>
-                            ))}
-                            {policy.roles.length > 3 && (
-                              <Text fontSize="xs" color="gray.500" mb={0}>
-                                +{policy.roles.length - 3} more
-                              </Text>
-                            )}
-                          </>
-                        ) : (
+                        {roles.length > 3 && (
                           <Text fontSize="xs" color="gray.500" mb={0}>
-                            No roles assigned
+                            +{roles.length - 3} more
                           </Text>
                         )}
-                      </VStack>
-                    </Td>
-                    <Td>
-                      <Badge colorScheme={getStatusColor(policy.isActive)} display="flex" alignItems="center" gap={1}>
-                        
-                        {getStatusLabel(policy.isActive)}
-                      </Badge>
-                    </Td>
-                    <Td>
-                      <Text fontSize="sm" color="gray.500" mb={0}>
-                        {new Date(policy.createdAt).toLocaleDateString()}
+                      </>
+                    ) : (
+                      <Text fontSize="xs" color="gray.500" mb={0}>
+                        No roles assigned
                       </Text>
-                    </Td>
-                    <Td>
-                      <HStack spacing={2} justify="center">
-                        <Tooltip label={intl.formatMessage({ id: 'text.view_policy_details' })}>
-                          <IconButton
-                            size="sm"
-                            colorScheme="blue"
-                            variant="ghost"
-                            icon={<FiEye />}
-                            aria-label="View policy"
-                            onClick={() => {
-                              setSelectedPolicy(policy);
-                              onOpen();
-                            }}
-                          />
-                        </Tooltip>
-                        
-                        <Tooltip label={intl.formatMessage({ 
-                          id: policy.isActive === true ? 'text.deactivate_policy' : 'text.activate_policy' 
-                        })}>
-                          <IconButton
-                            size="sm"
-                            colorScheme={policy.isActive === true ? 'orange' : 'green'}
-                            variant="ghost"
-                            icon={policy.isActive === true ? <FiPause /> : <FiPlay />}
-                            aria-label="Toggle policy"
-                            onClick={() => handleTogglePolicy(
-                              policy.id, 
-                              !policy.isActive
-                            )}
-                          />
-                        </Tooltip>
-                        
-                        <Tooltip label={intl.formatMessage({ id: 'text.delete_policy' })}>
-                          <IconButton
-                            size="sm"
-                            colorScheme="red"
-                            variant="ghost"
-                            icon={<FiTrash2 />}
-                            aria-label="Delete policy"
-                            onClick={() => handleDeletePolicy(policy.id)}
-                          />
-                        </Tooltip>
-                      </HStack>
-                    </Td>
-                  </Tr>
-                ))
-              ) : (
-                <Tr>
-                  <Td colSpan={9} textAlign="center" py={8}>
-                    <VStack spacing={2}>
-                      <FiShield size={48} color="gray" />
-                      <Text color="gray.500" mb={0}>
-                        <FormattedMessage id="text.no_masking_policies" />
-                      </Text>
-                      <Text fontSize="sm" color="gray.400" mb={0}>
-                        <FormattedMessage id="text.create_first_policy" />
-                      </Text>
-                    </VStack>
-                  </Td>
-                </Tr>
-              )}
-            </Tbody>
-          </Table>
-        </TableContainer>
+                    )}
+                  </VStack>
+                </Box>
+              )
+            },
+            {
+              title: intl.formatMessage({ id: 'text.status' }),
+              dataIndex: 'isActive',
+              key: 'status',
+              render: (isActive: boolean) => (
+                <Badge colorScheme={getStatusColor(isActive)} display="flex" alignItems="center" gap={1}>
+                  {getStatusLabel(isActive)}
+                </Badge>
+              )
+            },
+            {
+              title: intl.formatMessage({ id: 'text.created' }),
+              dataIndex: 'createdAt',
+              key: 'created',
+              render: (createdAt: string) => (
+                <Text fontSize="sm" color="gray.500" mb={0}>
+                  {new Date(createdAt).toLocaleDateString()}
+                </Text>
+              )
+            },
+            {
+              title: intl.formatMessage({ id: 'text.actions' }),
+              dataIndex: 'id',
+              key: 'actions',
+              render: (_: string, record: MaskingPolicy) => (
+                <HStack spacing={2} justify="center">
+                  <Tooltip label={intl.formatMessage({ id: 'text.view_policy_details' })}>
+                    <IconButton
+                      size="sm"
+                      colorScheme="blue"
+                      variant="ghost"
+                      icon={<FiEye />}
+                      aria-label="View policy"
+                      onClick={() => {
+                        setSelectedPolicy(record);
+                        onOpen();
+                      }}
+                    />
+                  </Tooltip>
+                  
+                  <Tooltip label={intl.formatMessage({ 
+                    id: record.isActive === true ? 'text.deactivate_policy' : 'text.activate_policy' 
+                  })}>
+                    <IconButton
+                      size="sm"
+                      colorScheme={record.isActive === true ? 'orange' : 'green'}
+                      variant="ghost"
+                      icon={record.isActive === true ? <FiPause /> : <FiPlay />}
+                      aria-label="Toggle policy"
+                      onClick={() => handleTogglePolicy(
+                        record.id, 
+                        !record.isActive
+                      )}
+                    />
+                  </Tooltip>
+                  
+                  <Tooltip label={intl.formatMessage({ id: 'text.delete_policy' })}>
+                    <IconButton
+                      size="sm"
+                      colorScheme="red"
+                      variant="ghost"
+                      icon={<FiTrash2 />}
+                      aria-label="Delete policy"
+                      onClick={() => handleDeletePolicy(record.id)}
+                    />
+                  </Tooltip>
+                </HStack>
+              )
+            }
+          ]}
+          dataSource={policies}
+          rowKey="id"
+          loading={loading}
+          pagination={{
+            meta: paginationMeta,
+            onChange: handlePaginationChange
+          }}
+          selectable={false}
+        />
       </Box>
 
       {/* Policy Details Modal */}
@@ -425,7 +474,7 @@ export const MaskingPolicies = forwardRef<MaskingPoliciesRef>((props, ref) => {
                       <Flex direction="column" align="start">
                         {getStrategyLabel(selectedPolicy.maskingStrategy).split('(').map((part, index) => (
                           <Text 
-                            key={`modal-strategy-part-${selectedPolicy.id}-${part.slice(0, 10).replace(/\s/g, '')}-${index}`} 
+                            key={`modal-strategy-part-${selectedPolicy.id}-${part.slice(0, 10).replaceAll(/\s/g, '')}-${index}`} 
                             fontSize={index === 0 ? "md" : "sm"} 
                             fontWeight={index === 0 ? "medium" : "normal"}
                             color={index === 0 ? "inherit" : "gray.500"}

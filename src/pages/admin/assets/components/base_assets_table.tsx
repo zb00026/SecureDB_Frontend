@@ -1,10 +1,10 @@
-import { Flex, Table, TableContainer, Tbody, Td, Th, Thead, Tr, Text, Tooltip, Checkbox, Box, Icon } from "@chakra-ui/react";
+import { Flex, Table, TableContainer, Tbody, Td, Th, Thead, Tr, Text, Tooltip, Checkbox, Box, Icon, Badge } from "@chakra-ui/react";
 import { DamCard, DamCardBody, DamCardDivider, ActionMenu, ActionMenuItem } from "@common/index";
 import { ApprovalStatus, AccessRequest } from "@models/assets/AccessRequest";
 import { Asset } from "@models/assets/Asset";
 import { FormattedMessage } from "react-intl";
 import { WarningIcon } from "@chakra-ui/icons";
-import { AssetType } from "@/constants/enums";
+import { AssetType, LockType } from "@/constants/enums";
 import { useState, useMemo } from "react";
 import { handleRowClick, handleCheckboxClick } from "@common/libs/utils/tableSelection";
 import { FaFire } from "react-icons/fa";
@@ -20,9 +20,6 @@ interface BaseAssetsTableProps {
   readonly onQueryAsset?: (asset: Asset) => void;
   readonly onTerminalAsset?: (asset: Asset) => void;
   readonly showAccessRequestStatus?: boolean;
-  readonly onViewAccess?: (asset: Asset) => void;
-  readonly showLockAsset?: boolean;
-  readonly lockActions: (asset: Asset) => React.ReactNode;
   // Action handlers for the menu
   readonly onEditAsset?: (asset: Asset) => void;
   readonly onDeleteAsset?: (asset: Asset) => void;
@@ -35,6 +32,7 @@ interface BaseAssetsTableProps {
   // Permission flags for role-based access
   readonly canManageUsers?: boolean;
   readonly canLockAsset?: boolean;
+  readonly userType?: 'admin' | 'developer';
 }
 
 const getStatusColor = (status: string | undefined): string => {
@@ -57,6 +55,31 @@ const getStatusColor = (status: string | undefined): string => {
   }
 };
 
+// Helper function to determine lock status display
+const getLockStatus = (asset: Asset, userType: 'admin' | 'developer'): string => {
+  if (userType === 'admin') {
+    // Admin: show "Locked" if locked is true, otherwise blank
+    return asset.locked ? 'Locked' : '';
+  } else {
+    // Developer: show "Locked" when:
+    // - (locked is false AND lock_type is LOCK_ALL_DB_USERS) OR
+    // - locked is true
+    // Otherwise blank
+    const isLocked = asset.locked ?? false;
+    const lockType = asset.lockType;
+    
+    if (isLocked) {
+      return 'Locked';
+    }
+    
+    if (!isLocked && lockType === LockType.LOCK_ALL_DB_USERS) {
+      return 'Locked';
+    }
+    
+    return '';
+  }
+};
+
 export function BaseAssetsTable({
   assets,
   selectedAsset,
@@ -66,7 +89,6 @@ export function BaseAssetsTable({
   onQueryAsset,
   onTerminalAsset,
   showAccessRequestStatus,
-  onViewAccess,
   onEditAsset,
   onDeleteAsset,
   onManageUsers,
@@ -76,7 +98,8 @@ export function BaseAssetsTable({
   onRelinquishAccess,
   onUpdatePassword,
   canManageUsers = false,
-  canLockAsset = false
+  canLockAsset = false,
+  userType = 'admin'
 }: BaseAssetsTableProps) {
   const [selectedRowKeys, setSelectedRowKeys] = useState<string[]>([]);
 
@@ -116,22 +139,12 @@ export function BaseAssetsTable({
     }
   };
 
-  const addViewAccessItem = (items: ActionMenuItem[], selectedAssetForActions: Asset) => {
-    if (onViewAccess && selectedAssetForActions.type !== AssetType.UNIX_SERVER) {
-      items.push({
-        label: 'View Access',
-        onClick: () => onViewAccess?.(selectedAssetForActions),
-        colorScheme: 'blue',
-        variant: 'outline',
-      });
-    }
-  };
-
   const addQueryItem = (items: ActionMenuItem[], selectedAssetForActions: Asset) => {
     if (!onQueryAsset) return;
     
     const canQuery = selectedAssetForActions.accessRequest &&
-      selectedAssetForActions.accessRequest?.assetApproverStatus === ApprovalStatus.APPROVED;
+      selectedAssetForActions.accessRequest?.assetApproverStatus === ApprovalStatus.APPROVED &&
+      !selectedAssetForActions.locked && (selectedAssetForActions.lockType !== LockType.LOCK_ALL_DB_USERS);
     
     if (canQuery) {
       items.push({
@@ -162,9 +175,16 @@ export function BaseAssetsTable({
   };
 
   const addLockUnlockItems = (items: ActionMenuItem[], selectedAssetForActions: Asset) => {
-    if (!selectedAssetForActions.locked && onLockAsset) {
+    // Only show lock/unlock items for admin userType
+    if (userType !== 'admin') {
+      return;
+    }
+    
+    const isLocked = selectedAssetForActions.locked ?? false;
+    
+    if (!isLocked && onLockAsset) {
       items.push({
-        label: 'Lock Asset',
+        label: 'Lockout',
         onClick: () => onLockAsset(selectedAssetForActions),
         colorScheme: 'orange',
         variant: 'outline',
@@ -172,9 +192,9 @@ export function BaseAssetsTable({
       });
     }
     
-    if (selectedAssetForActions.locked && onUnlockAsset) {
+    if (isLocked && onUnlockAsset) {
       items.push({
-        label: 'Unlock Asset',
+        label: 'Unlock',
         onClick: () => onUnlockAsset(selectedAssetForActions),
         colorScheme: 'green',
         variant: 'outline',
@@ -214,6 +234,11 @@ export function BaseAssetsTable({
       return;
     }
 
+    // Don't allow access requests if asset is locked
+    if (selectedAssetForActions.locked) {
+      return;
+    }
+
     if (canRequestAccess(selectedAssetForActions)) {
       if (onRequestAccess) {
         items.push({
@@ -250,7 +275,6 @@ export function BaseAssetsTable({
     }
 
     addEditItem(items, selectedAssetForActions);
-    addViewAccessItem(items, selectedAssetForActions);
     addQueryItem(items, selectedAssetForActions);
     addRequestAccessItems(items, selectedAssetForActions);
     addManageUsersItem(items, selectedAssetForActions);
@@ -258,7 +282,7 @@ export function BaseAssetsTable({
     addDeleteItem(items, selectedAssetForActions);
 
     return items;
-  }, [selectedRows, onEditAsset, onViewAccess, onQueryAsset, onTerminalAsset, onRequestAccess, onRelinquishAccess, onUpdatePassword, onManageUsers, onLockAsset, onUnlockAsset, onDeleteAsset, canManageUsers, canLockAsset]);
+  }, [selectedRows, onEditAsset, onQueryAsset, onTerminalAsset, onRequestAccess, onRelinquishAccess, onUpdatePassword, onManageUsers, onLockAsset, onUnlockAsset, onDeleteAsset, canManageUsers, canLockAsset, userType]);
 
   return (
     <DamCard mt={4}>
@@ -299,11 +323,20 @@ export function BaseAssetsTable({
                 <Th><FormattedMessage id='text.port_number' /></Th>
                 <Th><FormattedMessage id='text.database_name' /></Th>
                 <Th><FormattedMessage id='text.description' /></Th>
+                <Th textAlign="center">
+                  <Text whiteSpace="pre-line" mb={0}>
+                    <FormattedMessage id='text.lock_status' />
+                  </Text>
+                </Th>
                 {showFetchTemplate && (
                   <Th><FormattedMessage id='text.fetch_template' /></Th>
                 )}
                 {showAccessRequestStatus && (
-                  <Th><FormattedMessage id='text.access_request_status' /></Th>
+                  <Th textAlign="center">
+                    <Text whiteSpace="pre-line" mb={0}>
+                      Access Request{'\n'}Status
+                    </Text>
+                  </Th>
                 )}
               </Tr>
             </Thead>
@@ -382,6 +415,18 @@ export function BaseAssetsTable({
                         <Td>{asset.portNumber}</Td>
                         <Td>{asset.databaseName}</Td>
                         <Td>{asset.description}</Td>
+                        <Td>
+                          {(() => {
+                            const lockStatus = getLockStatus(asset, userType);
+                            return lockStatus ? (
+                              <Badge colorScheme="red" variant="solid">
+                                {lockStatus}
+                              </Badge>
+                            ) : (
+                              <Text mb={0} color="gray.400">-</Text>
+                            );
+                          })()}
+                        </Td>
                         {showFetchTemplate && (
                           <Td>{asset.fetchTemplate ?? '-'}</Td>
                         )}
@@ -420,7 +465,7 @@ export function BaseAssetsTable({
               ) : (
                 <Tr>
                   <Td colSpan={
-                    8 +
+                    9 +
                     (showFetchTemplate ? 1 : 0) +
                     (showAccessRequestStatus ? 1 : 0)
                   } textAlign={'center'}>

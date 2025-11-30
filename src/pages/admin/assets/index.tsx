@@ -1,6 +1,6 @@
 import {
   Box, Button, Flex, Input, Select,
-  useDisclosure
+  useDisclosure, FormControl, FormLabel, HStack, useBreakpointValue
 } from "@chakra-ui/react";
 import { DamBasePage } from "@common/components/DamBasePage";
 import { DamCard, DamCardBody, DamCardDivider, request, useListPage, useDamToast, BulkUploadModal, BulkUploadConfig } from "@common/index";
@@ -9,22 +9,20 @@ import { AssetDTO } from "@models/assets/AssetDTO";
 import { User } from "@models/User";
 import { useEffect, useState } from "react";
 import { FormattedMessage, useIntl } from "react-intl";
-import { AssetType, DatabaseType, UnixServerType, USER_ROLE } from "@/constants/enums";
+import { AssetType, DatabaseType, UnixServerType, USER_ROLE, FEATURE_FLAGS } from "@/constants/enums";
 import { DamAlertDialog } from "@common/components/DamDialog/DamAlertDialog";
 import { useApiRequest } from "@common/hooks/useApiRequest";
 import { AssetsTable } from "./components/assets_table";
-import { DamViewAccessModal } from "@common/components/DamDialog/DamViewAccessModal";
-import { useViewAccess } from "@common/hooks/useViewAccess";
-import { AssetLockDialog, LockType, LockAction } from "./components/asset_lock_dialog";
+import { AssetLockDialog, LockAction } from "@common/components/DamDialog";
 import { ManageUsersModal } from "./components/manage_users_modal";
 import { EditAssetModal } from "./components/edit_asset_modal";
-import { AssetOwnerSelectionModal } from "./components/asset_owner_selection_modal";
 
 export const isSearchable = true;
 export const displayName = 'Assets Management Page';
 export function Component() {
   const intl = useIntl();
   const { showSuccess, showError } = useDamToast();
+  const isHorizontal = useBreakpointValue({ base: false, lg: true });
   const [assets, setAssets] = useState<Array<Asset>>([]);
   const [selectedAsset, setSelectedAsset] = useState<Asset | null>(null);
   const [isEdit, setIsEdit] = useState(false);
@@ -49,9 +47,10 @@ export function Component() {
   const [editAsset, setEditAsset] = useState<Asset | null>(null);
   const [isEditAssetLoading, setIsEditAssetLoading] = useState(false);
 
-  // Asset owner selection modal states
+  // Asset owner selection modal states (using ManageUsersModal for consistency)
   const [isAssetOwnerModalOpen, setIsAssetOwnerModalOpen] = useState(false);
   const [isCreatingAsset, setIsCreatingAsset] = useState(false);
+  const [selectedOwnersForCreate, setSelectedOwnersForCreate] = useState<User[]>([]);
 
   // Bulk upload state
   const { isOpen: isBulkUploadOpen, onOpen: onBulkUploadOpen, onClose: onBulkUploadClose } = useDisclosure();
@@ -67,17 +66,6 @@ export function Component() {
     portNumber: '',
     databaseName: ''
   });
-
-  // Use the shared view access hook
-  const {
-    isViewAccessModalOpen,
-    viewAccessAsset,
-    assetAccessData,
-    isLoadingAccess,
-    accessError,
-    viewAssetAccess,
-    closeViewAccessModal
-  } = useViewAccess({ apiEndpoint: '/api/admin/assets' });
 
   // Remove the UsersTabs as we're moving to a modal approach
 
@@ -171,7 +159,7 @@ export function Component() {
     }
   };
 
-  const handleLockConfirm = async (asset: Asset, lockAction: LockAction, lockType: LockType) => {
+  const handleLockConfirm = async (asset: Asset, lockAction: LockAction) => {
     setIsLockLoading(true);
 
     try {
@@ -184,13 +172,7 @@ export function Component() {
         ? `/api/admin/assets/${asset.id}/lockout`
         : `/api/admin/assets/${asset.id}/unlock`;
 
-      const requestData = {
-        lockAllUsers: lockAction == LockAction.LOCK && lockType == LockType.LOCK_ALL_DB_USERS
-      };
-      if (lockAction == LockAction.UNLOCK && asset.lockType == LockType.LOCK_ALL_DB_USERS) {
-        requestData.lockAllUsers = true;
-      }
-      handleRequest(endpoint, 'POST', requestData, {
+      handleRequest(endpoint, 'POST', {}, {
         onSuccess: () => {
           getAssetsList({});
           closeLockDialog();
@@ -215,6 +197,8 @@ export function Component() {
   // Manage users handlers
   const handleManageUsers = (asset: Asset, userType: 'owners' | 'approvers') => {
     setManageUsersAsset(asset);
+    // Only allow 'approvers' type if feature flag is enabled
+    if (!FEATURE_FLAGS.ENABLE_APPROVER_ROLE && userType === 'approvers') return;
     setManageUsersType(userType);
     setIsManageUsersModalOpen(true);
   };
@@ -222,7 +206,6 @@ export function Component() {
   const closeManageUsersModal = () => {
     setIsManageUsersModalOpen(false);
     setManageUsersAsset(null);
-    setManageUsersType('owners');
   };
 
   const handleUpdateUser = (user: User, method: 'Add' | 'Remove') => {
@@ -239,8 +222,8 @@ export function Component() {
       .then(() => {
         getAssetsList({});
         showSuccess({
-          title: intl.formatMessage({ id: manageUsersType === 'owners' ? 'text.asset_owner_updated' : 'text.approver_updated' }),
-          description: intl.formatMessage({ id: manageUsersType === 'owners' ? 'text.asset_owner_update_success' : 'text.approver_update_success' }),
+          title: intl.formatMessage({ id: 'text.asset_owner_updated' }),
+          description: intl.formatMessage({ id: 'text.asset_owner_update_success' }),
         });
       })
       .catch((e) => {
@@ -314,8 +297,9 @@ export function Component() {
   };
 
   const handleCreate = async () => {
-    // Instead of directly creating the asset, show the asset owner selection modal
+    // Instead of directly creating the asset, show the manage users modal for owner selection
     setIsCreatingAsset(false); // Ensure loading state is reset when opening modal
+    setSelectedOwnersForCreate([]); // Reset selected owners
     setIsAssetOwnerModalOpen(true);
   };
 
@@ -338,6 +322,7 @@ export function Component() {
     setIsFormShow(false);
     setIsAssetOwnerModalOpen(false);
     setIsCreatingAsset(false);
+    setSelectedOwnersForCreate([]); // Reset selected owners
 
     // Show success message with instructions for asset owners
     showSuccess({
@@ -352,22 +337,38 @@ export function Component() {
     setTimeout(() => showAssetOwnerInstructions(owners), 2000);
   };
 
-  const handleAssetOwnerSelection = async (owners: User[]) => {
+  const handleAssetOwnerSelection = async () => {
+    if (selectedOwnersForCreate.length === 0) {
+      showError({
+        description: intl.formatMessage({ id: 'text.asset_owner_selection_required' })
+      });
+      return;
+    }
+
     setIsCreatingAsset(true);
 
     // Create the asset with the selected owners
     const assetData = {
       ...formState,
-      owners: owners
+      owners: selectedOwnersForCreate
     };
 
     handleRequest('/api/admin/assets', 'POST', assetData, {
-      onSuccess: () => handleAssetCreationSuccess(owners),
+      onSuccess: () => handleAssetCreationSuccess(selectedOwnersForCreate),
       onError: () => {
         setIsCreatingAsset(false);
       },
       errorDescriptionId: 'text.asset_create_failed'
     });
+  };
+
+  // Handlers for ManageUsersModal when creating asset
+  const handleAddOwnerForCreate = (user: User) => {
+    setSelectedOwnersForCreate(prev => [...prev, user]);
+  };
+
+  const handleRemoveOwnerForCreate = (user: User) => {
+    setSelectedOwnersForCreate(prev => prev.filter(u => u.id !== user.id));
   };
 
 
@@ -412,45 +413,123 @@ export function Component() {
             {(isFormShow && !isEdit) && <DamCardDivider />}
 
             {isFormShow &&
-              <Flex gap={4} my={4} ml={4} alignItems="center" id="flexAssetTypeForm">
-                <Select
-                  value={formState.type}
-                  onChange={(e) => setFormState(prev => ({ ...prev, type: e.target.value as AssetType }))}
-                  width="200px"
-                  placeholder={intl.formatMessage({ id: 'text.select_asset_type' })}
-                >
-                  <option value={AssetType.DATABASE}>{AssetType.DATABASE}</option>
-                  <option value={AssetType.UNIX_SERVER}>{AssetType.UNIX_SERVER}</option>
-                </Select>
+              <Flex gap={4} my={4} ml={4} alignItems="flex-end" id="flexAssetTypeForm" wrap="wrap">
+                {isHorizontal ? (
+                  <FormControl width="auto">
+                    <HStack spacing={2} align="center">
+                      <FormLabel mb={0} minW="120px" flexShrink={0}>
+                        <FormattedMessage id="text.asset_type" />
+                      </FormLabel>
+                      <Box>
+                        <Select
+                          value={formState.type}
+                          onChange={(e) => setFormState(prev => ({ ...prev, type: e.target.value as AssetType }))}
+                          width="200px"
+                        >
+                          <option value="">{intl.formatMessage({ id: 'text.select_asset_type' })}</option>
+                          <option value={AssetType.DATABASE}>{AssetType.DATABASE}</option>
+                          <option value={AssetType.UNIX_SERVER}>{AssetType.UNIX_SERVER}</option>
+                        </Select>
+                      </Box>
+                    </HStack>
+                  </FormControl>
+                ) : (
+                  <FormControl width="200px">
+                    <FormLabel mb={1}>
+                      <FormattedMessage id="text.asset_type" />
+                    </FormLabel>
+                    <Select
+                      value={formState.type}
+                      onChange={(e) => setFormState(prev => ({ ...prev, type: e.target.value as AssetType }))}
+                      width="200px"
+                    >
+                      <option value="">{intl.formatMessage({ id: 'text.select_asset_type' })}</option>
+                      <option value={AssetType.DATABASE}>{AssetType.DATABASE}</option>
+                      <option value={AssetType.UNIX_SERVER}>{AssetType.UNIX_SERVER}</option>
+                    </Select>
+                  </FormControl>
+                )}
 
                 {formState.type === AssetType.DATABASE && (
-                  <Box>
-                    <Select
-                      value={formState.databaseType || ''}
-                      id="selectDBType"
-                      onChange={(e) => setFormState(prev => ({ ...prev, databaseType: e.target.value as DatabaseType }))}
-                      placeholder={intl.formatMessage({ id: 'text.select_db_type' })}
-                    >
-                      {Object.values(DatabaseType).map((type: DatabaseType) => (
-                        <option className="dropdown-db-option" key={type} value={type}>{type}</option>
-                      ))}
-                    </Select>
-                  </Box>
+                  isHorizontal ? (
+                    <FormControl width="auto">
+                      <HStack spacing={2} align="center">
+                        <FormLabel mb={0} minW="120px" flexShrink={0}>
+                          <FormattedMessage id="text.database_type" />
+                        </FormLabel>
+                        <Box>
+                          <Select
+                            value={formState.databaseType || ''}
+                            id="selectDBType"
+                            onChange={(e) => setFormState(prev => ({ ...prev, databaseType: e.target.value as DatabaseType }))}
+                            width="200px"
+                          >
+                            <option value="">{intl.formatMessage({ id: 'text.select_db_type' })}</option>
+                            {Object.values(DatabaseType).map((type: DatabaseType) => (
+                              <option className="dropdown-db-option" key={type} value={type}>{type}</option>
+                            ))}
+                          </Select>
+                        </Box>
+                      </HStack>
+                    </FormControl>
+                  ) : (
+                    <FormControl>
+                      <FormLabel mb={1}>
+                        <FormattedMessage id="text.database_type" />
+                      </FormLabel>
+                      <Select
+                        value={formState.databaseType || ''}
+                        id="selectDBType"
+                        onChange={(e) => setFormState(prev => ({ ...prev, databaseType: e.target.value as DatabaseType }))}
+                      >
+                        <option value="">{intl.formatMessage({ id: 'text.select_db_type' })}</option>
+                        {Object.values(DatabaseType).map((type: DatabaseType) => (
+                          <option className="dropdown-db-option" key={type} value={type}>{type}</option>
+                        ))}
+                      </Select>
+                    </FormControl>
+                  )
                 )}
 
                 {formState.type === AssetType.UNIX_SERVER && (
-                  <Box>
-                    <Select
-                      value={formState.unixServerType || ''}
-                      id="selectUnixServerType"
-                      onChange={(e) => setFormState(prev => ({ ...prev, unixServerType: e.target.value as UnixServerType }))}
-                      placeholder={intl.formatMessage({ id: 'text.select_unix_server_type' })}
-                    >
-                      {Object.values(UnixServerType).map((type: UnixServerType) => (
-                        <option className="dropdown-unix-option" key={type} value={type}>{type}</option>
-                      ))}
-                    </Select>
-                  </Box>
+                  isHorizontal ? (
+                    <FormControl width="auto">
+                      <HStack spacing={2} align="center">
+                        <FormLabel mb={0} minW="120px" flexShrink={0}>
+                          <FormattedMessage id="text.unix_server_type" />
+                        </FormLabel>
+                        <Box>
+                          <Select
+                            value={formState.unixServerType || ''}
+                            id="selectUnixServerType"
+                            onChange={(e) => setFormState(prev => ({ ...prev, unixServerType: e.target.value as UnixServerType }))}
+                            width="200px"
+                          >
+                            <option value="">{intl.formatMessage({ id: 'text.select_unix_server_type' })}</option>
+                            {Object.values(UnixServerType).map((type: UnixServerType) => (
+                              <option className="dropdown-unix-option" key={type} value={type}>{type}</option>
+                            ))}
+                          </Select>
+                        </Box>
+                      </HStack>
+                    </FormControl>
+                  ) : (
+                    <FormControl>
+                      <FormLabel mb={1}>
+                        <FormattedMessage id="text.unix_server_type" />
+                      </FormLabel>
+                      <Select
+                        value={formState.unixServerType || ''}
+                        id="selectUnixServerType"
+                        onChange={(e) => setFormState(prev => ({ ...prev, unixServerType: e.target.value as UnixServerType }))}
+                      >
+                        <option value="">{intl.formatMessage({ id: 'text.select_unix_server_type' })}</option>
+                        {Object.values(UnixServerType).map((type: UnixServerType) => (
+                          <option className="dropdown-unix-option" key={type} value={type}>{type}</option>
+                        ))}
+                      </Select>
+                    </FormControl>
+                  )
                 )}
               </Flex>
             }
@@ -463,40 +542,60 @@ export function Component() {
                 flexDirection={'column'}
                 id="flexAssetDetailForm">
                 <Flex flexDirection={'row'} gap={4} w='full'>
-                  <Input
-                    value={formState.name}
-                    onChange={(e) => setFormState(prev => ({ ...prev, name: e.target.value }))}
-                    id="inputAssetName"
-                    placeholder={intl.formatMessage({ id: 'text.asset_name' })}
-                  />
-                  <Input
-                    value={formState.hostAddress}
-                    onChange={(e) => setFormState(prev => ({ ...prev, hostAddress: e.target.value }))}
-                    id="inputHostAddress"
-                    placeholder={intl.formatMessage({ id: 'text.host_address' })}
-                  />
-                  <Input
-                    value={formState.portNumber}
-                    onChange={(e) => setFormState(prev => ({ ...prev, portNumber: e.target.value }))}
-                    id="inputPortNumber"
-                    placeholder={intl.formatMessage({ id: 'text.port_number' })}
-                  />
-                  {formState.type === AssetType.DATABASE && (
+                  <FormControl w='full'>
+                    <FormLabel mb={1}>
+                      <FormattedMessage id="text.asset_name" />
+                    </FormLabel>
                     <Input
-                      value={formState.databaseName}
-                      onChange={(e) => setFormState(prev => ({ ...prev, databaseName: e.target.value }))}
-                      id="inputDatabaseName"
-                      placeholder={intl.formatMessage({ id: 'text.database_name' })}
+                      value={formState.name}
+                      onChange={(e) => setFormState(prev => ({ ...prev, name: e.target.value }))}
+                      id="inputAssetName"
                     />
+                  </FormControl>
+                  <FormControl w='full'>
+                    <FormLabel mb={1}>
+                      <FormattedMessage id="text.host_address" />
+                    </FormLabel>
+                    <Input
+                      value={formState.hostAddress}
+                      onChange={(e) => setFormState(prev => ({ ...prev, hostAddress: e.target.value }))}
+                      id="inputHostAddress"
+                    />
+                  </FormControl>
+                  <FormControl w='full'>
+                    <FormLabel mb={1}>
+                      <FormattedMessage id="text.port_number" />
+                    </FormLabel>
+                    <Input
+                      value={formState.portNumber}
+                      onChange={(e) => setFormState(prev => ({ ...prev, portNumber: e.target.value }))}
+                      id="inputPortNumber"
+                    />
+                  </FormControl>
+                  {formState.type === AssetType.DATABASE && (
+                    <FormControl w='full'>
+                      <FormLabel mb={1}>
+                        <FormattedMessage id="text.database_name" />
+                      </FormLabel>
+                      <Input
+                        value={formState.databaseName}
+                        onChange={(e) => setFormState(prev => ({ ...prev, databaseName: e.target.value }))}
+                        id="inputDatabaseName"
+                      />
+                    </FormControl>
                   )}
                 </Flex>
                 <Flex flexDirection={'row'} gap={4} w='full'>
-                  <Input
-                    value={formState.description}
-                    onChange={(e) => setFormState(prev => ({ ...prev, description: e.target.value }))}
-                    id="inputDescription"
-                    placeholder={intl.formatMessage({ id: 'text.description' })}
-                  />
+                  <FormControl w='full'>
+                    <FormLabel mb={1}>
+                      <FormattedMessage id="text.description" />
+                    </FormLabel>
+                    <Input
+                      value={formState.description}
+                      onChange={(e) => setFormState(prev => ({ ...prev, description: e.target.value }))}
+                      id="inputDescription"
+                    />
+                  </FormControl>
                   <Flex justify="flex-end" gap={4}>
                     <Button
                       id="btnSaveAsset"
@@ -519,7 +618,6 @@ export function Component() {
           onSelectAsset={handleSelectAsset}
           onDeleteAsset={deleteAsset}
           onEditAsset={handleEditAsset}
-          onViewAccess={viewAssetAccess}
           onLockAsset={handleLockAsset}
           onUnlockAsset={handleUnlockAsset}
           onManageUsers={handleManageUsers}
@@ -534,14 +632,6 @@ export function Component() {
         title="text.delete_asset"
         message="text.are_you_sure_del_asset"
         confirmButtonId="btnConfirmDeleteAsset"
-      />
-      <DamViewAccessModal
-        isOpen={isViewAccessModalOpen}
-        onClose={closeViewAccessModal}
-        asset={viewAccessAsset}
-        assetAccessData={assetAccessData}
-        isLoading={isLoadingAccess}
-        error={accessError}
       />
       <AssetLockDialog
         isOpen={isLockDialogOpen}
@@ -560,7 +650,18 @@ export function Component() {
       {(() => {
         // Extract users list based on management type
         const ownersData = Array.isArray(getAssetOwners) ? getAssetOwners : getAssetOwners.content ?? [];
-        const approversData = Array.isArray(getApprovers) ? getApprovers : getApprovers.content ?? [];
+        
+        let approversData: any[] = [];
+        if (FEATURE_FLAGS.ENABLE_APPROVER_ROLE) {
+          if (Array.isArray(getApprovers)) {
+            approversData = getApprovers;
+          } else if (getApprovers && 'content' in getApprovers) {
+            approversData = getApprovers.content ?? [];
+          } else {
+            approversData = [];
+          }
+        }
+        
         const availableUsers = manageUsersType === 'owners' ? ownersData : approversData;
 
         // Extract assigned users based on asset and management type
@@ -590,16 +691,22 @@ export function Component() {
         onSave={handleSaveAsset}
         isLoading={isEditAssetLoading}
       />
-      <AssetOwnerSelectionModal
+      <ManageUsersModal
         isOpen={isAssetOwnerModalOpen}
         onClose={() => {
           setIsAssetOwnerModalOpen(false);
           setIsCreatingAsset(false);
+          setSelectedOwnersForCreate([]);
         }}
-        onConfirm={handleAssetOwnerSelection}
+        asset={null}
         users={Array.isArray(getAssetOwners) ? getAssetOwners : getAssetOwners?.content || []}
+        assignedUsers={selectedOwnersForCreate}
+        userType="owners"
+        onAddUser={handleAddOwnerForCreate}
+        onRemoveUser={handleRemoveOwnerForCreate}
         isLoading={isCreatingAsset}
-        assetName={formState.name}
+        onCreateAsset={handleAssetOwnerSelection}
+        createButtonTextId="text.create_asset_with_owners"
       />
     </DamBasePage>
   );

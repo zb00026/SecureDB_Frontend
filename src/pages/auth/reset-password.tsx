@@ -8,14 +8,16 @@ import {
   InputGroup,
   InputRightElement,
   IconButton,
-  Box
+  Box,
+  FormControl,
+  FormLabel
 } from "@chakra-ui/react";
 import { request, useDamToast, DamFullLoading } from "@common/index";
 import DamAuthLayout from "@common/components/DamAuthLayout";
 import DamAuthCard from "@common/components/DamAuthCard";
 import DamBackToLogin from "@common/components/DamBackToLogin";
 import { useState, useEffect } from "react";
-import { useIntl } from "react-intl";
+import { FormattedMessage, useIntl } from "react-intl";
 import { useSearchParams, useNavigate } from "react-router-dom";
 import { FiLock, FiEye, FiEyeOff } from 'react-icons/fi';
 import { DamPasswordInput } from "@common/components/DamPasswordInput";
@@ -171,32 +173,40 @@ export default function ResetPassword() {
 
           <Box as="form" w="full" onSubmit={handleSubmit}>
             <VStack spacing={4} w="full">
-              <DamPasswordInput
-                value={password}
-                onChange={setPassword}
-                placeholder={intl.formatMessage({ id: 'text.enter_new_password' })}
-                showRequirements={true}
-                onValidationChange={setIsPasswordValid}
-                size="lg"
-                borderRadius="lg"
-                _focus={{
-                  borderColor: 'brand.500',
-                  boxShadow: '0 0 0 1px var(--chakra-colors-brand-500)',
-                }}
-              />
-              
-              <InputGroup size="lg">
-                <Input
-                  type={showConfirmPassword ? "text" : "password"}
-                  placeholder={intl.formatMessage({ id: 'text.confirm_new_password' })}
-                  value={confirmPassword}
-                  onChange={(e) => setConfirmPassword(e.target.value)}
+              <FormControl isRequired>
+                <FormLabel>
+                  <FormattedMessage id="text.password" />
+                </FormLabel>
+                <DamPasswordInput
+                  value={password}
+                  onChange={setPassword}
+                  placeholder=""
+                  showRequirements={true}
+                  onValidationChange={setIsPasswordValid}
+                  size="lg"
                   borderRadius="lg"
                   _focus={{
                     borderColor: 'brand.500',
                     boxShadow: '0 0 0 1px var(--chakra-colors-brand-500)',
                   }}
-                  pr="4.5rem"
+                />
+              </FormControl>
+              
+              <FormControl isRequired>
+                <FormLabel>
+                  <FormattedMessage id="text.confirm_password" />
+                </FormLabel>
+                <InputGroup size="lg">
+                  <Input
+                    type={showConfirmPassword ? "text" : "password"}
+                    value={confirmPassword}
+                    onChange={(e) => setConfirmPassword(e.target.value)}
+                    borderRadius="lg"
+                    _focus={{
+                      borderColor: 'brand.500',
+                      boxShadow: '0 0 0 1px var(--chakra-colors-brand-500)',
+                    }}
+                    pr="4.5rem"
                 />
                 <InputRightElement width="4.5rem">
                   <IconButton
@@ -209,6 +219,7 @@ export default function ResetPassword() {
                   />
                 </InputRightElement>
               </InputGroup>
+              </FormControl>
               
               <Button
                 type="submit"
