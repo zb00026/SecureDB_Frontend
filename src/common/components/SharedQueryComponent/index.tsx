@@ -59,6 +59,7 @@ export const SharedQueryComponent = forwardRef<SharedQueryComponentRef, SharedQu
   userType,
   showHistory = true,
   showQueryEditor = true,
+  customApiEndpoint,
 }, ref) => {
   const { showError, showSuccess } = useDamToast();
   const [query, setQuery] = useState<string>('');
@@ -258,19 +259,28 @@ export const SharedQueryComponent = forwardRef<SharedQueryComponentRef, SharedQu
 
     setIsLoading(true);
     
-    // Use different API endpoints based on user type
-    const apiEndpoint = userType === 'developer' 
+    // Use custom endpoint if provided, otherwise use default based on user type
+    const apiEndpoint = customApiEndpoint || (userType === 'developer' 
       ? '/api/developer/assets/run_query'
-      : '/api/asset_owner/assets/run_query';
+      : '/api/asset_owner/assets/run_query');
     
-    handleRequest(apiEndpoint, 'POST', {
-      requestId: accessRequestId,
-      assetId: asset.id,
-      isChangeRequest,
-      ticketReference,
-      changeDescription,
-      query
-    },
+    // For Freshdesk API, use different request format
+    const requestData = customApiEndpoint === '/api/freshdesk/run-query'
+      ? {
+          assetId: asset.id,
+          requestId: accessRequestId ? Number(accessRequestId) : undefined,
+          query
+        }
+      : {
+          requestId: accessRequestId,
+          assetId: asset.id,
+          isChangeRequest,
+          ticketReference,
+          changeDescription,
+          query
+        };
+    
+    handleRequest(apiEndpoint, 'POST', requestData,
       {
         onSuccess: (data: any) => {
           if (data.results) {

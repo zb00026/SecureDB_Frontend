@@ -1,0 +1,12 @@
+{
+  "hagrids_api_url": {
+    "display_name": "Hagrids API URL",
+    "description": "The base URL for the Hagrids API. Example: https://ami.hagrids.com (do not include trailing slash)",
+    "type": "text",
+    "required": true,
+    "secure": false
+  }
+}
+
+
+

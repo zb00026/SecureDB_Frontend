@@ -39,6 +39,7 @@ export interface SharedQueryComponentProps {
   readonly onClose?: () => void;
   readonly showHistory?: boolean;
   readonly showQueryEditor?: boolean;
+  readonly customApiEndpoint?: string; // Optional custom API endpoint (e.g., for Freshdesk)
 }
 
 export interface SharedQueryComponentRef {

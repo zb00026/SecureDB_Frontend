@@ -6,7 +6,7 @@ export interface AssetCredential {
     assetId: number;
     userId: number;
     username: string;
-    password: string;
+    password: string | null;
     userAccessType?: string;
     isDeleted?: boolean;
     isTemporaryPassword?: boolean;

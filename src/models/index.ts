@@ -20,3 +20,6 @@ export * from './AuditStats';
 // Timezone models
 export * from './Timezone';
 
+// Freshdesk models
+export * from './FreshdeskModels';
+

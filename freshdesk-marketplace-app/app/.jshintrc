@@ -1,0 +1,20 @@
+{
+  "esversion": 6,
+  "varstmt": false,
+  "eqeqeq": false,
+  "unused": false,
+  "undef": false,
+  "sub": false,
+  "boss": true,
+  "eqnull": true,
+  "evil": false,
+  "expr": true,
+  "laxbreak": true,
+  "loopfunc": true,
+  "multistr": true,
+  "proto": true,
+  "scripturl": true,
+  "shadow": true,
+  "supernew": true,
+  "validthis": true
+}
