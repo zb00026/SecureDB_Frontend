@@ -7,6 +7,7 @@ export interface AssetCredential {
     userId: number;
     username: string;
     password: string | null;
+    awsSecretsManagerKey?: string | null;
     userAccessType?: string;
     isDeleted?: boolean;
     isTemporaryPassword?: boolean;

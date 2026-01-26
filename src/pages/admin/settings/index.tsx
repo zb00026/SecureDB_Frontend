@@ -1,6 +1,6 @@
-import { Flex, Input, Text, VStack, Select, Spinner, Alert, AlertIcon, AlertTitle, AlertDescription } from "@chakra-ui/react";
+import { Flex, Input, Text, VStack, Select, Spinner, Alert, AlertIcon, AlertTitle, AlertDescription, Switch } from "@chakra-ui/react";
 import { DamBasePage } from "@common/components/DamBasePage";
-import { DamCard, DamCardBody, DamCardDivider, PrimaryButton, request, TextCardHeader, useDamToast } from "@common/index";
+import { DamCard, DamCardBody, DamCardDivider, PrimaryButton, request, TextCardHeader, useDamToast, useAwsSecretsManager } from "@common/index";
 import { S3BucketSettings } from "@models/S3BucketSettings";
 import { useEffect, useState } from "react";
 import { FormattedMessage, useIntl } from "react-intl";
@@ -24,6 +24,7 @@ export function Component() {
     updateTimezone,
     fetchTimezones,
   } = useTimezoneContext();
+  const { isEnabled: isAwsSecretsManagerEnabled, isLoading: isAwsSecretsManagerLoading, updateStatus: updateAwsSecretsManagerStatus } = useAwsSecretsManager();
 
   useEffect(() => {
     request('/api/admin/settings/get-current-audit-log-storage').then((res: any) => {
@@ -63,6 +64,17 @@ export function Component() {
   const handleTimezoneChange = async (timezone: string) => {
     if (timezone !== currentTimezone) {
       await updateTimezone(timezone);
+    }
+  };
+
+  const handleAwsSecretsManagerToggle = async (enabled: boolean) => {
+    stateActions.addLoading();
+    const success = await updateAwsSecretsManagerStatus(enabled);
+    stateActions.subLoading();
+    if (success) {
+      showSuccess({
+        description: intl.formatMessage({ id: 'text.aws_secrets_manager_update_success' }),
+      });
     }
   };
 
@@ -158,6 +170,37 @@ export function Component() {
                   <FormattedMessage id="text.apply" />
                 </PrimaryButton>
               </Flex>
+            </Flex>
+          </DamCardBody>
+        </DamCard>
+
+        {/* AWS Secrets Manager Settings */}
+        <DamCard>
+          <DamCardBody>
+            <TextCardHeader id="lblAwsSecretsManager" w="full" pb={2} textAlign={'center'}>
+              <FormattedMessage id="text.aws_secrets_manager" />
+            </TextCardHeader>
+
+            <Flex flexDir="column" w="full" px={6}>
+              <DamCardDivider />
+              
+              <Flex w='full' textAlign={'center'} mt={4} alignItems={'center'} gap={2} mb={2}>
+                <Text mb={0} minW='200px' textAlign={'right'}>
+                  <FormattedMessage id="text.aws_secrets_manager_enabled" />
+                </Text>
+                <Switch
+                  id="switchAwsSecretsManager"
+                  isChecked={isAwsSecretsManagerEnabled}
+                  onChange={(e) => handleAwsSecretsManagerToggle(e.target.checked)}
+                  isDisabled={isAwsSecretsManagerLoading}
+                  colorScheme="blue"
+                />
+                {isAwsSecretsManagerLoading && <Spinner size="sm" />}
+              </Flex>
+              
+              <Text fontSize="sm" color="gray.600" mt={2} mb={4} textAlign="left">
+                <FormattedMessage id="text.aws_secrets_manager_description" />
+              </Text>
             </Flex>
           </DamCardBody>
         </DamCard>

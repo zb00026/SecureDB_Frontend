@@ -266,7 +266,7 @@ export function Component() {
   }, []);
 
   // Helper function to handle database credential request
-  const handleDatabaseCredentialRequest = (endpoint: string, method: string, data?: { username: string; password: string }) => {
+  const handleDatabaseCredentialRequest = (endpoint: string, method: string, data?: { username: string; password?: string; awsSecretsManagerKey?: string }) => {
     return request(endpoint, { method, data })
       .then(() => {
         showSuccess({
@@ -285,7 +285,7 @@ export function Component() {
   };
 
   // Helper function to handle SSH credential request
-  const handleSSHCredentialRequest = (endpoint: string, method: string, data?: { username: string; sshKeyFile: string }) => {
+  const handleSSHCredentialRequest = (endpoint: string, method: string, data?: { username: string; sshKeyFile?: string; awsSecretsManagerKey?: string }) => {
     return request(endpoint, { method, data })
       .then(() => {
         showSuccess({
@@ -322,23 +322,29 @@ export function Component() {
       });
   };
 
-  const handleSetCredential = (username: string, password: string) => {
+  const handleSetCredential = (username: string, password: string, awsSecretsManagerKey?: string) => {
     if (!selectedCredential || !isDatabaseAsset(selectedCredential.asset?.type)) return;
     stateActions.addLoading();
+    const requestData = awsSecretsManagerKey 
+      ? { username, awsSecretsManagerKey }
+      : { username, password };
     handleDatabaseCredentialRequest(
       `/api/asset_owner/assets/credentials/${selectedCredential.id}`,
       'POST',
-      { username, password }
+      requestData
     );
   };
 
-  const handleSetSSHCredential = (username: string, sshPrivateKey: string) => {
+  const handleSetSSHCredential = (username: string, sshPrivateKey: string, awsSecretsManagerKey?: string) => {
     if (!selectedCredential || !isUnixServerAsset(selectedCredential.asset?.type)) return;
     stateActions.addLoading();
+    const requestData = awsSecretsManagerKey
+      ? { username, awsSecretsManagerKey }
+      : { username, sshKeyFile: sshPrivateKey };
     handleSSHCredentialRequest(
       `/api/asset_owner/assets/ssh-credentials/${selectedCredential.id}`,
       'PUT',
-      { username, sshKeyFile: sshPrivateKey }
+      requestData
     );
   };
 

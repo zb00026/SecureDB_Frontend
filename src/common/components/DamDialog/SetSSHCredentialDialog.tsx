@@ -16,13 +16,14 @@ import {
   FormHelperText,
   FormErrorMessage,
 } from "@chakra-ui/react";
-import { FormattedMessage } from "react-intl";
+import { FormattedMessage, useIntl } from "react-intl";
+import { useAwsSecretsManager } from '@common/index';
 
 interface SetSSHCredentialDialogProps {
   readonly isOpen: boolean;
   readonly titleId?: string;
   readonly onClose: () => void;
-  readonly onSubmit: (username: string, sshPrivateKey: string) => void;
+  readonly onSubmit: (username: string, sshPrivateKey: string, awsSecretsManagerKey?: string) => void;
   readonly saveButtonTextId?: string;
   readonly showSSHKeyWarning?: boolean;
 }
@@ -37,14 +38,18 @@ export function SetSSHCredentialDialog({
 }: SetSSHCredentialDialogProps) {
   const [username, setUsername] = useState('');
   const [sshPrivateKey, setSshPrivateKey] = useState('');
+  const [awsSecretsManagerKey, setAwsSecretsManagerKey] = useState('');
   const [isSSHKeyValid, setIsSSHKeyValid] = useState(false);
   const [sshKeyError, setSshKeyError] = useState('');
   const cancelRef = useRef(null);
+  const { isEnabled: isAwsSecretsManagerEnabled } = useAwsSecretsManager();
+  const intl = useIntl();
 
   useEffect(() => {
     if (isOpen) {
       setUsername('');
       setSshPrivateKey('');
+      setAwsSecretsManagerKey('');
       setSshKeyError('');
       setIsSSHKeyValid(false);
     }
@@ -117,13 +122,22 @@ export function SetSSHCredentialDialog({
   };
 
   const handleSubmit = () => {
-    if (isSSHKeyValid && username.trim()) {
-      onSubmit(username.trim(), sshPrivateKey.trim());
-      onClose();
+    if (isAwsSecretsManagerEnabled) {
+      if (awsSecretsManagerKey.trim()) {
+        onSubmit(username.trim(), '', awsSecretsManagerKey.trim());
+        onClose();
+      }
+    } else {
+      if (isSSHKeyValid && username.trim()) {
+        onSubmit(username.trim(), sshPrivateKey.trim());
+        onClose();
+      }
     }
   };
 
-  const isFormValid = isSSHKeyValid && username.trim().length > 0;
+  const isFormValid = isAwsSecretsManagerEnabled
+    ? awsSecretsManagerKey.trim().length > 0
+    : isSSHKeyValid && username.trim().length > 0;
 
   return (
     <AlertDialog
@@ -139,9 +153,14 @@ export function SetSSHCredentialDialog({
           </AlertDialogHeader>
           <AlertDialogBody id='sshCredentialDialogBody'>
             <VStack spacing={4} align="stretch">
-              <FormControl isRequired>
+              <FormControl isRequired={!isAwsSecretsManagerEnabled}>
                 <FormLabel>
                   <FormattedMessage id="text.username" />
+                  {isAwsSecretsManagerEnabled && (
+                    <Text as="span" fontSize="xs" color="gray.500" fontWeight="normal" ml={1}>
+                      (Optional)
+                    </Text>
+                  )}
                 </FormLabel>
                 <Input
                   id="inputSSHCredentialUsername"
@@ -149,33 +168,54 @@ export function SetSSHCredentialDialog({
                   onChange={(e) => setUsername(e.target.value)}
                 />
                 <FormHelperText>
-                  <FormattedMessage id="text.ssh_username_help" />
+                  {isAwsSecretsManagerEnabled ? (
+                    <FormattedMessage id="text.aws_secrets_manager_ssh_username_help" />
+                  ) : (
+                    <FormattedMessage id="text.ssh_username_help" />
+                  )}
                 </FormHelperText>
               </FormControl>
 
-              <FormControl isRequired isInvalid={!!sshKeyError}>
-                <FormLabel>
-                  <FormattedMessage id="text.ssh_private_key" />
-                </FormLabel>
-                <Textarea
-                  id="inputSSHCredentialPrivateKey"
-                  value={sshPrivateKey}
-                  onChange={(e) => setSshPrivateKey(e.target.value)}
-                  rows={8}
-                  fontFamily="mono"
-                  fontSize="sm"
-                  resize="vertical"
-                />
-                {sshKeyError ? (
-                  <FormErrorMessage>{sshKeyError}</FormErrorMessage>
-                ) : (
+              {isAwsSecretsManagerEnabled ? (
+                <FormControl isRequired isInvalid={!awsSecretsManagerKey.trim()}>
+                  <FormLabel>
+                    <FormattedMessage id="text.aws_secrets_manager_key" />
+                  </FormLabel>
+                  <Input
+                    id="inputSSHCredentialAwsSecretsManagerKey"
+                    value={awsSecretsManagerKey}
+                    onChange={(e) => setAwsSecretsManagerKey(e.target.value)}
+                    placeholder={intl.formatMessage({ id: 'text.aws_secrets_manager_key_placeholder' })}
+                  />
                   <FormHelperText>
-                    <FormattedMessage id="text.ssh_private_key_help" />
+                    <FormattedMessage id="text.aws_secrets_manager_ssh_key_help" />
                   </FormHelperText>
-                )}
-              </FormControl>
+                </FormControl>
+              ) : (
+                <FormControl isRequired isInvalid={!!sshKeyError}>
+                  <FormLabel>
+                    <FormattedMessage id="text.ssh_private_key" />
+                  </FormLabel>
+                  <Textarea
+                    id="inputSSHCredentialPrivateKey"
+                    value={sshPrivateKey}
+                    onChange={(e) => setSshPrivateKey(e.target.value)}
+                    rows={8}
+                    fontFamily="mono"
+                    fontSize="sm"
+                    resize="vertical"
+                  />
+                  {sshKeyError ? (
+                    <FormErrorMessage>{sshKeyError}</FormErrorMessage>
+                  ) : (
+                    <FormHelperText>
+                      <FormattedMessage id="text.ssh_private_key_help" />
+                    </FormHelperText>
+                  )}
+                </FormControl>
+              )}
 
-              {showSSHKeyWarning && (
+              {showSSHKeyWarning && !isAwsSecretsManagerEnabled && (
                 <Text fontSize="sm" color="orange.500" bg="orange.50" p={3} borderRadius="md">
                   <FormattedMessage id="text.ssh_key_security_warning" />
                 </Text>

@@ -9,6 +9,7 @@ export * from "./hooks/useDamToast";
 export * from "./hooks/useListPage";
 export * from "./hooks/useAssetsForAudit";
 export * from "./hooks/useKeyboardNavigation";
+export * from "./hooks/useAwsSecretsManager";
 export * from "./components/DamFullLoading";
 export * from "./components/DamDialog";
 export * from "./components/DamLoading";
