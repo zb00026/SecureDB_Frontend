@@ -522,9 +522,9 @@ export function Component() {
     ];
   }, [handleSaveAsset, handleCancelEdit]);
 
-  // Helper function to add Edit Asset menu item if not locked
-  const addEditAssetMenuItem = useCallback((items: ActionMenuItem[], selectedCredential: AssetCredential, isLocked: boolean) => {
-    if (!isLocked) {
+  // Helper function to add Edit Asset menu item if not locked and not temporary password
+  const addEditAssetMenuItem = useCallback((items: ActionMenuItem[], selectedCredential: AssetCredential, isLocked: boolean, isTemporaryPassword: boolean) => {
+    if (!isLocked && !isTemporaryPassword) {
       items.push({ label: 'Edit Asset', onClick: () => handleEditAsset(selectedCredential), colorScheme: 'orange', variant: 'outline' });
     }
   }, [handleEditAsset]);
@@ -534,6 +534,7 @@ export function Component() {
     const asset = selectedCredential.asset as Asset;
     const isLocked = asset?.locked ?? false;
     const lockType = asset?.lockType;
+    const isTemporaryPassword = selectedCredential.isTemporaryPassword ?? false;
     
     // If editing, show only Save and Cancel buttons
     if (isEditing) {
@@ -542,15 +543,22 @@ export function Component() {
     
     const items: ActionMenuItem[] = [];
     
-    // Only add Edit Asset if asset is not locked
-    addEditAssetMenuItem(items, selectedCredential, isLocked);
+    // Only add Edit Asset if asset is not locked and not temporary password
+    addEditAssetMenuItem(items, selectedCredential, isLocked, isTemporaryPassword);
     
     items.push(
-      { label: 'View Access', onClick: () => viewAssetAccess(selectedCredential), colorScheme: 'blue', variant: 'outline', isDisabled: isLocked },
       { label: 'Relinquish Credential', onClick: () => { setSelectedCredential(selectedCredential); setIsDelDlgOpen(true); }, colorScheme: 'red', variant: 'outline' }
     );
     
-    if (!isLocked) {
+    // Only add View Access if not temporary password
+    if (!isTemporaryPassword) {
+      items.push(
+        { label: 'View Access', onClick: () => viewAssetAccess(selectedCredential), colorScheme: 'blue', variant: 'outline', isDisabled: isLocked }
+      );
+    }
+    
+    // Only add Lockout/Unlock if not locked and not temporary password
+    if (!isLocked && !isTemporaryPassword) {
       if (lockType === LockType.LOCK_ALL_DB_USERS) {
         items.push({ label: 'Unlock', onClick: () => handleUnlockAsset(selectedCredential), colorScheme: 'green', variant: 'outline' });
       } else {
@@ -577,6 +585,7 @@ export function Component() {
   const buildUnixServerMenuItems = useCallback((selectedCredential: AssetCredential, isEditing: boolean): ActionMenuItem[] => {
     const asset = selectedCredential.asset as Asset;
     const isLocked = asset?.locked ?? false;
+    const isTemporaryPassword = selectedCredential.isTemporaryPassword ?? false;
     
     // If editing, show only Save and Cancel buttons
     if (isEditing) {
@@ -585,8 +594,8 @@ export function Component() {
     
     const items: ActionMenuItem[] = [];
     
-    // Only add Edit Asset if asset is not locked
-    addEditAssetMenuItem(items, selectedCredential, isLocked);
+    // Only add Edit Asset if asset is not locked and not temporary password
+    addEditAssetMenuItem(items, selectedCredential, isLocked, isTemporaryPassword);
     
     if (!hasSSHCredentials(selectedCredential)) {
       items.push({ label: 'Set SSH Credential', onClick: () => { setSelectedCredential(selectedCredential); setIsSSHDialogOpen(true); }, colorScheme: 'green', variant: 'outline' });

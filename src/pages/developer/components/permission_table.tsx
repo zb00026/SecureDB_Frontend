@@ -16,7 +16,7 @@ import { FormattedMessage } from "react-intl";
 
 
 interface PermissionTableProps {
-  readonly type: 'DATABASE' | 'TABLE' | 'VIEW' | 'PROCEDURE';
+  readonly type: 'DATABASE' | 'TABLE' | 'VIEW' | 'PROCEDURE' | 'COLLECTION';
   readonly grants?: Array<AccessLevel> | null;
   readonly accessLevelObjects?: Array<AccessLevelObject> | null;
   readonly data?: Array<string> | null;

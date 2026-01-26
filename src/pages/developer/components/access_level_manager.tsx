@@ -81,7 +81,7 @@ export function AccessLevelManager({
             base: 'full', sm: 'full', md: '60%', lg: '60%'
           }}>
           <PermissionTable
-            type={assetObject.name as 'DATABASE' | 'TABLE' | 'VIEW' | 'PROCEDURE'}
+            type={assetObject.name as 'DATABASE' | 'TABLE' | 'VIEW' | 'PROCEDURE' | 'COLLECTION'}
             grants={assetObject.grants}
             data={assetObject.data}
             accessLevelObjects={accessLevelObjects}

@@ -1,4 +1,25 @@
-import { Flex, Text, Box, VStack, HStack, Badge, IconButton, Textarea, Checkbox, Input, FormControl, FormLabel } from "@chakra-ui/react";
+import {
+  Flex,
+  Text,
+  Box,
+  VStack,
+  HStack,
+  Badge,
+  IconButton,
+  Textarea,
+  Checkbox,
+  Input,
+  FormControl,
+  FormLabel,
+  Table,
+  Thead,
+  Tbody,
+  Tr,
+  Th,
+  Td,
+  Tooltip,
+  useColorModeValue,
+} from "@chakra-ui/react";
 import { PrimaryButton, useDamToast } from "@common/index";
 import { useEffect, useState, forwardRef, useImperativeHandle } from "react";
 import { FormattedMessage, useIntl } from "react-intl";
@@ -13,6 +34,7 @@ import {
   SharedQueryComponentRef,
   SaveDialogConfig,
 } from "@models/QueryModels";
+import { DatabaseType } from "@/constants/enums";
 
 const QUERY_HISTORY_KEY = 'dam_query_history';
 
@@ -53,6 +75,59 @@ const validateSQL = (query: string): { isValid: boolean; errorMessage?: string }
   return { isValid: true };
 };
 
+// MongoDB query validation functions
+const validateMongoDB = (query: string): { isValid: boolean; errorMessage?: string } => {
+  const trimmedQuery = query.trim();
+  
+  // Check for dangerous MongoDB operations
+  const dangerousOps = [
+    'db.dropDatabase',
+    'db.dropCollection',
+    'db.collection.drop',
+    '.drop()',
+    '.remove({})',
+    '.deleteMany({})',
+    '.updateMany({},'
+  ];
+  
+  const hasDangerousOp = dangerousOps.some(op => trimmedQuery.includes(op));
+  
+  if (hasDangerousOp) {
+    return {
+      isValid: false,
+      errorMessage: 'Please execute destructive operations as a change request'
+    };
+  }
+  
+  // Check for deleteMany/remove without filter (empty object)
+  const deleteManyNoFilter = /\.(deleteMany|remove)\s*\(\s*\{\s*\}\s*\)/i.test(trimmedQuery);
+  if (deleteManyNoFilter) {
+    return {
+      isValid: false,
+      errorMessage: 'Delete operations must include a filter to prevent accidental mass deletions'
+    };
+  }
+  
+  // Check for updateMany without filter
+  const updateManyNoFilter = /\.updateMany\s*\(\s*\{\s*\}\s*,/i.test(trimmedQuery);
+  if (updateManyNoFilter) {
+    return {
+      isValid: false,
+      errorMessage: 'Update operations must include a filter to prevent accidental mass updates'
+    };
+  }
+  
+  return { isValid: true };
+};
+
+// Unified validation function
+const validateQuery = (query: string, databaseType?: DatabaseType | null): { isValid: boolean; errorMessage?: string } => {
+  if (databaseType === DatabaseType.MONGODB) {
+    return validateMongoDB(query);
+  }
+  return validateSQL(query);
+};
+
 export const SharedQueryComponent = forwardRef<SharedQueryComponentRef, SharedQueryComponentProps>(({
   asset,
   accessRequestId,
@@ -62,6 +137,17 @@ export const SharedQueryComponent = forwardRef<SharedQueryComponentRef, SharedQu
   customApiEndpoint,
 }, ref) => {
   const { showError, showSuccess } = useDamToast();
+  const tableHeaderBg = useColorModeValue("gray.50", "gray.700");
+  const tableHeaderColor = useColorModeValue("gray.700", "gray.100");
+  const tableBorderColor = useColorModeValue("gray.200", "gray.600");
+  const tableRowHoverBg = useColorModeValue("gray.50", "gray.700");
+  const tableTextColor = useColorModeValue("gray.800", "gray.100");
+  const tableCellMutedColor = useColorModeValue("gray.600", "gray.300");
+  const scrollbarTrackBg = useColorModeValue("gray.100", "gray.700");
+  const scrollbarThumbBg = useColorModeValue("gray.400", "gray.500");
+  const scrollbarThumbHoverBg = useColorModeValue("gray.500", "gray.400");
+  const columnMinW = "160px";
+  const columnMaxW = "380px";
   const [query, setQuery] = useState<string>('');
   const [queryResults, setQueryResults] = useState<QueryResponse | null>(null);
   const [queryHistory, setQueryHistory] = useState<QueryHistory[]>([]);
@@ -250,8 +336,8 @@ export const SharedQueryComponent = forwardRef<SharedQueryComponentRef, SharedQu
       return;
     }
 
-    // Validate SQL before execution
-    const validation = validateSQL(query);
+    // Validate query before execution (SQL or MongoDB)
+    const validation = validateQuery(query, asset.databaseType);
     if (!validation.isValid) {
       showError({ description: validation.errorMessage ?? 'Invalid query' });
       return;
@@ -299,39 +385,164 @@ export const SharedQueryComponent = forwardRef<SharedQueryComponentRef, SharedQu
     );
   };
 
+  const formatCellValue = (value: unknown): string => {
+    if (value === null || value === undefined) return "";
+    if (typeof value === "string") return value;
+    if (typeof value === "number" || typeof value === "boolean" || typeof value === "bigint") return String(value);
+    // Handle objects (including arrays, dates, etc.)
+    // Note: typeof null === "object" in JavaScript, but we check for null above
+    if (typeof value === "object") {
+      try {
+        return JSON.stringify(value);
+      } catch {
+        return "[object Object]";
+      }
+    }
+    // For any other type (symbol, function, etc.), return a safe string representation
+    // This will never be reached for objects since they're handled above
+    return String(value);
+  };
+
+  const renderCell = (value: unknown) => {
+    const text = formatCellValue(value);
+    const isEmpty = !text || text.trim() === "" || text === "null" || text === "undefined";
+    const displayText = isEmpty ? "—" : text;
+    const shouldTooltip = !isEmpty && displayText.length > 80;
+
+    return (
+      <Tooltip
+        label={displayText}
+        isDisabled={!shouldTooltip}
+        placement="top-start"
+        openDelay={400}
+        maxW="720px"
+      >
+        <Text
+          color={isEmpty ? tableCellMutedColor : tableTextColor}
+          fontSize="sm"
+          noOfLines={3}
+          wordBreak="break-word"
+          whiteSpace="normal"
+          lineHeight="1.5"
+        >
+          {displayText}
+        </Text>
+      </Tooltip>
+    );
+  };
+
   // Reusable query results component
   const renderQueryResults = () => {
     if (!queryResults) return null;
     
     return (
-      <Box flex="1" mt={4} overflowY="auto">
-        <Text fontSize="md" fontWeight="bold" mb={2}>
+      <Box flex="1" mt={4} minH="300px" display="flex" flexDirection="column" overflow="hidden">
+        <Text fontSize="md" fontWeight="bold" mb={2} flexShrink={0}>
           Query Results ({queryResults.totalQueries} {queryResults.totalQueries === 1 ? 'query' : 'queries'}, {queryResults.results.reduce((total, result) => total + result.data.length, 0)} total rows)
         </Text>
-        <Box border="1px solid" borderColor="gray.200" borderRadius="md" overflow="hidden">
-          <Box overflowX="auto">
-            <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-              <thead>
-                <tr style={{ backgroundColor: 'gray.50' }}>
-                  {queryResults.results[0]?.headers.map((header) => (
-                    <th key={header} style={{ padding: '8px 12px', textAlign: 'left', borderBottom: '1px solid gray.200' }}>
-                      {header}
-                    </th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody>
-                {queryResults.results[0]?.data.slice(0, 100).map((row, rowIndex) => (
-                  <tr key={`row-${rowIndex}-${JSON.stringify(row)}`} style={{ borderBottom: '1px solid gray.200' }}>
+        <Box 
+          border="1px solid" 
+          borderColor={tableBorderColor}
+          borderRadius="md" 
+          overflow="hidden" 
+          flex="1" 
+          minH="250px"
+          display="flex" 
+          flexDirection="column"
+        >
+          <Box 
+            overflowX="scroll" 
+            overflowY="auto" 
+            flex="1" 
+            minH="0"
+            maxH="100%"
+            sx={{
+              // Force horizontal scrollbar to always be visible when content overflows
+              '&::-webkit-scrollbar': {
+                height: '12px',
+              },
+              '&::-webkit-scrollbar:horizontal': {
+                display: 'block',
+              },
+              '&::-webkit-scrollbar-track': {
+                background: scrollbarTrackBg,
+              },
+              '&::-webkit-scrollbar-thumb': {
+                background: scrollbarThumbBg,
+                borderRadius: '6px',
+              },
+              '&::-webkit-scrollbar-thumb:hover': {
+                background: scrollbarThumbHoverBg,
+              },
+            }}
+          >
+            <Table
+              variant="simple"
+              size="sm"
+              sx={{
+                tableLayout: "auto",
+                minWidth: "max-content",
+                width: "100%",
+              }}
+            >
+                <Thead 
+                  bg={tableHeaderBg}
+                  sx={{ 
+                    position: 'sticky', 
+                    top: 0, 
+                    zIndex: 10,
+                    boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
+                  }}
+                >
+                  <Tr>
                     {queryResults.results[0]?.headers.map((header) => (
-                      <td key={`${header}-${rowIndex}`} style={{ padding: '8px 12px', borderRight: '1px solid gray.200' }}>
-                        {row[header]}
-                      </td>
+                      <Th
+                        key={header}
+                        bg={tableHeaderBg}
+                        color={tableHeaderColor}
+                        borderBottom="1px solid"
+                        borderColor={tableBorderColor}
+                        textTransform="none"
+                        fontWeight="semibold"
+                        whiteSpace="normal"
+                        minW={columnMinW}
+                        maxW={columnMaxW}
+                        px={3}
+                        py={2}
+                      >
+                        <Tooltip label={header} isDisabled={String(header).length < 30} placement="top-start" openDelay={400}>
+                          <Text noOfLines={3} wordBreak="break-word">{header}</Text>
+                        </Tooltip>
+                      </Th>
                     ))}
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+                  </Tr>
+                </Thead>
+                <Tbody>
+                  {queryResults.results[0]?.data.slice(0, 100).map((row, rowIndex) => (
+                    <Tr
+                      key={`row-${rowIndex}-${JSON.stringify(row)}`}
+                      borderBottom="1px solid"
+                      borderColor={tableBorderColor}
+                      _hover={{ bg: tableRowHoverBg }}
+                    >
+                      {queryResults.results[0]?.headers.map((header) => (
+                        <Td
+                          key={`${header}-${rowIndex}`}
+                          borderRight="1px solid"
+                          borderColor={tableBorderColor}
+                          verticalAlign="top"
+                          minW={columnMinW}
+                          maxW={columnMaxW}
+                          px={3}
+                          py={2}
+                        >
+                          {renderCell(row[header])}
+                        </Td>
+                      ))}
+                    </Tr>
+                  ))}
+                </Tbody>
+              </Table>
           </Box>
         </Box>
       </Box>
@@ -495,29 +706,38 @@ export const SharedQueryComponent = forwardRef<SharedQueryComponentRef, SharedQu
     </Flex>
   );
 
-  // If only showing query editor, return just the query editor
-  if (showQueryEditor && !showHistory) {
-    return (
-      <Flex direction={'column'} gap={3} h="full">
-        {naturalLanguageSection}
-        
-        <Text fontSize="md" fontWeight="bold" mb={0}>
-          <FormattedMessage id="text.query_to_run" />
-        </Text>
+  // Reusable query editor content
+  const queryEditorContent = (
+    <>
+      {naturalLanguageSection}
+      
+      <Text fontSize="md" fontWeight="bold" mb={0} flexShrink={0}>
+        <FormattedMessage id="text.query_to_run" />
+      </Text>
 
+      <Box flex="0 0 120px" flexShrink={0}>
         <DamQueryInput
           value={query}
           onChange={setQuery}
         />
+      </Box>
 
-        <Flex direction={'row'} gap={3} mt={2}>
-          {actionButtons}
-        </Flex>
+      <Flex direction={'row'} gap={3} mt={2} flexShrink={0}>
+        {actionButtons}
+      </Flex>
 
-        {changeRequestFields}
+      {changeRequestFields}
 
-        {/* Query Results */}
-        {renderQueryResults()}
+      {/* Query Results */}
+      {renderQueryResults()}
+    </>
+  );
+
+  // If only showing query editor, return just the query editor
+  if (showQueryEditor && !showHistory) {
+    return (
+      <Flex direction={'column'} gap={3} h="full" minH="500px" overflowY="auto">
+        {queryEditorContent}
       </Flex>
     );
   }
@@ -526,28 +746,8 @@ export const SharedQueryComponent = forwardRef<SharedQueryComponentRef, SharedQu
   return (
     <>
       <Flex direction="row" gap={4} h="full" minH="500px">
-        <Flex direction={'column'} gap={3} flex={2} h="full">
-          {naturalLanguageSection}
-          
-          <Text fontSize="md" fontWeight="bold" mb={0}>
-            <FormattedMessage id="text.query_to_run" />
-          </Text>
-
-          <Box flex="0 0 120px">
-            <DamQueryInput
-              value={query}
-              onChange={setQuery}
-            />
-          </Box>
-
-          <Flex direction={'row'} gap={3} mt={2}>
-            {actionButtons}
-          </Flex>
-
-          {changeRequestFields}
-
-          {/* Query Results */}
-          {renderQueryResults()}
+        <Flex direction={'column'} gap={3} flex={2} h="full" minH="500px" overflowY="auto">
+          {queryEditorContent}
         </Flex>
 
         <Box flex="0 0 300px" h="full">

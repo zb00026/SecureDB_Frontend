@@ -4,7 +4,7 @@
   "description": "Hagrids Database Query App for Freshdesk Marketplace",
   "type": "module",
   "scripts": {
-    "build": "vite build",
+    "build": "node build.js",
     "dev": "vite",
     "preview": "vite preview",
     "fdk:run": "npx -p https://cdn.freshdev.io/fdk/latest.tgz fdk run",

@@ -64,7 +64,8 @@ export function Component() {
     description: '',
     hostAddress: '',
     portNumber: '',
-    databaseName: ''
+    databaseName: '',
+    hostUrl: ''
   });
 
   // Remove the UsersTabs as we're moving to a modal approach
@@ -123,7 +124,8 @@ export function Component() {
       description: '',
       hostAddress: '',
       portNumber: '',
-      databaseName: ''
+      databaseName: '',
+      hostUrl: ''
     });
     setIsEdit(false);
     setIsFormShow(false);
@@ -348,10 +350,22 @@ export function Component() {
     setIsCreatingAsset(true);
 
     // Create the asset with the selected owners
-    const assetData = {
+    // For MongoDB, construct connection string from hostAddress and portNumber
+    const assetData: any = {
       ...formState,
       owners: selectedOwnersForCreate
     };
+
+    // For MongoDB, construct connection string from host and port
+    if (formState.databaseType === DatabaseType.MONGODB) {
+      const host = formState.hostAddress?.trim() || 'localhost';
+      const port = formState.portNumber?.trim() || '27017';
+      assetData.hostUrl = `mongodb://${host}:${port}`;
+      // Keep hostAddress and portNumber for display, but backend will use hostUrl
+    } else {
+      // For other DB types, ensure hostUrl is not sent
+      delete assetData.hostUrl;
+    }
 
     handleRequest('/api/admin/assets', 'POST', assetData, {
       onSuccess: () => handleAssetCreationSuccess(selectedOwnersForCreate),
@@ -560,6 +574,7 @@ export function Component() {
                       value={formState.hostAddress}
                       onChange={(e) => setFormState(prev => ({ ...prev, hostAddress: e.target.value }))}
                       id="inputHostAddress"
+                      placeholder={formState.databaseType === DatabaseType.MONGODB ? "localhost" : ""}
                     />
                   </FormControl>
                   <FormControl w='full'>
@@ -570,6 +585,7 @@ export function Component() {
                       value={formState.portNumber}
                       onChange={(e) => setFormState(prev => ({ ...prev, portNumber: e.target.value }))}
                       id="inputPortNumber"
+                      placeholder={formState.databaseType === DatabaseType.MONGODB ? "27017" : ""}
                     />
                   </FormControl>
                   {formState.type === AssetType.DATABASE && (
@@ -581,11 +597,12 @@ export function Component() {
                         value={formState.databaseName}
                         onChange={(e) => setFormState(prev => ({ ...prev, databaseName: e.target.value }))}
                         id="inputDatabaseName"
+                        placeholder={formState.databaseType === DatabaseType.MONGODB ? "Optional: default database name" : ""}
                       />
                     </FormControl>
                   )}
                 </Flex>
-                <Flex flexDirection={'row'} gap={4} w='full'>
+                <Flex flexDirection={'row'} gap={4} w='full' alignItems="flex-end">
                   <FormControl w='full'>
                     <FormLabel mb={1}>
                       <FormattedMessage id="text.description" />

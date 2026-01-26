@@ -28,7 +28,8 @@ import {
   FiCheck,
 } from 'react-icons/fi';
 import { FormattedMessage, useIntl } from 'react-intl';
-import { DatabaseSchemaDTO, TableSchemaDTO, ColumnSchemaDTO } from '@models/DatabaseSchema';
+import { DatabaseSchemaDTO, TableSchemaDTO, ColumnSchemaDTO, MongoDBDatabaseDTO } from '@models/DatabaseSchema';
+import { DatabaseType } from '@/constants/enums';
 
 interface DatabaseSchemaBrowserProps {
   readonly schema: DatabaseSchemaDTO | null;
@@ -37,6 +38,7 @@ interface DatabaseSchemaBrowserProps {
   readonly onRefresh: () => void;
   readonly onTableClick?: (tableName: string) => void;
   readonly onColumnClick?: (tableName: string, columnName: string) => void;
+  readonly databaseType?: DatabaseType | null; // Optional: helps determine MongoDB vs SQL
 }
 
 interface TableNodeProps {
@@ -209,21 +211,88 @@ const TableNode: React.FC<TableNodeProps> = ({
   );
 };
 
+// MongoDB Database Node Component
+interface MongoDBDatabaseNodeProps {
+  readonly database: MongoDBDatabaseDTO;
+  readonly isExpanded: boolean;
+  readonly onToggle: () => void;
+  readonly onTableClick?: (tableName: string) => void;
+  readonly onColumnClick?: (tableName: string, columnName: string) => void;
+  readonly expandedTables: Set<string>;
+  readonly toggleTable: (tableName: string) => void;
+}
+
+const MongoDBDatabaseNode: React.FC<MongoDBDatabaseNodeProps> = ({
+  database,
+  isExpanded,
+  onToggle,
+  onTableClick,
+  onColumnClick,
+  expandedTables,
+  toggleTable
+}) => {
+  const hoverBg = useColorModeValue('gray.50', 'gray.700');
+  const textColor = useColorModeValue('gray.700', 'gray.300');
+
+  return (
+    <Box>
+      <HStack
+        spacing={2}
+        p={2}
+        cursor="pointer"
+        _hover={{ bg: hoverBg }}
+        onClick={onToggle}
+      >
+        <Icon as={isExpanded ? FiChevronDown : FiChevronRight} boxSize={4} />
+        <Icon as={FiDatabase} boxSize={4} color="green" />
+        <Text fontSize="sm" fontWeight="bold" color={textColor} mb={0}>
+          {database.name}
+        </Text>
+        <Badge size="sm" colorScheme="blue" fontSize="xs">
+          {database.tables.length} {database.tables.length === 1 ? 'collection' : 'collections'}
+        </Badge>
+      </HStack>
+      <Collapse in={isExpanded}>
+        <VStack spacing={1} align="stretch" pl={4}>
+          {database.tables.map((collection) => {
+            const fullCollectionName = `${database.name}.${collection.tableName}`;
+            return (
+              <TableNode
+                key={fullCollectionName}
+                table={collection}
+                isExpanded={expandedTables.has(fullCollectionName)}
+                onToggle={() => toggleTable(fullCollectionName)}
+                onTableClick={onTableClick ? () => onTableClick(fullCollectionName) : undefined}
+                onColumnClick={onColumnClick}
+              />
+            );
+          })}
+        </VStack>
+      </Collapse>
+    </Box>
+  );
+};
+
 export const DatabaseSchemaBrowser: React.FC<DatabaseSchemaBrowserProps> = ({
   schema,
   isLoading,
   error,
   onRefresh,
   onTableClick,
-  onColumnClick
+  onColumnClick,
+  databaseType
 }) => {
   const intl = useIntl();
   const [expandedTables, setExpandedTables] = useState<Set<string>>(new Set());
+  const [expandedDatabases, setExpandedDatabases] = useState<Set<string>>(new Set());
   
   const bgColor = useColorModeValue('white', 'gray.800');
   const borderColor = useColorModeValue('gray.200', 'gray.600');
   const textColor = useColorModeValue('gray.700', 'gray.300');
   const secondaryTextColor = useColorModeValue('gray.500', 'gray.400');
+
+  // Detect if MongoDB based on schema structure or databaseType prop
+  const isMongoDB = databaseType === DatabaseType.MONGODB || (schema?.databases !== undefined && schema.databases.length > 0);
 
   const toggleTable = (tableName: string) => {
     const newExpanded = new Set(expandedTables);
@@ -233,6 +302,16 @@ export const DatabaseSchemaBrowser: React.FC<DatabaseSchemaBrowserProps> = ({
       newExpanded.add(tableName);
     }
     setExpandedTables(newExpanded);
+  };
+
+  const toggleDatabase = (databaseName: string) => {
+    const newExpanded = new Set(expandedDatabases);
+    if (newExpanded.has(databaseName)) {
+      newExpanded.delete(databaseName);
+    } else {
+      newExpanded.add(databaseName);
+    }
+    setExpandedDatabases(newExpanded);
   };
 
   const handleTableClick = (tableName: string) => {
@@ -278,6 +357,23 @@ export const DatabaseSchemaBrowser: React.FC<DatabaseSchemaBrowserProps> = ({
     );
   }
 
+  // Render SQL tables if available
+  const renderSqlTables = () => {
+    if (!schema.tables) {
+      return null;
+    }
+    return schema.tables.map((table) => (
+      <TableNode
+        key={table.tableName}
+        table={table}
+        isExpanded={expandedTables.has(table.tableName)}
+        onToggle={() => toggleTable(table.tableName)}
+        onTableClick={handleTableClick}
+        onColumnClick={handleColumnClick}
+      />
+    ));
+  };
+
   return (
     <Box bg={bgColor} borderRadius="md" border="1px solid" borderColor={borderColor} h="full">
       {/* Header */}
@@ -289,7 +385,10 @@ export const DatabaseSchemaBrowser: React.FC<DatabaseSchemaBrowserProps> = ({
               <FormattedMessage id="text.database_schema" />
             </Text>
             <Text fontSize="xs" color={secondaryTextColor} mb={0}>
-              {schema.databaseName} • {schema.totalTables} tables • {schema.totalColumns} columns
+              {isMongoDB 
+                ? `${schema.databases?.length || 0} databases • ${schema.totalTables} collections • ${schema.totalColumns} fields`
+                : `${schema.databaseName || 'N/A'} • ${schema.totalTables} tables • ${schema.totalColumns} columns`
+              }
             </Text>
           </VStack>
         </HStack>
@@ -307,16 +406,23 @@ export const DatabaseSchemaBrowser: React.FC<DatabaseSchemaBrowserProps> = ({
       {/* Schema Tree */}
       <Box flex="1" maxH="calc(100vh - 350px)" overflowY="auto" overflowX="auto" p={2}>
         <VStack spacing={1} align="stretch">
-          {schema.tables.map((table) => (
-            <TableNode
-              key={table.tableName}
-              table={table}
-              isExpanded={expandedTables.has(table.tableName)}
-              onToggle={() => toggleTable(table.tableName)}
-              onTableClick={handleTableClick}
-              onColumnClick={handleColumnClick}
-            />
-          ))}
+          {isMongoDB && schema.databases ? (
+            // MongoDB: Display databases and their collections
+            schema.databases.map((database) => (
+              <MongoDBDatabaseNode
+                key={database.name}
+                database={database}
+                isExpanded={expandedDatabases.has(database.name)}
+                onToggle={() => toggleDatabase(database.name)}
+                onTableClick={handleTableClick}
+                onColumnClick={handleColumnClick}
+                expandedTables={expandedTables}
+                toggleTable={toggleTable}
+              />
+            ))
+          ) : (
+            renderSqlTables()
+          )}
         </VStack>
       </Box>
     </Box>

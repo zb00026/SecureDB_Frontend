@@ -22,6 +22,9 @@ export function QueryApp({ apiBaseUrl, freshdeskUser, client }) {
   const [isLoading, setIsLoading] = useState(false);
   const [isLoadingSchema, setIsLoadingSchema] = useState(false);
   const [isReloadingAssets, setIsReloadingAssets] = useState(false);
+  
+  // Detect if running in full-screen mode (no client means full-screen)
+  const isFullScreen = !client;
 
   /**
    * Helper function to make API requests
@@ -503,12 +506,94 @@ export function QueryApp({ apiBaseUrl, freshdeskUser, client }) {
   };
 
   /**
+   * Get schema browser styles based on fullscreen mode
+   */
+  const getSchemaBrowserStyles = () => {
+    if (isFullScreen) {
+      return {
+        marginBottom: '16px',
+        padding: '12px',
+        fontSize: '13px',
+        maxHeight: '300px',
+        headerFontSize: '15px',
+        tableLimit: 20,
+        tablePadding: '6px 10px',
+      };
+    }
+    return {
+      marginBottom: '12px',
+      padding: '8px',
+      fontSize: '11px',
+      maxHeight: '150px',
+      headerFontSize: '12px',
+      tableLimit: 10,
+      tablePadding: '3px 6px',
+    };
+  };
+
+  /**
+   * Render schema table item
+   */
+  const renderSchemaTableItem = (table, styles) => {
+    const handleMouseEnter = (e) => {
+      e.target.style.background = '#e3f2fd';
+    };
+
+    const handleMouseLeave = (e) => {
+      e.target.style.background = 'transparent';
+    };
+
+    const columnCount = table.columnCount || table.columns?.length || 0;
+
+    return (
+      <button
+        key={table.tableName}
+        type="button"
+        style={{ 
+          width: '100%',
+          padding: styles.tablePadding, 
+          cursor: 'pointer',
+          borderRadius: '2px',
+          marginBottom: '2px',
+          outline: 'none',
+          border: 'none',
+          background: 'transparent',
+          textAlign: 'left',
+          fontSize: styles.fontSize,
+        }}
+        onClick={() => handleTableClick(table.tableName)}
+        onMouseEnter={handleMouseEnter}
+        onMouseLeave={handleMouseLeave}
+        onFocus={handleMouseEnter}
+        onBlur={handleMouseLeave}
+        title={`Click to query: ${table.tableName}`}
+      >
+        📁 <strong>{table.tableName}</strong>
+        <span style={{ color: '#666', marginLeft: '4px' }}>
+          ({columnCount} cols)
+        </span>
+        {table.tableType === 'VIEW' && (
+          <span style={{ color: '#9c27b0', marginLeft: '4px' }}>[VIEW]</span>
+        )}
+      </button>
+    );
+  };
+
+  /**
    * Render schema browser
    */
   const renderSchemaBrowser = () => {
     if (isLoadingSchema) {
+      const styles = getSchemaBrowserStyles();
       return (
-        <div style={{ marginBottom: '12px', padding: '8px', background: '#e3f2fd', borderRadius: '4px', fontSize: '11px', textAlign: 'center' }}>
+        <div style={{
+          marginBottom: styles.marginBottom,
+          padding: styles.padding,
+          background: '#e3f2fd',
+          borderRadius: '4px',
+          fontSize: styles.fontSize,
+          textAlign: 'center',
+        }}>
           Loading schema...
         </div>
       );
@@ -518,53 +603,37 @@ export function QueryApp({ apiBaseUrl, freshdeskUser, client }) {
       return null;
     }
 
-    const handleTableMouseEnter = (e) => {
-      e.target.style.background = '#e3f2fd';
-    };
-
-    const handleTableMouseLeave = (e) => {
-      e.target.style.background = 'transparent';
-    };
+    const styles = getSchemaBrowserStyles();
+    const displayedTables = schema.tables.slice(0, styles.tableLimit);
+    const remainingCount = schema.tables.length - styles.tableLimit;
 
     return (
-      <div style={{ marginBottom: '12px', maxHeight: '150px', overflowY: 'auto', padding: '8px', background: '#fafafa', borderRadius: '4px', fontSize: '11px', border: '1px solid #e0e0e0' }}>
-        <div style={{ fontWeight: '600', marginBottom: '6px' }}>
+      <div style={{
+        marginBottom: styles.marginBottom,
+        maxHeight: styles.maxHeight,
+        overflowY: 'auto',
+        padding: styles.padding,
+        background: '#fafafa',
+        borderRadius: '4px',
+        fontSize: styles.fontSize,
+        border: '1px solid #e0e0e0',
+      }}>
+        <div style={{
+          fontWeight: '600',
+          marginBottom: '8px',
+          fontSize: styles.headerFontSize,
+        }}>
           📋 Schema: {schema.totalTables} tables, {schema.totalColumns} columns
         </div>
         <div>
-          {schema.tables.slice(0, 10).map((table) => (
-            <button
-              key={table.tableName}
-              type="button"
-              style={{ 
-                width: '100%',
-                padding: '3px 6px', 
-                cursor: 'pointer',
-                borderRadius: '2px',
-                marginBottom: '2px',
-                outline: 'none',
-                border: 'none',
-                background: 'transparent',
-                textAlign: 'left',
-                fontSize: '11px',
-              }}
-              onClick={() => handleTableClick(table.tableName)}
-              onMouseEnter={handleTableMouseEnter}
-              onMouseLeave={handleTableMouseLeave}
-              onFocus={handleTableMouseEnter}
-              onBlur={handleTableMouseLeave}
-              title={`Click to query: ${table.tableName}`}
-            >
-              📁 <strong>{table.tableName}</strong>
-              <span style={{ color: '#666', marginLeft: '4px' }}>
-                ({table.columnCount || table.columns?.length || 0} cols)
-              </span>
-              {table.tableType === 'VIEW' && <span style={{ color: '#9c27b0', marginLeft: '4px' }}>[VIEW]</span>}
-            </button>
-          ))}
-          {schema.tables.length > 10 && (
-            <div style={{ color: '#666', fontStyle: 'italic', padding: '3px 6px' }}>
-              ... and {schema.tables.length - 10} more tables
+          {displayedTables.map((table) => renderSchemaTableItem(table, styles))}
+          {remainingCount > 0 && (
+            <div style={{
+              color: '#666',
+              fontStyle: 'italic',
+              padding: styles.tablePadding,
+            }}>
+              ... and {remainingCount} more tables
             </div>
           )}
         </div>
@@ -595,16 +664,16 @@ export function QueryApp({ apiBaseUrl, freshdeskUser, client }) {
           placeholder={isMongoDB 
             ? "db.collection.find({}).limit(10)" 
             : "SELECT * FROM table_name LIMIT 10;"}
-          rows={5}
+          rows={isFullScreen ? 8 : 5}
           style={{ 
             width: '100%', 
-            padding: '8px', 
+            padding: isFullScreen ? '12px' : '8px', 
             borderRadius: '4px', 
             border: '1px solid #ddd', 
             fontFamily: 'Consolas, Monaco, monospace', 
-            fontSize: '11px',
+            fontSize: isFullScreen ? '13px' : '11px',
             resize: 'vertical',
-            minHeight: '80px',
+            minHeight: isFullScreen ? '120px' : '80px',
           }}
         />
         <button
@@ -652,8 +721,8 @@ export function QueryApp({ apiBaseUrl, freshdeskUser, client }) {
         <h3 style={{ marginBottom: '8px', fontSize: '13px', fontWeight: '600' }}>
           📊 Results ({rowCount} rows)
         </h3>
-        <div style={{ overflowX: 'auto', maxHeight: '300px', overflowY: 'auto' }}>
-          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '10px', background: 'white' }}>
+        <div style={{ overflowX: 'auto', maxHeight: isFullScreen ? '600px' : '300px', overflowY: 'auto' }}>
+          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: isFullScreen ? '12px' : '10px', background: 'white' }}>
             <thead>
               <tr style={{ background: '#f5f5f5', position: 'sticky', top: 0 }}>
                 {queryResults.headers.map((header) => (
@@ -716,11 +785,146 @@ export function QueryApp({ apiBaseUrl, freshdeskUser, client }) {
     );
   };
 
+  /**
+   * Open query interface in full screen window
+   */
+  const openFullScreen = () => {
+    try {
+      // Store data in both sessionStorage (backup) and pass via URL parameters
+      const appData = {
+        apiBaseUrl,
+        freshdeskUser,
+        timestamp: Date.now(),
+      };
+      
+      // Store in sessionStorage as backup
+      try {
+        sessionStorage.setItem('hagrids_query_app_data', JSON.stringify(appData));
+      } catch (e) {
+        console.warn('[Hagrids] Could not write to sessionStorage:', e);
+      }
+      
+      // Encode data for URL parameters
+      const encodedData = encodeURIComponent(JSON.stringify(appData));
+      
+      // Open new window with full screen interface
+      const width = Math.min(globalThis.screen.width - 100, 1400);
+      const height = Math.min(globalThis.screen.height - 100, 900);
+      const left = (globalThis.screen.width - width) / 2;
+      const top = (globalThis.screen.height - height) / 2;
+      
+      // Construct fullscreen URL - handle both dev and production paths
+      let fullScreenUrl;
+      const currentPath = globalThis.location.pathname;
+      if (currentPath.includes('/app/')) {
+        // Production build path
+        fullScreenUrl = currentPath.replace(/\/[^/]*$/, '/fullscreen.html');
+      } else {
+        // Development path
+        fullScreenUrl = currentPath.replace(/\/[^/]*$/, '/fullscreen.html');
+        if (!fullScreenUrl.startsWith('/')) {
+          fullScreenUrl = '/' + fullScreenUrl;
+        }
+      }
+      fullScreenUrl = `${globalThis.location.origin}${fullScreenUrl}?data=${encodedData}`;
+      
+      globalThis.open(
+        fullScreenUrl,
+        'HagridsQueryFullScreen',
+        `width=${width},height=${height},left=${left},top=${top},resizable=yes,scrollbars=yes,toolbar=no,menubar=no,location=no`
+      );
+    } catch (error) {
+      console.error('[Hagrids] Failed to open full screen:', error);
+      alert('Failed to open full screen. Please check if pop-ups are blocked.');
+    }
+  };
+
+  // Container styles based on mode
+  const containerStyle = isFullScreen
+    ? {
+        padding: '24px',
+        fontSize: '14px',
+        maxWidth: '1600px',
+        margin: '0 auto',
+        minHeight: '100vh',
+      }
+    : {
+        padding: '12px',
+        fontSize: '13px',
+      };
+
   return (
-    <div style={{ padding: '12px', fontSize: '13px' }}>
-      <h2 style={{ marginBottom: '12px', fontSize: '15px', fontWeight: 'bold', color: '#1976d2' }}>
-        🗄️ Database Query
-      </h2>
+    <div style={containerStyle}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: isFullScreen ? '20px' : '12px', flexDirection: 'column'}}>
+        <h2 style={{ margin: 0, fontSize: isFullScreen ? '24px' : '15px', fontWeight: 'bold', color: '#1976d2', marginBottom: '5px' }}>
+          🗄️ Database Query
+        </h2>
+        {!isFullScreen && (
+          <button
+            onClick={openFullScreen}
+            style={{
+              padding: '6px 12px',
+              fontSize: '11px',
+              backgroundColor: '#ffffff',
+              color: '#1976d2',
+              border: '1px solid #e0e0e0',
+              borderRadius: '6px',
+              cursor: 'pointer',
+              fontWeight: '500',
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '6px',
+              boxShadow: '0 1px 2px rgba(0,0,0,0.05)',
+              transition: 'all 0.2s ease',
+              whiteSpace: 'nowrap',
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.backgroundColor = '#f5f5f5';
+              e.currentTarget.style.borderColor = '#1976d2';
+              e.currentTarget.style.boxShadow = '0 2px 4px rgba(25,118,210,0.15)';
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.backgroundColor = '#ffffff';
+              e.currentTarget.style.borderColor = '#e0e0e0';
+              e.currentTarget.style.boxShadow = '0 1px 2px rgba(0,0,0,0.05)';
+            }}
+            title="Open in full screen for better experience"
+          >
+            <svg 
+              width="14" 
+              height="14" 
+              viewBox="0 0 24 24" 
+              fill="none" 
+              stroke="currentColor" 
+              strokeWidth="2" 
+              strokeLinecap="round" 
+              strokeLinejoin="round"
+              style={{ flexShrink: 0 }}
+            >
+              <path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"></path>
+            </svg>
+            <span>Full Screen</span>
+          </button>
+        )}
+        {isFullScreen && (
+          <button
+            onClick={() => globalThis.close()}
+            style={{
+              padding: '8px 16px',
+              fontSize: '14px',
+              backgroundColor: '#666',
+              color: 'white',
+              border: 'none',
+              borderRadius: '4px',
+              cursor: 'pointer',
+              fontWeight: '600',
+            }}
+            title="Close full screen window"
+          >
+            ✕ Close
+          </button>
+        )}
+      </div>
 
       {renderAssetSelection()}
       {renderAccessRequestSelection()}

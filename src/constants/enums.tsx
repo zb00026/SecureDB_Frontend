@@ -36,7 +36,8 @@ export enum DatabaseType {
   MYSQL = "MYSQL",
   POSTGRESQL = "POSTGRESQL",
   ORACLE = "ORACLE",
-  SQLSERVER = "SQLSERVER"
+  SQLSERVER = "SQLSERVER",
+  MONGODB = "MONGODB"
   // Add more database types here as needed
 }
 

@@ -15,6 +15,7 @@ import { useDatabaseSchema } from "@common/hooks/useDatabaseSchema";
 import { AssetDetailsSection } from "@pages/developer/components/asset_detail_section";
 import { DamCardDivider, useDamToast } from "@common/index";
 import { DamBasePage } from "@common/components/DamBasePage";
+import { DatabaseType } from "@/constants/enums";
 
 interface QueryAssetPageProps {
   readonly userType: "developer" | "asset_owner";
@@ -38,22 +39,49 @@ export function QueryAssetPage({ userType }: QueryAssetPageProps) {
 
   // Schema browser handlers
   const handleTableClick = (tableName: string) => {
-    const selectQuery = `SELECT * FROM ${tableName} LIMIT 10;`;
+    let selectQuery: string;
+    if (currentAsset?.databaseType === DatabaseType.MONGODB) {
+      // MongoDB: Parse collection name (format: "database.collection" or just "collection")
+      const parts = tableName.split('.');
+      if (parts.length === 2) {
+        const [dbName, collectionName] = parts;
+        selectQuery = `db.getSiblingDB('${dbName}').${collectionName}.find({}).limit(10)`;
+      } else {
+        // If no database prefix, use current database
+        selectQuery = `db.${tableName}.find({}).limit(10)`;
+      }
+    } else {
+      // SQL databases
+      selectQuery = `SELECT * FROM ${tableName} LIMIT 10;`;
+    }
     if (queryComponentRef.current) {
       queryComponentRef.current.setQuery(selectQuery);
     }
     showSuccess({
-      description: `Generated query for table: ${tableName}`
+      description: `Generated query for ${currentAsset?.databaseType === DatabaseType.MONGODB ? 'collection' : 'table'}: ${tableName}`
     });
   };
 
   const handleColumnClick = (tableName: string, columnName: string) => {
-    const selectQuery = `SELECT ${columnName} FROM ${tableName} LIMIT 10;`;
+    let selectQuery: string;
+    if (currentAsset?.databaseType === DatabaseType.MONGODB) {
+      // MongoDB: Parse collection name and project specific field
+      const parts = tableName.split('.');
+      if (parts.length === 2) {
+        const [dbName, collectionName] = parts;
+        selectQuery = `db.getSiblingDB('${dbName}').${collectionName}.find({}, {${columnName}: 1}).limit(10)`;
+      } else {
+        selectQuery = `db.${tableName}.find({}, {${columnName}: 1}).limit(10)`;
+      }
+    } else {
+      // SQL databases
+      selectQuery = `SELECT ${columnName} FROM ${tableName} LIMIT 10;`;
+    }
     if (queryComponentRef.current) {
       queryComponentRef.current.setQuery(selectQuery);
     }
     showSuccess({
-      description: `Generated query for column: ${columnName}`
+      description: `Generated query for ${currentAsset?.databaseType === DatabaseType.MONGODB ? 'field' : 'column'}: ${columnName}`
     });
   };
 
@@ -84,6 +112,7 @@ export function QueryAssetPage({ userType }: QueryAssetPageProps) {
                 onRefresh={fetchSchema}
                 onTableClick={handleTableClick}
                 onColumnClick={handleColumnClick}
+                databaseType={currentAsset?.databaseType}
               />
             </Box>
           )}
@@ -100,7 +129,7 @@ export function QueryAssetPage({ userType }: QueryAssetPageProps) {
           </Box>
 
           {/* Query Editor and History Panel */}
-          <Box flex="1" minW="650px">
+          <Box flex="1" minW="650px" h="full" overflow="hidden">
             <SharedQueryComponent
               ref={queryComponentRef}
               asset={currentAsset}
@@ -122,6 +151,7 @@ export function QueryAssetPage({ userType }: QueryAssetPageProps) {
                 onRefresh={fetchSchema}
                 onTableClick={handleTableClick}
                 onColumnClick={handleColumnClick}
+                databaseType={currentAsset?.databaseType}
               />
             </Box>
           )}

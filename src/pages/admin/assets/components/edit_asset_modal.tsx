@@ -43,20 +43,37 @@ export function EditAssetModal({
     description: '',
     hostAddress: '',
     portNumber: '',
-    databaseName: ''
+    databaseName: '',
+    hostUrl: ''
   });
 
   // Update form state when asset changes
   useEffect(() => {
     if (asset) {
+      let hostAddress = asset.hostAddress;
+      let portNumber = asset.portNumber;
+      
+      // For MongoDB, parse connection string to extract host and port
+      if (asset.databaseType === DatabaseType.MONGODB && asset.hostUrl) {
+        try {
+          // Parse MongoDB connection string: mongodb://host:port or mongodb://host:port/database
+          const url = new URL(asset.hostUrl);
+          hostAddress = url.hostname || asset.hostAddress || '';
+          portNumber = url.port || asset.portNumber || '27017';
+        } catch (urlError) {
+          console.error('Error parsing MongoDB connection string:', urlError);
+        }
+      }
+      
       setFormState({
         name: asset.name,
         type: asset.type,
         databaseType: asset.databaseType ?? null,
         description: asset.description,
-        hostAddress: asset.hostAddress,
-        portNumber: asset.portNumber,
-        databaseName: asset.databaseName
+        hostAddress: hostAddress,
+        portNumber: portNumber,
+        databaseName: asset.databaseName,
+        hostUrl: asset.hostUrl || asset.hostAddress
       });
     }
   }, [asset]);
@@ -69,13 +86,25 @@ export function EditAssetModal({
       description: '',
       hostAddress: '',
       portNumber: '',
-      databaseName: ''
+      databaseName: '',
+      hostUrl: ''
     });
     onClose();
   };
 
   const handleSave = () => {
-    onSave(formState);
+    // For MongoDB, construct connection string from hostAddress and portNumber
+    const saveData: any = { ...formState };
+    if (formState.databaseType === DatabaseType.MONGODB) {
+      // Construct MongoDB connection string from host and port
+      const host = formState.hostAddress?.trim() || 'localhost';
+      const port = formState.portNumber?.trim() || '27017';
+      saveData.hostUrl = `mongodb://${host}:${port}`;
+      // Keep hostAddress and portNumber for display, but backend will use hostUrl
+    } else {
+      delete saveData.hostUrl;
+    }
+    onSave(saveData);
   };
 
   const isFormValid = formState.name && formState.type && formState.databaseType;
@@ -144,6 +173,7 @@ export function EditAssetModal({
                 <Input
                   value={formState.hostAddress}
                   onChange={(e) => setFormState(prev => ({ ...prev, hostAddress: e.target.value }))}
+                  placeholder={formState.databaseType === DatabaseType.MONGODB ? "localhost" : ""}
                 />
               </Box>
             </Flex>
@@ -156,21 +186,25 @@ export function EditAssetModal({
                 <Input
                   value={formState.portNumber}
                   onChange={(e) => setFormState(prev => ({ ...prev, portNumber: e.target.value }))}
+                  placeholder={formState.databaseType === DatabaseType.MONGODB ? "27017" : ""}
                 />
               </Box>
-              <Box flex={1}>
-                <Text mb={2} fontWeight="medium">
-                  <FormattedMessage id="text.database_name" />
-                </Text>
-                <Input
-                  value={formState.databaseName}
-                  onChange={(e) => setFormState(prev => ({ ...prev, databaseName: e.target.value }))}
-                  isReadOnly
-                  bg="gray.50"
-                  _dark={{ bg: "gray.700" }}
-                  cursor="not-allowed"
-                />
-              </Box>
+              {formState.type === AssetType.DATABASE && (
+                <Box flex={1}>
+                  <Text mb={2} fontWeight="medium">
+                    <FormattedMessage id="text.database_name" />
+                  </Text>
+                  <Input
+                    value={formState.databaseName}
+                    onChange={(e) => setFormState(prev => ({ ...prev, databaseName: e.target.value }))}
+                    isReadOnly={formState.databaseType !== DatabaseType.MONGODB}
+                    bg={formState.databaseType === DatabaseType.MONGODB ? undefined : "gray.50"}
+                    _dark={formState.databaseType === DatabaseType.MONGODB ? undefined : { bg: "gray.700" }}
+                    cursor={formState.databaseType === DatabaseType.MONGODB ? undefined : "not-allowed"}
+                    placeholder={formState.databaseType === DatabaseType.MONGODB ? "Optional: default database name" : ""}
+                  />
+                </Box>
+              )}
             </Flex>
 
             {/* Description */}

@@ -8,6 +8,7 @@ export interface AssetDTO {
   hostAddress: string;
   portNumber: string;
   databaseName: string;
+  hostUrl?: string; // For MongoDB connection strings
   
   // Read-only fields (for display purposes)
   type?: AssetType | '';
