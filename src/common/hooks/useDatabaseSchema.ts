@@ -6,7 +6,7 @@ import { useDamToast } from '@common/hooks/useDamToast';
 interface UseDatabaseSchemaProps {
   readonly requestId?: string;
   readonly assetId?: string;
-  readonly userType?: 'developer' | 'asset_owner'; // Optional, kept for backward compatibility
+  readonly userType?: 'accessor' | 'asset_owner'; // Optional, kept for backward compatibility
 }
 
 interface UseDatabaseSchemaReturn {

@@ -113,7 +113,7 @@ export function isAuthorizedPath(path: string, user?: User): boolean {
     allowedRoles: string[];
   }> = [
       { pathPrefix: '/admin', allowedRoles: [USER_ROLE.ADMIN] },
-      { pathPrefix: '/developer', allowedRoles: [USER_ROLE.DEVELOPER] },
+      { pathPrefix: '/accessor', allowedRoles: [USER_ROLE.ACCESSOR] },
       ...(FEATURE_FLAGS.ENABLE_APPROVER_ROLE ? [{ pathPrefix: '/approver', allowedRoles: [USER_ROLE.APPROVER] }] : []),
       { pathPrefix: '/auditor', allowedRoles: [USER_ROLE.AUDITOR] },
       {

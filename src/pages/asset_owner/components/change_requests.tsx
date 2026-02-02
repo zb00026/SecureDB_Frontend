@@ -52,7 +52,7 @@ export function ChangeRequests() {
             <Tr>
               <Th ><FormattedMessage id="text.asset_name" /></Th>
               <Th><FormattedMessage id="text.change_status" /></Th>
-              <Th><FormattedMessage id="text.developer" /></Th>
+              <Th><FormattedMessage id="text.accessor" /></Th>
               <Th><FormattedMessage id="text.change_description" /></Th>
             </Tr>
           </Thead>

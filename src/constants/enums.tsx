@@ -1,6 +1,6 @@
 export const USER_ROLE = {
   ADMIN: 'Admin',
-  DEVELOPER: 'Developer',
+  ACCESSOR: 'Accessor',
   ASSET_OWNER: 'Asset Owner',
   APPROVER: 'Approver',
   AUDITOR: 'Auditor',
@@ -23,8 +23,6 @@ export const AUTH_PROVIDER = {
   GOOGLE: 'google',
   KEYCLOAK_SSO: 'keycloak_sso'
 }
-
-
 
 export enum AssetType {
   DATABASE = "DATABASE",

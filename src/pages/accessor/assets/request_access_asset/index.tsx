@@ -11,7 +11,7 @@ import { AssetObject } from "@models/assets/AssetObject";
 import { AccessLevelObject } from "@models/assets/AccessLevelObject";
 import { AccessRequest } from "@models/assets/AccessRequest";
 import { useApiRequest } from "@common/hooks/useApiRequest";
-import { AssetDetailsSection } from "@pages/developer/components/asset_detail_section";
+import { AssetDetailsSection } from "@pages/accessor/components/asset_detail_section";
 import { ExpirationInput } from "@common/components/DamExpirationInput";
 
 export function Component() {
@@ -40,7 +40,7 @@ export function Component() {
 
 
     const expHrs = expirationHours + (expirationDays * 24);
-    handleRequest(`/api/developer/assets/request`, 'POST', {
+    handleRequest(`/api/accessor/assets/request`, 'POST', {
       requestId: currentAsset?.accessRequest?.id,
       assetId,
       accessLevelObjects: finalAccessLevelObjects,
@@ -56,7 +56,7 @@ export function Component() {
               accessRequest: accessRequest
             };
           });
-          navigate(`/developer/assets`);
+          navigate(`/accessor/assets`);
         },
         successTitleId: 'text.SUCCESS',
         successDescriptionId: 'text.access_request_sent',
@@ -66,7 +66,7 @@ export function Component() {
   };
 
   const getAccessLevelObjects = (accessRequestId: number) => {
-    handleRequest(`/api/developer/assets/${accessRequestId}/access_level_objects`, 'GET', {},
+    handleRequest(`/api/accessor/assets/${accessRequestId}/access_level_objects`, 'GET', {},
       {
         onSuccess: (data: Array<AccessLevelObject>) => {
           setAccessLevelObjects(data);
@@ -77,7 +77,7 @@ export function Component() {
   }
 
   const getAsset = () => {
-    handleRequest(`/api/developer/assets/${assetId}`, 'GET', {},
+    handleRequest(`/api/accessor/assets/${assetId}`, 'GET', {},
       {
         onSuccess: (data: Asset) => {
           setCurrentAsset(data);
@@ -97,7 +97,7 @@ export function Component() {
   };
 
   const getAccessLevels = () => {
-    handleRequest(`/api/developer/assets/${assetId}/asset_objects`, 'GET', {},
+    handleRequest(`/api/accessor/assets/${assetId}/asset_objects`, 'GET', {},
       {
         onSuccess: (data: Array<AssetObject> | null) => {
           let isEmptyData = false;
@@ -118,7 +118,7 @@ export function Component() {
             showError({
               description: intl.formatMessage({ id: 'text.no_access_level_objects' }),
               onCloseComplete: () => {
-                navigate('/developer/assets');
+                navigate('/accessor/assets');
               }
             });
           } else {

@@ -54,7 +54,7 @@ export function QueryApp({ apiBaseUrl, freshdeskUser, client }) {
   };
 
   /**
-   * Load assets available to the developer
+   * Load assets available to the accessor
    * GET /api/freshdesk/assets
    * Response: Array of asset objects
    */
@@ -337,7 +337,7 @@ export function QueryApp({ apiBaseUrl, freshdeskUser, client }) {
         Please ensure:
         <ul style={{ marginTop: '5px', paddingLeft: '20px', lineHeight: '1.6', marginBottom: '15px' }}>
           <li>Your email ({freshdeskUser?.email || 'N/A'}) matches your Hagrids account</li>
-          <li>You have DEVELOPER role in Hagrids</li>
+          <li>You have ACCESSOR role in Hagrids</li>
           <li>Your account is active</li>
           <li>The API URL is correctly configured</li>
         </ul>

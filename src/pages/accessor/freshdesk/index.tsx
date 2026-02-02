@@ -21,7 +21,7 @@ import {
 } from '@models/FreshdeskModels';
 import { DatabaseSchemaBrowser } from '@common/components/DatabaseSchemaBrowser';
 import { DatabaseSchemaDTO } from '@models/DatabaseSchema';
-import { AssetDetailsSection } from '@pages/developer/components/asset_detail_section';
+import { AssetDetailsSection } from '@pages/accessor/components/asset_detail_section';
 import { SharedQueryComponent } from '@common/components/SharedQueryComponent';
 import { SharedQueryComponentRef } from '@models/QueryModels';
 import { useIntl } from 'react-intl';
@@ -319,7 +319,7 @@ export function Component() {
               ref={queryComponentRef}
               asset={selectedAsset}
               accessRequestId={String(selectedAccessRequest.id)}
-              userType="developer"
+              userType="accessor"
               customApiEndpoint="/api/freshdesk/run-query"
             />
           </Box>

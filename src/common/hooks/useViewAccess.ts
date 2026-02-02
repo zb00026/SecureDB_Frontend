@@ -5,7 +5,7 @@ import { AssetCredential } from '@models/assets/AssetCredential';
 import { request } from '@common/index';
 
 export interface UseViewAccessProps {
-  apiEndpoint: string; // e.g., '/api/admin/assets', '/api/developer/assets', '/api/asset_owner/assets'
+  apiEndpoint: string; // e.g., '/api/admin/assets', '/api/accessor/assets', '/api/asset_owner/assets'
 }
 
 export interface UseViewAccessReturn {

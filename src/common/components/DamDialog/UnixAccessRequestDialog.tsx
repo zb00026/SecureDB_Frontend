@@ -58,7 +58,7 @@ export function UnixAccessRequestDialog({
   const fetchAvailableGroups = async () => {
     try {
       setIsLoading(true);
-      const groups = await request(`/api/developer/unix-access/assets/${asset.id}/groups`, {});
+      const groups = await request(`/api/accessor/unix-access/assets/${asset.id}/groups`, {});
       setAvailableGroups(groups);
     } catch (error: any) {
       showError({
@@ -120,7 +120,7 @@ export function UnixAccessRequestDialog({
         expirationHours: expHrs
       };
 
-      await request('/api/developer/unix-access/requests', {
+      await request('/api/accessor/unix-access/requests', {
         method: 'POST',
         data: submitData
       });

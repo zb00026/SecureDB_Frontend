@@ -136,7 +136,7 @@ export function AuditStatsCharts({
     if (FEATURE_FLAGS.ENABLE_APPROVER_ROLE && userHasRole(user, USER_ROLE.APPROVER)) {
       return '/api/approver/audit-trails/stats/charts';
     }
-    return '/api/developer/audit-trails/stats/charts';
+    return '/api/accessor/audit-trails/stats/charts';
   };
 
   // Fetch stats data

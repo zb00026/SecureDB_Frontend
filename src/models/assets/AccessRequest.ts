@@ -22,7 +22,7 @@ export interface AccessRequest {
   requestReason: string;
   rejectReason?: string;
   assetCredential: AssetCredential;
-  developerApproverStatus: ApprovalStatus;
+  accessorApproverStatus: ApprovalStatus;
   assetApproverStatus: ApprovalStatus;
   isTempPassword?: boolean;
   expiryHours: number;

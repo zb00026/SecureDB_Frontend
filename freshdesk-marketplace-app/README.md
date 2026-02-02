@@ -8,7 +8,7 @@ This app is a **minimal standalone app** that:
 - Uses the same Hagrids backend API (`/api/freshdesk/*` endpoints)
 - Can be installed in any Freshdesk instance
 - Requires configuration of the Hagrids API URL during installation
-- Authenticates Freshdesk users as developers in Hagrids
+- Authenticates Freshdesk users as accessors in Hagrids
 
 ## Structure
 

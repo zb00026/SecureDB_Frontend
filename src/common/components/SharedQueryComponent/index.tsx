@@ -282,7 +282,7 @@ export const SharedQueryComponent = forwardRef<SharedQueryComponentRef, SharedQu
     }
 
     // Validate required parameters based on user type
-    if (userType === 'developer' && !accessRequestId) {
+    if (userType === 'accessor' && !accessRequestId) {
       showError({ description: 'Access request ID is required' });
       return;
     }
@@ -290,11 +290,11 @@ export const SharedQueryComponent = forwardRef<SharedQueryComponentRef, SharedQu
     setIsConverting(true);
     
     // Use different API endpoints based on user type
-    const apiEndpoint = userType === 'developer' 
-      ? '/api/developer/assets/convert_nl_to_sql'
+    const apiEndpoint = userType === 'accessor' 
+      ? '/api/accessor/assets/convert_nl_to_sql'
       : '/api/asset_owner/assets/convert_nl_to_sql';
     
-    const requestData = userType === 'developer'
+    const requestData = userType === 'accessor'
       ? {
           naturalLanguageQuery: naturalLanguageQuery.trim(),
           requestId: accessRequestId
@@ -346,8 +346,8 @@ export const SharedQueryComponent = forwardRef<SharedQueryComponentRef, SharedQu
     setIsLoading(true);
     
     // Use custom endpoint if provided, otherwise use default based on user type
-    const apiEndpoint = customApiEndpoint || (userType === 'developer' 
-      ? '/api/developer/assets/run_query'
+    const apiEndpoint = customApiEndpoint || (userType === 'accessor' 
+      ? '/api/accessor/assets/run_query'
       : '/api/asset_owner/assets/run_query');
     
     // For Freshdesk API, use different request format
@@ -569,7 +569,7 @@ export const SharedQueryComponent = forwardRef<SharedQueryComponentRef, SharedQu
         }}>
         <FormattedMessage id="text.clear" />
       </PrimaryButton>
-      {userType === 'developer' && (
+      {userType === 'accessor' && (
         <Checkbox onChange={(e) => setIsChangeRequest(e.target.checked)}>
           <FormattedMessage id="text.save_as_change_request" />
         </Checkbox>
@@ -577,8 +577,8 @@ export const SharedQueryComponent = forwardRef<SharedQueryComponentRef, SharedQu
     </Flex>
   );
 
-  // Change request fields that show when isChangeRequest is true (only for developers)
-  const changeRequestFields = isChangeRequest && userType === 'developer' ? (
+  // Change request fields that show when isChangeRequest is true (only for accessors)
+  const changeRequestFields = isChangeRequest && userType === 'accessor' ? (
     <Flex direction={'column'} gap={3} mt={2}>
       <Text fontSize="md" fontWeight="bold" mt={4} mb={0}>
         <FormattedMessage id="text.ticket_reference" />

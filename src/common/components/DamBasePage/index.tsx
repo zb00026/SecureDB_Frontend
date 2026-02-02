@@ -91,7 +91,7 @@ export function DamBasePage({
   };
   const user = snap.session.user;
   const roleIcons: Record<string, any> = {
-    'developer': FiDatabase,
+    'accessor': FiDatabase,
     'auditor': FiShield,
     'approver': FiCheckCircle,
     'asset_owner': FiUsers,
@@ -115,8 +115,8 @@ export function DamBasePage({
   ): void => {
     if (roleName === 'asset_owner') {
       links.push({ label: 'Assets Operations', to: '/asset_owner', icon: roleIcons[roleName] });
-    } else if (roleName === 'developer') {
-      links.push({ label: 'Access Assets', to: '/developer', icon: roleIcons[roleName] });
+    } else if (roleName === 'accessor') {
+      links.push({ label: 'Access Assets', to: '/accessor', icon: roleIcons[roleName] });
     } else {
       links.push({
         label: role.name,

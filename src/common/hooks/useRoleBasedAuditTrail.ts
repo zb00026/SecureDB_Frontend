@@ -125,7 +125,7 @@ export const useRoleBasedAuditTrail = ({ user, assetId }: UseRoleBasedAuditTrail
     if (FEATURE_FLAGS.ENABLE_APPROVER_ROLE && userHasRole(user, USER_ROLE.APPROVER)) {
       return '/api/approver/audit-trails/actions';
     }
-    return '/api/developer/audit-trails/actions';
+    return '/api/accessor/audit-trails/actions';
   };
 
   // Load available actions from API when user/role changes

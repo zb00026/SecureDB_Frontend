@@ -297,16 +297,16 @@ export default function Login({ authProviders, children }: { authProviders: stri
     }
   };
 
-  const handleDeveloperLogin = async () => {
+  const handleAccessorLogin = async () => {
     try {
-      const res = await request('/api/developer/assets/get_newly_approved_requests', {
+      const res = await request('/api/accessor/assets/get_newly_approved_requests', {
         method: 'GET',
       });
       if (res.length > 0) {
         showSuccess({
           description: intl.formatMessage({ id: 'text.access_request_approved_to_update_psd' }),
         });
-        navigate('/developer/assets');
+        navigate('/accessor/assets');
       }
     } catch (e) {
       console.log('Failed to check approved requests:', e);
@@ -320,8 +320,8 @@ export default function Login({ authProviders, children }: { authProviders: stri
       // Only call checkAssetCredential if user is not ADMIN (since handleAdminLogin already calls it)
       checkAssetCredential(user);
     }
-    if (userHasRole(user, USER_ROLE.DEVELOPER)) {
-      await handleDeveloperLogin();
+    if (userHasRole(user, USER_ROLE.ACCESSOR)) {
+      await handleAccessorLogin();
     }
   };
 

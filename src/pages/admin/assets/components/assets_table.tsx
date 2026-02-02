@@ -13,7 +13,7 @@ interface AssetsTableProps {
   readonly onUnlockAsset?: (asset: Asset) => void;
   readonly onManageUsers?: (asset: Asset, userType: 'owners' | 'approvers') => void;
   readonly onTerminalAsset?: (asset: Asset) => void;
-  readonly userType?: 'admin' | 'developer';
+  readonly userType?: 'admin' | 'accessor';
 }
 
 export function AssetsTable({

@@ -710,7 +710,7 @@ export function AIMaskingChat({ credentials, onPolicyCreated }: Readonly<AIMaski
       tableName: selectedSuggestions[0].tableName, // Use first suggestion's table as primary
       fieldName: selectedSuggestions.map(s => s.fieldName).join(', '), // Combine field names
       maskingStrategy: 'partial',
-      roles: ['Developer', 'Auditor'], // Default role names as strings
+      roles: ['Accessor', 'Auditor'], // Default role names as strings
       suggestions: selectedSuggestions, // Include all selected suggestions
       aiConfidence: Math.min(...selectedSuggestions.map(s => s.confidence)), // Use minimum confidence
       preserveChars: 4, // Default preserve chars for partial masking

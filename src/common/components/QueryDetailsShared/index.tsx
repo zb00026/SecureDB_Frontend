@@ -2,7 +2,7 @@ import { Flex, Text, Table, Thead, Tbody, Tr, Th, Td, Box, VStack, Textarea, use
 import { DamBasePage } from "@common/components/DamBasePage";
 import { DamCardDivider } from "@common/index";
 import { FormattedMessage } from "react-intl";
-import { AssetDetailsSection } from "@pages/developer/components/asset_detail_section";
+import { AssetDetailsSection } from "@pages/accessor/components/asset_detail_section";
 import { DamQueryInput } from "@common/components/DamQueryInput";
 import { QueryResponse } from "@models/QueryModels";
 import { Asset } from "@models/assets/Asset";

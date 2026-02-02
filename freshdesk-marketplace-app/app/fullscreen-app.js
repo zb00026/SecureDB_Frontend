@@ -7341,7 +7341,7 @@
             (freshdeskUser == null ? void 0 : freshdeskUser.email) || "N/A",
             ") matches your Hagrids account"
           ] }),
-          /* @__PURE__ */ jsxRuntimeExports.jsx("li", { children: "You have DEVELOPER role in Hagrids" }),
+          /* @__PURE__ */ jsxRuntimeExports.jsx("li", { children: "You have ACCESSOR role in Hagrids" }),
           /* @__PURE__ */ jsxRuntimeExports.jsx("li", { children: "Your account is active" }),
           /* @__PURE__ */ jsxRuntimeExports.jsx("li", { children: "The API URL is correctly configured" })
         ] })

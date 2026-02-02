@@ -12,13 +12,13 @@ import { useQueryAssetData } from "@common/hooks/useQueryAssetPage";
 import { SharedQueryComponent } from "@common/components/SharedQueryComponent";
 import { DatabaseSchemaBrowser } from "@common/components/DatabaseSchemaBrowser";
 import { useDatabaseSchema } from "@common/hooks/useDatabaseSchema";
-import { AssetDetailsSection } from "@pages/developer/components/asset_detail_section";
+import { AssetDetailsSection } from "@pages/accessor/components/asset_detail_section";
 import { DamCardDivider, useDamToast } from "@common/index";
 import { DamBasePage } from "@common/components/DamBasePage";
 import { DatabaseType } from "@/constants/enums";
 
 interface QueryAssetPageProps {
-  readonly userType: "developer" | "asset_owner";
+  readonly userType: "accessor" | "asset_owner";
 }
 
 export function QueryAssetPage({ userType }: QueryAssetPageProps) {
@@ -32,7 +32,7 @@ export function QueryAssetPage({ userType }: QueryAssetPageProps) {
 
   // Database schema browser
   const { schema, isLoading: isSchemaLoading, error: schemaError, fetchSchema } = useDatabaseSchema({
-    requestId: userType === "developer" ? accessRequestId : undefined,
+    requestId: userType === "accessor" ? accessRequestId : undefined,
     assetId: currentAsset?.id?.toString(),
     userType
   });

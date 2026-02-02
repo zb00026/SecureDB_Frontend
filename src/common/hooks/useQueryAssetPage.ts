@@ -4,7 +4,7 @@ import { useApiRequest } from "@common/hooks/useApiRequest";
 import { Asset } from "@models/assets/Asset";
 
 interface UseQueryAssetPageProps {
-  userType: 'developer' | 'asset_owner';
+  userType: 'accessor' | 'asset_owner';
 }
 
 export function useQueryAssetData({ userType }: UseQueryAssetPageProps) {
@@ -15,8 +15,8 @@ export function useQueryAssetData({ userType }: UseQueryAssetPageProps) {
   const { handleRequest } = useApiRequest();
 
   const getAsset = () => {
-    const apiEndpoint = userType === 'developer' 
-      ? `/api/developer/assets/${assetId}` 
+    const apiEndpoint = userType === 'accessor' 
+      ? `/api/accessor/assets/${assetId}` 
       : `/api/asset_owner/assets/${assetId}`;
       
     handleRequest(apiEndpoint, 'GET', {},

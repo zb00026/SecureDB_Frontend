@@ -32,7 +32,7 @@ interface BaseAssetsTableProps {
   // Permission flags for role-based access
   readonly canManageUsers?: boolean;
   readonly canLockAsset?: boolean;
-  readonly userType?: 'admin' | 'developer';
+  readonly userType?: 'admin' | 'accessor';
 }
 
 const getStatusColor = (status: string | undefined): string => {
@@ -56,12 +56,12 @@ const getStatusColor = (status: string | undefined): string => {
 };
 
 // Helper function to determine lock status display
-const getLockStatus = (asset: Asset, userType: 'admin' | 'developer'): string => {
+const getLockStatus = (asset: Asset, userType: 'admin' | 'accessor'): string => {
   if (userType === 'admin') {
     // Admin: show "Locked" if locked is true, otherwise blank
     return asset.locked ? 'Locked' : '';
   } else {
-    // Developer: show "Locked" when:
+    // Accessor: show "Locked" when:
     // - (locked is false AND lock_type is LOCK_ALL_DB_USERS) OR
     // - locked is true
     // Otherwise blank
@@ -398,7 +398,7 @@ export function BaseAssetsTable({
                         <Td>
                           <Flex align="center" gap={2}>
                             <Text mb={0}>{asset.name}</Text>
-                            {/* Show fire icon if access is approved but credentials need to be set (for developers) */}
+                            {/* Show fire icon if access is approved but credentials need to be set (for accessors) */}
                             {showHighlightRow && asset.accessRequest?.assetApproverStatus === ApprovalStatus.APPROVED && 
                              asset.accessRequest?.isTempPassword && (
                               <Tooltip label="Approved access request" placement="top" hasArrow>

@@ -18,7 +18,7 @@ import { UnixAccessRequestDialog } from "@common/components/DamDialog/UnixAccess
 import { DamTerminalModal } from "@common/components/DamTerminal";
 
 export const isSearchable = true;
-export const displayName = 'Developer Assets Access Request Page';
+export const displayName = 'Accessor Assets Access Request Page';
 
 export function Component() {
   const intl = useIntl();
@@ -42,10 +42,10 @@ export function Component() {
     accessError,
     viewAssetAccess,
     closeViewAccessModal
-  } = useViewAccess({ apiEndpoint: '/api/developer/assets' });
+  } = useViewAccess({ apiEndpoint: '/api/accessor/assets' });
 
   const { getData, getList: getAssetsList } = useListPage<Asset>({
-    baseUri: "/api/developer/assets",
+    baseUri: "/api/accessor/assets",
     defaultParams: {},
     usePagination: false
   });
@@ -59,7 +59,7 @@ export function Component() {
       setSelectedAsset(asset);
       setIsUnixRequestDialogOpen(true);
     } else {
-      navigate(`/developer/assets/request_access_asset?assetId=${asset.id}`);
+      navigate(`/accessor/assets/request_access_asset?assetId=${asset.id}`);
     }
   };
 
@@ -73,7 +73,7 @@ export function Component() {
         password: ""
       };
       assetCredential.password = password;
-      handleRequest(`/api/developer/assets/set_credential_password/${selectedAccessRequest.id}`, 'POST', assetCredential, {
+      handleRequest(`/api/accessor/assets/set_credential_password/${selectedAccessRequest.id}`, 'POST', assetCredential, {
         onSuccess: () => {
           getAssetsList();
         },
@@ -86,7 +86,7 @@ export function Component() {
 
   const handleRelinquishAccess = () => {
     if (selectedAccessRequest) {
-      handleRequest(`/api/developer/assets/relinquish_access/${selectedAccessRequest.id}`, 'POST', null, {
+      handleRequest(`/api/accessor/assets/relinquish_access/${selectedAccessRequest.id}`, 'POST', null, {
         onSuccess: () => {
           setIsRelinquishDialogOpen(false);
           getAssetsList();
@@ -103,7 +103,7 @@ export function Component() {
       // Asset is locked, cannot query
       return;
     }
-    navigate(`/developer/assets/query_asset?assetId=${asset.id}&accessRequestId=${asset.accessRequest?.id}`);
+    navigate(`/accessor/assets/query_asset?assetId=${asset.id}&accessRequestId=${asset.accessRequest?.id}`);
   };
 
   const handleOpenTerminal = (asset: Asset) => {
@@ -191,7 +191,7 @@ export function Component() {
       {/* Terminal Modal */}
       {terminalAsset && (() => {
         const user = state.session.user;
-        const userAccessType = userHasRole(user, USER_ROLE.DEVELOPER) ? USER_ROLE.DEVELOPER : undefined;
+        const userAccessType = userHasRole(user, USER_ROLE.ACCESSOR) ? USER_ROLE.ACCESSOR : undefined;
         return (
           <DamTerminalModal
             isOpen={isTerminalModalOpen}

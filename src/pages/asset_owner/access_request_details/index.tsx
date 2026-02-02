@@ -9,9 +9,9 @@ import { AssetObject } from "@models/assets/AssetObject";
 import { AccessLevelObject } from "@models/assets/AccessLevelObject";
 import { AccessRequest } from "@models/assets/AccessRequest";
 import { useApiRequest } from "@common/hooks/useApiRequest";
-import { AccessLevelManager } from "@pages/developer/components/access_level_manager";
+import { AccessLevelManager } from "@pages/accessor/components/access_level_manager";
 import { AccessRequestDTO } from "@models/assets/AccessRequestDTO";
-import { AssetDetailsSection } from "@pages/developer/components/asset_detail_section";
+import { AssetDetailsSection } from "@pages/accessor/components/asset_detail_section";
 import { ExpirationInput } from "@common/components/DamExpirationInput";
 export function Component() {
   const intl = useIntl();

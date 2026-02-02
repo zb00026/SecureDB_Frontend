@@ -24,7 +24,7 @@ class FreshdeskApiService {
   }
 
   /**
-   * Get all assets available to the developer
+   * Get all assets available to the accessor
    */
   async getAssets(): Promise<Asset[]> {
     return request('/api/freshdesk/assets', {
@@ -34,7 +34,7 @@ class FreshdeskApiService {
   }
 
   /**
-   * Get access requests for the developer
+   * Get access requests for the accessor
    */
   async getAccessRequests(assetId?: number): Promise<FreshdeskAccessRequestDTO[]> {
     const url = assetId

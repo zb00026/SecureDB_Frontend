@@ -30,7 +30,7 @@ export interface SaveDialogConfig {
   readonly message: string;
 }
 
-export type UserType = 'developer' | 'asset_owner';
+export type UserType = 'accessor' | 'asset_owner';
 
 export interface SharedQueryComponentProps {
   readonly asset: Asset | null;
