@@ -39,7 +39,7 @@ import { DatabaseType } from "@/constants/enums";
 const QUERY_HISTORY_KEY = 'dam_query_history';
 
 // SQL validation functions
-const validateSQL = (query: string): { isValid: boolean; errorMessage?: string } => {
+const validateSQL = (query: string, isChangeRequest: boolean): { isValid: boolean; errorMessage?: string } => {
   const trimmedQuery = query.trim().toUpperCase();
   
   // Check for DDL statements
@@ -48,7 +48,7 @@ const validateSQL = (query: string): { isValid: boolean; errorMessage?: string }
     trimmedQuery.startsWith(keyword + ' ') || trimmedQuery === keyword
   );
   
-  if (isDDL) {
+  if (isDDL && !isChangeRequest) {
     return {
       isValid: false,
       errorMessage: 'Please execute any DDL statements as a change request'
@@ -121,11 +121,11 @@ const validateMongoDB = (query: string): { isValid: boolean; errorMessage?: stri
 };
 
 // Unified validation function
-const validateQuery = (query: string, databaseType?: DatabaseType | null): { isValid: boolean; errorMessage?: string } => {
+const validateQuery = (query: string, isChangeRequest: boolean, databaseType?: DatabaseType | null): { isValid: boolean; errorMessage?: string } => {
   if (databaseType === DatabaseType.MONGODB) {
     return validateMongoDB(query);
   }
-  return validateSQL(query);
+  return validateSQL(query, isChangeRequest);
 };
 
 export const SharedQueryComponent = forwardRef<SharedQueryComponentRef, SharedQueryComponentProps>(({
@@ -337,7 +337,7 @@ export const SharedQueryComponent = forwardRef<SharedQueryComponentRef, SharedQu
     }
 
     // Validate query before execution (SQL or MongoDB)
-    const validation = validateQuery(query, asset.databaseType);
+    const validation = validateQuery(query, isChangeRequest, asset.databaseType);
     if (!validation.isValid) {
       showError({ description: validation.errorMessage ?? 'Invalid query' });
       return;
@@ -369,9 +369,11 @@ export const SharedQueryComponent = forwardRef<SharedQueryComponentRef, SharedQu
     handleRequest(apiEndpoint, 'POST', requestData,
       {
         onSuccess: (data: any) => {
-          if (data.results) {
-            setQueryResults(data.results);
-            saveQueryToHistory(query, data.results);
+          if (!isChangeRequest) {
+            if (data.results) {
+              setQueryResults(data.results);
+              saveQueryToHistory(query, data.results);
+            }
           }
           setIsLoading(false);
         },
@@ -379,7 +381,7 @@ export const SharedQueryComponent = forwardRef<SharedQueryComponentRef, SharedQu
           setIsLoading(false);
         },
         successTitleId: 'text.SUCCESS',
-        successDescriptionId: 'text.query_run_success',
+        successDescriptionId: isChangeRequest ? 'text.change_request_created_successfully' : 'text.query_run_success',
         errorDescriptionId: 'text.failed_to_run_query'
       }
     );

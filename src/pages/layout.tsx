@@ -9,7 +9,7 @@ import {
   DamPageSearch,
 } from '@/common';
 import { TimezoneProvider } from '@common/contexts/TimezoneContext';
-import Login from "@pages/auth/login";
+import Login from "@pages/hagrids_auth/login";
 import { AUTH_PROVIDER } from '@/constants/enums';
 
 export const DamAlertRootContext = React.createContext({})

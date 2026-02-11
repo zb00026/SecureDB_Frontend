@@ -67,26 +67,11 @@ export function QueryDetailsShared({
                 <FormattedMessage id="text.query_to_run" />
               </Text>
 
-              {isQueryEditable ? (
-                <DamQueryInput
-                  value={query}
-                  onChange={onQueryChange ?? (() => { })}
-                />
-              ) : (
-                <Box
-                  border="1px solid"
-                  borderColor="gray.200"
-                  borderRadius="md"
-                  p={3}
-                  bg="gray.50"
-                  fontFamily="monospace"
-                  fontSize="sm"
-                  minHeight="120px"
-                  whiteSpace="pre-wrap"
-                >
-                  {query ?? 'No query provided'}
-                </Box>
-              )}
+              <DamQueryInput
+                value={query}
+                onChange={onQueryChange ?? (() => { })}
+                readOnly={!isQueryEditable}
+              />
 
               {actionButtons && (
                 <Flex direction={'row'} gap={3} mt={2}>

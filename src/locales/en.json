@@ -205,6 +205,7 @@
   "text.query_placeholder": "Query",
   "text.run": "Run",
   "text.query_run_success": "Query run successfully",
+  "text.change_request_created_successfully": "Change request created successfully",
   "text.failed_to_run_query": "Failed to run query",
   "text.natural_language_query": "Natural Language Query",
   "text.convert_to_sql": "Convert to SQL",

@@ -442,7 +442,7 @@ export function Component() {
     const selectedRoles: Array<Role> = selectedOptions
       .map(roleOption => {
         // Find the role object by id
-        const role = roles.find(role => role.id === parseInt(roleOption.value.toString()));
+        const role = roles.find(role => role.id === Number.parseInt(roleOption.value.toString()));
         return role || null;  // If role not found, return null
       })
       .filter((role): role is Role => role !== null)  // Filter out any null values

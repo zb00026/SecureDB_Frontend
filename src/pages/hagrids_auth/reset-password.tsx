@@ -48,7 +48,7 @@ export default function ResetPassword() {
       showError({
         description: intl.formatMessage({ id: 'text.invalid_reset_link' })
       });
-      navigate('/auth/forgot-password');
+      navigate('/hagrids_auth/forgot-password');
       return;
     }
 
@@ -75,7 +75,7 @@ export default function ResetPassword() {
       showError({
         description: errorMessage
       });
-      navigate('/auth/forgot-password');
+      navigate('/hagrids_auth/forgot-password');
     }).finally(() => {
       setIsValidating(false);
     });
@@ -120,7 +120,7 @@ export default function ResetPassword() {
       
       // Redirect to login page after successful password reset
       setTimeout(() => {
-        navigate('/auth/login');
+        navigate('/hagrids_auth/login');
       }, 2000);
     }).catch((error: any) => {
       const errorMessage = error?.response?.data?.message ?? 

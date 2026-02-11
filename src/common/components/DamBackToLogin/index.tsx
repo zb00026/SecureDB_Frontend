@@ -15,7 +15,7 @@ export default function DamBackToLogin() {
       <Icon as={FiArrowLeft} boxSize={4} color="gray.400" />
       <Link
         as={RouterLink}
-        to="/auth/login"
+        to="/hagrids_auth/login"
         color="brand.500"
         _hover={{ textDecoration: 'underline' }}
         fontSize="sm"

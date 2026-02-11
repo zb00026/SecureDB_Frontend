@@ -148,10 +148,10 @@ export function DamBasePage({
     if (!isAdmin) return;
     
     links.push(
-      { label: 'Users', to: '/admin/users', icon: FiUser },
-      { label: 'Settings', to: '/admin/settings', icon: FiSettings },
-      { label: 'Assets', to: '/admin/assets', icon: FiHardDrive },
-      { label: 'License', to: '/admin/license', icon: FiKey },
+      { label: 'Users', to: '/hagrids_admin/users', icon: FiUser },
+      { label: 'Settings', to: '/hagrids_admin/settings', icon: FiSettings },
+      { label: 'Assets', to: '/hagrids_admin/assets', icon: FiHardDrive },
+      { label: 'License', to: '/hagrids_admin/license', icon: FiKey },
     );
   };
 

@@ -33,13 +33,13 @@ export function ShortKey() {
   const modifierKeys = ['Ctrl', 'Alt', 'Shift', getMetaKeyName(), 'Meta', 'Control'];
   
   // List of browser shortcuts that cannot be prevented
-  const browserShortcuts = [
+  const browserShortcuts = new Set([
     'Ctrl+T', 'Ctrl+W', 'Ctrl+N', 'Ctrl+Shift+T', 'Ctrl+Shift+N',
     'Ctrl+Shift+W', 'Ctrl+Shift+Delete', 'Ctrl+Shift+I', 'F12'
-  ];
+  ]);
 
   const isBrowserShortcut = (combination: string) => {
-    return browserShortcuts.includes(combination);
+    return browserShortcuts.has(combination);
   };
 
   useLayoutEffect(() => {
@@ -116,17 +116,17 @@ export function ShortKey() {
     };
 
     // Add event listeners with capture phase for better control
-    window.addEventListener('keydown', handleKeyDown, true);
-    window.addEventListener('keyup', handleKeyUp, true);
-    window.addEventListener('keypress', handleKeyPress, true);
-    window.addEventListener('beforeinput', handleBeforeInput, true);
+    globalThis.addEventListener('keydown', handleKeyDown, true);
+    globalThis.addEventListener('keyup', handleKeyUp, true);
+    globalThis.addEventListener('keypress', handleKeyPress, true);
+    globalThis.addEventListener('beforeinput', handleBeforeInput, true);
 
     // Cleanup the event listener
     return () => {
-      window.removeEventListener('keydown', handleKeyDown, true);
-      window.removeEventListener('keyup', handleKeyUp, true);
-      window.removeEventListener('keypress', handleKeyPress, true);
-      window.removeEventListener('beforeinput', handleBeforeInput, true);
+      globalThis.removeEventListener('keydown', handleKeyDown, true);
+      globalThis.removeEventListener('keyup', handleKeyUp, true);
+      globalThis.removeEventListener('keypress', handleKeyPress, true);
+      globalThis.removeEventListener('beforeinput', handleBeforeInput, true);
     };
   }, []);
 

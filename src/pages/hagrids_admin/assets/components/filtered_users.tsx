@@ -45,9 +45,9 @@ export function FilteredUsers({
 
   const checkUserCriteria = (user: User) => {
     if (!userSearchCriteria) return true;
-    return user.firstName.toLowerCase().indexOf(userSearchCriteria.toLowerCase()) !== -1 ||
-      user.lastName.toLowerCase().indexOf(userSearchCriteria.toLowerCase()) !== -1 ||
-      user.email.toLowerCase().indexOf(userSearchCriteria.toLowerCase()) !== -1;
+    return user.firstName.toLowerCase().includes(userSearchCriteria.toLowerCase()) ||
+      user.lastName.toLowerCase().includes(userSearchCriteria.toLowerCase()) ||
+      user.email.toLowerCase().includes(userSearchCriteria.toLowerCase());
   };
 
   return (

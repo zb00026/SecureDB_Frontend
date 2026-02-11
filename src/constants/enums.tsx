@@ -48,7 +48,7 @@ export enum UnixServerType {
 } 
 
 export enum ChangeRequestStatus {
-  PENDING = "PENDING",
+  REQUESTED = "REQUESTED",
   APPROVED = "APPROVED",
   REJECTED = "REJECTED"
 }

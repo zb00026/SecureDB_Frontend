@@ -273,7 +273,7 @@ export function Component() {
   }, [selectedFile, isValidFile, description, fetchLicenseInfo, refreshLicenseStatus]);
 
   const handleDelete = useCallback(async () => {
-    const confirmed = window.confirm(
+    const confirmed = globalThis.confirm(
       'Are you sure you want to delete the current license? The system will fall back to the default license.'
     );
     
@@ -339,7 +339,7 @@ export function Component() {
     const k = 1024;
     const sizes = ['Bytes', 'KB', 'MB', 'GB'];
     const i = Math.floor(Math.log(bytes) / Math.log(k));
-    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+    return Number.parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
   }, []);
 
   const formatDate = useCallback((dateString: string): string => {
@@ -535,7 +535,7 @@ export function Component() {
                           .map(([key, value]) => (
                           <HStack key={key} justify="space-between">
                             <Text fontWeight="medium" textTransform="capitalize" mb={0}>
-                              {key.replace(/([A-Z])/g, ' $1').trim()}:
+                              {key.replaceAll(/([A-Z])/g, ' $1').trim()}:
                             </Text>
                             <Text fontSize="sm" color="gray.600" _dark={{ color: 'gray.400' }} mb={0}>
                               {value}

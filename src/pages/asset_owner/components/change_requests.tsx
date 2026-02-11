@@ -13,6 +13,7 @@ import { DamCard, DamCardBody, DamCardDivider, request, TextCardHeader, useDamTo
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { AssetQueryChangeRequest } from "@models/assets/AssetQueryChangeRequest";
+import { ChangeRequestStatus } from "@/constants/enums";
 
 export function ChangeRequests() {
   const [changeRequests, setChangeRequests] = useState<AssetQueryChangeRequest[]>([]);
@@ -67,7 +68,20 @@ export function ChangeRequests() {
             {changeRequests.map((changeRequest) => (
               <Tr key={changeRequest.id} cursor="pointer" onClick={() => handleChangeRequest(changeRequest)}>
                 <Td>{changeRequest.asset.name}</Td>
-                <Td>{changeRequest.approvalStatus}</Td>
+                <Td>
+                  <Text
+                    color={
+                      changeRequest.approvalStatus === ChangeRequestStatus.APPROVED
+                        ? "green.600"
+                        : changeRequest.approvalStatus === ChangeRequestStatus.REJECTED
+                        ? "red.600"
+                        : "blue.600"
+                    }
+                    fontWeight="semibold"
+                  >
+                    {changeRequest.approvalStatus}
+                  </Text>
+                </Td>
                 <Td>
                   {`${changeRequest.requestor.firstName} ${changeRequest.requestor.lastName}`}
                   <Text>{changeRequest.requestor.email}</Text>

@@ -103,7 +103,35 @@ export default function ForgotPassword() {
             </Text>
           </VStack>
 
-          {!isSubmitted ? (
+          {isSubmitted ? (
+            <VStack spacing={4} w="full">
+              <Text 
+                fontSize="sm" 
+                color="gray.500" 
+                textAlign="center"
+                bg="green.50"
+                _dark={{ bg: 'green.900' }}
+                p={4}
+                borderRadius="lg"
+                w="full"
+              >
+                {intl.formatMessage({ id: 'text.reset_email_sent_to' })} <strong>{email}</strong>
+              </Text>
+              
+              <Button
+                variant="outline"
+                size="lg"
+                w="full"
+                borderRadius="lg"
+                onClick={() => {
+                  setIsSubmitted(false);
+                  setEmail("");
+                }}
+              >
+                {intl.formatMessage({ id: 'text.try_another_email' })}
+              </Button>
+            </VStack>
+          ) : (
             <Box as="form" w="full" onSubmit={handleSubmit}>
               <VStack spacing={4} w="full">
                 <FormControl isRequired>
@@ -136,34 +164,6 @@ export default function ForgotPassword() {
                 </Button>
               </VStack>
             </Box>
-          ) : (
-            <VStack spacing={4} w="full">
-              <Text 
-                fontSize="sm" 
-                color="gray.500" 
-                textAlign="center"
-                bg="green.50"
-                _dark={{ bg: 'green.900' }}
-                p={4}
-                borderRadius="lg"
-                w="full"
-              >
-                {intl.formatMessage({ id: 'text.reset_email_sent_to' })} <strong>{email}</strong>
-              </Text>
-              
-              <Button
-                variant="outline"
-                size="lg"
-                w="full"
-                borderRadius="lg"
-                onClick={() => {
-                  setIsSubmitted(false);
-                  setEmail("");
-                }}
-              >
-                {intl.formatMessage({ id: 'text.try_another_email' })}
-              </Button>
-            </VStack>
           )}
 
           <DamBackToLogin />

@@ -1,7 +1,5 @@
-import { Button, Text } from "@chakra-ui/react";
 import { Asset } from "@models/assets/Asset";
-import { FormattedMessage } from "react-intl";
-import { BaseAssetsTable } from "../../admin/assets/components/base_assets_table";
+import { BaseAssetsTable } from "../../hagrids_admin/assets/components/base_assets_table";
 import { AccessRequest, ApprovalStatus } from "@models/assets/AccessRequest";
 
 interface AssetsTableProps {
@@ -26,7 +24,6 @@ export function AssetsTable({
   onRequestAccess,
   onUpdatePassword,
   onRelinquishAccess,
-  showQueryButton,
   onQueryAsset,
   onTerminalAsset,
   userType = 'accessor'
@@ -39,7 +36,6 @@ export function AssetsTable({
       onSelectAsset={onSelectAsset}
       showHighlightRow={true}
       showFetchTemplate={false}
-      showQueryButton={showQueryButton}
       onQueryAsset={onQueryAsset}
       onTerminalAsset={onTerminalAsset}
       showAccessRequestStatus={true}

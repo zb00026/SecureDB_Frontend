@@ -15,8 +15,6 @@ interface BaseAssetsTableProps {
   readonly onSelectAsset: (asset: Asset) => void;
   readonly showHighlightRow?: boolean;
   readonly showFetchTemplate?: boolean;
-  readonly showQueryButton?: boolean;
-  readonly renderDetailButton?: (asset: Asset) => React.ReactNode;
   readonly onQueryAsset?: (asset: Asset) => void;
   readonly onTerminalAsset?: (asset: Asset) => void;
   readonly showAccessRequestStatus?: boolean;

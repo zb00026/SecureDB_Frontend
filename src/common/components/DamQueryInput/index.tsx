@@ -12,6 +12,7 @@ interface DamQueryInputProps {
   onChange: (value: string) => void;
   placeholder?: string;
   rows?: number;
+  readOnly?: boolean;
 }
 
 const LINE_HEIGHT = 24; // px
@@ -21,7 +22,8 @@ export const DamQueryInput = ({
   value, 
   onChange, 
   placeholder = "Enter your SQL query here...",
-  rows = 10 
+  rows = 10,
+  readOnly = false
 }: DamQueryInputProps) => {
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const syntaxHighlighterRef = useRef<HTMLDivElement>(null);
@@ -100,6 +102,8 @@ export const DamQueryInput = ({
             onChange={(e) => { onChange(e.target.value); }}
             onScroll={handleScroll}
             placeholder={placeholder}
+            readOnly={readOnly}
+            disabled={readOnly}
             style={{
               position: 'absolute',
               top: 0,
@@ -115,9 +119,9 @@ export const DamQueryInput = ({
               background: 'transparent',
               border: 'none',
               outline: 'none',
-              resize: 'vertical',
+              resize: readOnly ? 'none' : 'vertical',
               color: 'transparent',
-              caretColor: 'black',
+              caretColor: readOnly ? 'transparent' : 'black',
               padding: '8px',
               paddingLeft: '56px', // Account for line numbers
               boxSizing: 'border-box',
@@ -125,6 +129,7 @@ export const DamQueryInput = ({
               overflow: 'auto',
               whiteSpace: 'pre', // Preserve whitespace
               wordWrap: 'break-word',
+              cursor: readOnly ? 'default' : 'text',
             }}
           />
         </Box>

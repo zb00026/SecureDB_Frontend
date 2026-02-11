@@ -21,7 +21,10 @@ import { useSearchParams, useNavigate, Link as RouterLink } from "react-router-d
 import ForgotPassword from "./forgot-password";
 import ResetPassword from "./reset-password";
 
-export default function Login({ authProviders, children }: { authProviders: string, children: React.ReactNode }) {
+export default function Login({ authProviders, children }: { 
+  readonly authProviders: string, 
+  readonly children: React.ReactNode 
+}) {
   const { showError, showSuccess } = useDamToast();
   const [authenticating, setAuthenticating] = useState<boolean>(false);
   const [isValidToken, setIsValidToken] = useState<boolean>(false);
@@ -84,7 +87,7 @@ export default function Login({ authProviders, children }: { authProviders: stri
 
   const isAuthProviderAvailable = (provider: string) => {
     const auth_providers: string[] = authProviders.split(',');
-    return auth_providers.indexOf(provider) != -1;
+    return auth_providers.includes(provider);
   }
 
   useEffect(() => {
@@ -239,7 +242,7 @@ export default function Login({ authProviders, children }: { authProviders: stri
     showError({
       description: intl.formatMessage({ id: 'text.audit_log_storage_not_configured' })
     });
-    navigate('/admin/settings');
+    navigate('/hagrids_admin/settings');
   }
 
   const checkAssetCredential = (user: User) => {
@@ -325,11 +328,11 @@ export default function Login({ authProviders, children }: { authProviders: stri
     }
   };
 
-  const currentUrl = new URL(window.location.href);
-  if (currentUrl.pathname.includes('/auth/reset-password')) {
+  const currentUrl = new URL(globalThis.location.href);
+  if (currentUrl.pathname.includes('/hagrids_auth/reset-password')) {
     return <ResetPassword />
   }
-  if (currentUrl.pathname.includes('/auth/forgot-password')) {
+  if (currentUrl.pathname.includes('/hagrids_auth/forgot-password')) {
     return <ForgotPassword />
   }
   const isKeycloakAuthenticated = (isAuthProviderAvailable(AUTH_PROVIDER.KEYCLOAK) || isAuthProviderAvailable(AUTH_PROVIDER.KEYCLOAK_SSO)) && keycloakAuthenticated;
@@ -341,7 +344,7 @@ export default function Login({ authProviders, children }: { authProviders: stri
     const hasUsedInviteCode = localStorage.getItem('usedInviteCode');
 
     if (!hasPendingInviteCode && !hasUsedInviteCode) {
-      const currentUrl = new URL(window.location.href);
+      const currentUrl = new URL(globalThis.location.href);
       if (currentUrl.searchParams.has('inviteCode')) {
         currentUrl.searchParams.delete('inviteCode');
         const cleanPath = currentUrl.pathname + (currentUrl.search ?? '');
@@ -439,7 +442,7 @@ export default function Login({ authProviders, children }: { authProviders: stri
           <Box w="full" textAlign="center">
             <Link
               as={RouterLink}
-              to="/auth/forgot-password"
+              to="/hagrids_auth/forgot-password"
               color="brand.500"
               _hover={{ textDecoration: 'underline' }}
               fontSize="sm"
