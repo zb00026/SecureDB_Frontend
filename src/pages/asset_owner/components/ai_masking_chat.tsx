@@ -420,7 +420,7 @@ const PolicyConfirmationModal: React.FC<PolicyConfirmationModalProps> = ({ isOpe
   </Modal>
 );
 
-export function AIMaskingChat({ credentials, onPolicyCreated }: Readonly<AIMaskingChatProps>) {
+export function AIMaskingChat({ credentials, onPolicyCreated, initialAssetId }: Readonly<AIMaskingChatProps>) {
   const intl = useIntl();
   const { showSuccess, showError } = useDamToast();
   const { isOpen, onOpen, onClose } = useDisclosure();
@@ -466,14 +466,27 @@ export function AIMaskingChat({ credentials, onPolicyCreated }: Readonly<AIMaski
     return 'green';
   };
 
-  // Set first asset as selected by default when credentials change
+  // Set initial asset or first asset as selected by default when credentials change
   useEffect(() => {
-    console.log("Assets changed:", assets.length, "assets, selectedAsset:", selectedAsset);
-    if (assets.length > 0 && !selectedAsset) {
-      console.log("Setting first asset:", assets[0]);
-      setSelectedAsset(assets[0]);
+    console.log("Assets changed:", assets.length, "assets, selectedAsset:", selectedAsset, "initialAssetId:", initialAssetId);
+    if (assets.length > 0) {
+      // If initialAssetId is provided, find and select that asset (even if another asset is selected)
+      if (initialAssetId) {
+        const initialAsset = assets.find(asset => asset.id === initialAssetId);
+        if (initialAsset && selectedAsset?.id !== initialAssetId) {
+          console.log("Setting initial asset:", initialAsset);
+          setSelectedAsset(initialAsset);
+          return;
+        }
+      }
+      // If no initialAssetId and no selectedAsset, set first asset as default
+      if (!selectedAsset) {
+        console.log("Setting first asset:", assets[0]);
+        setSelectedAsset(assets[0]);
+      }
     }
-  }, [assets.length]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [assets.length, initialAssetId]);
 
   // Load roles once when component mounts
   useEffect(() => {

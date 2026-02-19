@@ -111,6 +111,7 @@ export interface ChatState {
 export interface AIMaskingChatProps {
   readonly credentials: AssetCredential[];
   readonly onPolicyCreated?: () => void;
+  readonly initialAssetId?: number;
 }
 
 export interface ChatHeaderProps {

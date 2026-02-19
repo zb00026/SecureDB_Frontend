@@ -1,6 +1,7 @@
 import { VStack } from "@chakra-ui/react";
 import { DamBasePage } from "@common/components/DamBasePage";
 import { SpotlightSearch } from "@common/components/SpotlightSearch";
+import { DamDynamicDashboard } from "@common/components/DamDynamicDashboard";
 import { useMyState, formatShortcutForDisplay, filterSearchableRoutes, useKeyboardNavigation } from "@common/index";
 import { useIntl } from "react-intl";
 import { useNavigate } from 'react-router-dom';
@@ -97,6 +98,9 @@ export function Component() {
           shortcutDisplay={shortcutDisplay}
           showHints={true}
         />
+
+        {/* Dynamic Dashboard Component */}
+        <DamDynamicDashboard user={user} />
       </VStack>
     </DamBasePage>
   );

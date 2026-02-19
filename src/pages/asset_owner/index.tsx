@@ -7,7 +7,7 @@ import {
   Checkbox, Text, Icon, Badge
 } from "@chakra-ui/react";
 import { DamBasePage } from "@common/components/DamBasePage";
-import { DamCardBody, DamCard, request, useDamToast, DamCardDivider, stateActions, ActionMenu, ActionMenuItem, state, userHasRole } from "@common/index";
+import { DamCardBody, DamCard, request, useDamToast, DamCardDivider, stateActions, ActionMenu, ActionMenuItem, state, userHasRole, handleDatabaseCredentialRequest as handleDatabaseCredentialRequestUtil, handleSSHCredentialRequest as handleSSHCredentialRequestUtil, handleSetCredential as handleSetCredentialUtil, handleSetSSHCredential as handleSetSSHCredentialUtil } from "@common/index";
 import { handleRowClick, handleCheckboxClick } from "@common/libs/utils/tableSelection";
 import { AssetCredential } from "@models/assets/AssetCredential";
 import { Asset } from "@models/assets/Asset";
@@ -192,7 +192,6 @@ export function Component() {
       setTabFromSession();
     }
   }, [location.search, navigate]);
-  const selectedRowBg = useColorModeValue('gray.200', 'gray.700');
   const borderColor = useColorModeValue('gray.200', 'gray.600');
   const inputBorderColor = useColorModeValue('gray.300', 'gray.600');
   const inputFocusBorderColor = useColorModeValue('blue.500', 'blue.300');
@@ -267,40 +266,33 @@ export function Component() {
 
   // Helper function to handle database credential request
   const handleDatabaseCredentialRequest = (endpoint: string, method: string, data?: { username: string; password?: string; awsSecretsManagerKey?: string }) => {
-    return request(endpoint, { method, data })
-      .then(() => {
-        showSuccess({
-          description: intl.formatMessage({ id: 'text.credentials_set_success' }),
-        });
-        fetchAssignedCredentials();
-      })
-      .catch((e) => {
-        showError({
-          description: e.data?.error ?? intl.formatMessage({ id: 'text.error_occurred_setting_credentials' }),
-        });
-      })
-      .finally(() => {
-        stateActions.subLoading();
-      });
+    return handleDatabaseCredentialRequestUtil({
+      endpoint,
+      method,
+      data,
+      callbacks: {
+        intl,
+        showSuccess,
+        showError,
+        onSuccess: fetchAssignedCredentials,
+      },
+    });
   };
 
   // Helper function to handle SSH credential request
   const handleSSHCredentialRequest = (endpoint: string, method: string, data?: { username: string; sshKeyFile?: string; awsSecretsManagerKey?: string }) => {
-    return request(endpoint, { method, data })
-      .then(() => {
-        showSuccess({
-          description: intl.formatMessage({ id: 'text.ssh_credentials_set_success' }),
-        });
-        fetchAssignedCredentials();
-      })
-      .catch((e) => {
-        showError({
-          description: e.data?.error ? e.data?.details : intl.formatMessage({ id: 'text.error_occurred_setting_ssh_credentials' }),
-        });
-      })
-      .finally(() => {
-        stateActions.subLoading();
-      });
+    return handleSSHCredentialRequestUtil({
+      endpoint,
+      method,
+      data,
+      callbacks: {
+        intl,
+        showSuccess,
+        showError,
+        onSuccess: fetchAssignedCredentials,
+      },
+      useDetailsForError: true, // useDetailsForError = true for asset_owner page
+    });
   };
 
   // Helper function to handle relinquish credential (generic for both database and SSH)
@@ -323,29 +315,38 @@ export function Component() {
   };
 
   const handleSetCredential = (username: string, password: string, awsSecretsManagerKey?: string) => {
-    if (!selectedCredential || !isDatabaseAsset(selectedCredential.asset?.type)) return;
-    stateActions.addLoading();
-    const requestData = awsSecretsManagerKey 
-      ? { username, awsSecretsManagerKey }
-      : { username, password };
-    handleDatabaseCredentialRequest(
-      `/api/asset_owner/assets/credentials/${selectedCredential.id}`,
-      'POST',
-      requestData
-    );
+    if (!selectedCredential) return;
+    return handleSetCredentialUtil({
+      credentialId: selectedCredential.id,
+      assetType: selectedCredential.asset?.type,
+      username,
+      password,
+      awsSecretsManagerKey,
+      callbacks: {
+        intl,
+        showSuccess,
+        showError,
+        onSuccess: fetchAssignedCredentials,
+      },
+    });
   };
 
   const handleSetSSHCredential = (username: string, sshPrivateKey: string, awsSecretsManagerKey?: string) => {
-    if (!selectedCredential || !isUnixServerAsset(selectedCredential.asset?.type)) return;
-    stateActions.addLoading();
-    const requestData = awsSecretsManagerKey
-      ? { username, awsSecretsManagerKey }
-      : { username, sshKeyFile: sshPrivateKey };
-    handleSSHCredentialRequest(
-      `/api/asset_owner/assets/ssh-credentials/${selectedCredential.id}`,
-      'PUT',
-      requestData
-    );
+    if (!selectedCredential) return;
+    return handleSetSSHCredentialUtil({
+      credentialId: selectedCredential.id,
+      assetType: selectedCredential.asset?.type,
+      username,
+      sshPrivateKey,
+      awsSecretsManagerKey,
+      callbacks: {
+        intl,
+        showSuccess,
+        showError,
+        onSuccess: fetchAssignedCredentials,
+      },
+      useDetailsForError: true, // useDetailsForError = true for asset_owner page
+    });
   };
 
   const handleRelinquish = () => {
@@ -917,7 +918,7 @@ export function Component() {
               <DamCardBody>
                 <Flex alignItems={'center'} mb={4} p={2} justifyContent={'flex-end'} w='full'>
                   <Button colorScheme="blue" onClick={openAIModal}>
-                    Add Masking Policy
+                    <FormattedMessage id="text.add_masking_policy" />
                   </Button>
                 </Flex>
                 <MaskingPolicies ref={maskingPoliciesRef} />

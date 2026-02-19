@@ -424,3 +424,5 @@ export function filterSearchableRoutes(
     })
     .slice(0, limit);
 }
+
+export * from './credentialHandlers';
