@@ -27,6 +27,12 @@ jobs:
     - name: Checkout repository
       uses: actions/checkout@v4
 
+    - name: Set branch name variable
+      run: |
+        BRANCH_NAME="${GITHUB_REF_NAME:-unknown}"
+        BRANCH_NAME="${BRANCH_NAME//\//-}"
+        echo "branch_name=$BRANCH_NAME" >> $GITHUB_ENV
+
     - name: Set timestamp variable
       id: timestamp
       run: echo "timestamp=$(date +'%Y-%m-%d-%H-%M')" >> $GITHUB_ENV
@@ -92,8 +98,8 @@ jobs:
       run: |
         # Create a zip file with the built frontend
         cd dist
-        echo "Zipping the frontend build ${{ env.FRONTEND_ARTIFACT_PREFIX }}-${{ env.timestamp }}.zip"
-        zip -r "../${{ env.FRONTEND_ARTIFACT_PREFIX }}-${{ env.timestamp }}.zip" ./*
+        echo "Zipping the frontend build dam-frontend-${{ env.branch_name }}-${{ env.timestamp }}.zip"
+        zip -r "../dam-frontend-${{ env.branch_name }}-${{ env.timestamp }}.zip" ./*
         cd ..
 
     - name: Install AWS CLI
@@ -111,9 +117,9 @@ jobs:
     - name: Upload frontend artifact to S3
       run: |
         # Ensure the file exists and upload it to S3
-        if [ -f "${{ env.FRONTEND_ARTIFACT_PREFIX }}-${{ env.timestamp }}.zip" ]; then
-          echo "Uploading frontend artifact ${{ env.FRONTEND_ARTIFACT_PREFIX }}-${{ env.timestamp }}.zip to S3..."
-          aws s3 cp "${{ env.FRONTEND_ARTIFACT_PREFIX }}-${{ env.timestamp }}.zip" s3://${{ env.S3_BUCKET_NAME }}/ --region ap-south-1
+        if [ -f "dam-frontend-${{ env.branch_name }}-${{ env.timestamp }}.zip" ]; then
+          echo "Uploading frontend artifact dam-frontend-${{ env.branch_name }}-${{ env.timestamp }}.zip to S3..."
+          aws s3 cp "dam-frontend-${{ env.branch_name }}-${{ env.timestamp }}.zip" s3://${{ env.S3_BUCKET_NAME }}/ --region ap-south-1
         else
           echo "Artifact not found, cannot upload to S3!"
           exit 1
