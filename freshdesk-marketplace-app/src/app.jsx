@@ -100,17 +100,21 @@ function startApp(fdkApp) {
     .then(function(client) {
       console.log('[Hagrids] app.initialized() success, got client');
       
-      // Get installation parameters
-      return client.iparams.get('hagrids_api_url').then(function(iparams) {
-        console.log('[Hagrids] Got iparams:', iparams);
+      // Get all non-secure installation parameters (call with no args to get full object)
+      return client.iparams.get().then(function(iparams) {
+        console.log('[Hagrids] Got iparams: apiBaseUrl=', iparams.hagrids_api_url ? 'configured' : 'missing', 'secretKey=', iparams.hagrids_secret_key ? 'configured' : 'missing');
         const apiBaseUrl = iparams.hagrids_api_url;
+        const secretKey = iparams.hagrids_secret_key;
         
         if (!apiBaseUrl) {
-          renderError('Hagrids API URL not configured. Please configure it at http://localhost:10001/custom_configs');
+          renderError('Hagrids API URL is not configured. Contact your administrator to solve this issue.');
           return;
         }
 
-        console.log('[Hagrids] API URL:', apiBaseUrl);
+        if (!secretKey) {
+          renderError('Hagrids Secret Key is not configured. Contact your administrator to solve this issue.');
+          return;
+        }
 
         // Get current user from Freshdesk
         return client.data.get('loggedInUser').then(function(data) {
@@ -136,7 +140,7 @@ function startApp(fdkApp) {
 
           console.log('[Hagrids] Rendering app for user:', freshdeskUser.email);
           // Render the app
-          renderApp(apiBaseUrl, freshdeskUser, client);
+          renderApp(apiBaseUrl, secretKey, freshdeskUser, client);
         });
       });
     })
@@ -146,7 +150,7 @@ function startApp(fdkApp) {
     });
 }
 
-function renderApp(apiBaseUrl, freshdeskUser, client) {
+function renderApp(apiBaseUrl, secretKey, freshdeskUser, client) {
   const container = document.getElementById('root');
   const root = createRoot(container);
 
@@ -154,6 +158,7 @@ function renderApp(apiBaseUrl, freshdeskUser, client) {
     <React.StrictMode>
       <QueryApp
         apiBaseUrl={apiBaseUrl}
+        secretKey={secretKey}
         freshdeskUser={freshdeskUser}
         client={client}
       />

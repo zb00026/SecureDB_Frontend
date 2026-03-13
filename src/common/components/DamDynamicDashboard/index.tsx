@@ -151,7 +151,7 @@ export function DamDynamicDashboard({ user }: DamDynamicDashboardProps) {
           if (res && res.length > 0) {
             // Filter to show only assets that have credentials set
             const withCredentials = res.filter((credential: AssetCredential) => 
-              hasDatabaseCredentials(credential) || hasSSHCredentials(credential)
+              (hasDatabaseCredentials(credential) || hasSSHCredentials(credential)) && credential.asset?.type === AssetType.DATABASE
             );
             setAssetsWithCredentials(withCredentials);
           } else {

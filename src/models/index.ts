@@ -23,3 +23,6 @@ export * from './Timezone';
 // Freshdesk models
 export * from './FreshdeskModels';
 
+// Jira models
+export * from './JiraModels';
+

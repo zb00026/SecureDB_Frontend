@@ -1,0 +1,36 @@
+.app {
+  padding: 16px;
+}
+
+.heading {
+  margin-top: 0;
+  margin-bottom: 16px;
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.button {
+  width: 100%;
+  padding: 10px 16px;
+  background: #0052cc;
+  color: white;
+  border: none;
+  border-radius: 3px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  margin-top: 16px;
+}
+
+.button:hover {
+  background: #0065ff;
+}
+
+.error {
+  background-color: #ffebee;
+  color: #c62828;
+  padding: 12px;
+  border-radius: 3px;
+  margin-bottom: 16px;
+  font-size: 14px;
+}

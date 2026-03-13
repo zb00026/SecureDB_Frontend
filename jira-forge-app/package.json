@@ -1,0 +1,14 @@
+{
+  "name": "hagrids-jira-forge-app",
+  "version": "1.0.0",
+  "description": "Hagrids Database Access Management App for Jira",
+  "license": "Apache-2.0",
+  "private": true,
+  "dependencies": {
+    "@forge/api": "^7.0.2",
+    "@forge/resolver": "^1.7.1"
+  },
+  "devDependencies": {
+    "@forge/cli": "^12.0.0"
+  }
+}

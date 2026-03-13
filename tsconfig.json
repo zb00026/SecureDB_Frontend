@@ -71,6 +71,9 @@
       ],
       "~types/*": [
         "src/types/*"
+      ],
+      "~jira/*": [
+        "src/pages/jira/*"
       ]
     }
   },

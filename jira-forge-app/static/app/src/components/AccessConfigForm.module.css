@@ -1,0 +1,97 @@
+.form {
+  padding: 16px 0;
+}
+
+.field {
+  margin-bottom: 16px;
+}
+
+.field label {
+  display: block;
+  margin-bottom: 4px;
+  font-weight: 600;
+  font-size: 14px;
+}
+
+.field input,
+.field select,
+.field textarea {
+  width: 100%;
+  padding: 8px;
+  border: 1px solid #ccc;
+  border-radius: 3px;
+  font-size: 14px;
+  font-family: inherit;
+}
+
+.field textarea {
+  resize: vertical;
+}
+
+.error {
+  background-color: #ffebee;
+  color: #c62828;
+  padding: 12px;
+  border-radius: 3px;
+  margin-bottom: 16px;
+  font-size: 14px;
+}
+
+.actions {
+  display: flex;
+  gap: 8px;
+  justify-content: flex-end;
+  margin-top: 24px;
+}
+
+.actions button {
+  padding: 8px 16px;
+  border: 1px solid #ccc;
+  border-radius: 3px;
+  background: white;
+  cursor: pointer;
+  font-size: 14px;
+}
+
+.actions button[type='submit'] {
+  background: #0052cc;
+  color: white;
+  border-color: #0052cc;
+}
+
+.actions button[type='submit']:hover:not(:disabled) {
+  background: #0065ff;
+}
+
+.actions button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.button {
+  padding: 8px 16px;
+  border: 1px solid #ccc;
+  border-radius: 3px;
+  background: white;
+  cursor: pointer;
+  font-size: 14px;
+  margin-top: 16px;
+}
+
+.assetSelectWrapper {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.assetGroupLabel {
+  font-size: 12px;
+  font-weight: 500;
+  color: #5e6c84;
+}
+
+.hint {
+  font-weight: 400;
+  color: #5e6c84;
+  font-size: 12px;
+}

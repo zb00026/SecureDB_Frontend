@@ -93,6 +93,7 @@ fdk pack
 
 During installation, users will be prompted to enter:
 - **Hagrids API URL**: The base URL of the Hagrids backend API (e.g., `https://api.hagrids.com`)
+- **Hagrids Secret Key**: Secret key for authenticating with Hagrids backend API. Get this from your backend team (FRESHDESK_APP_SECRET_KEY from backend .env file).
 
 ## How It Works
 

@@ -1,0 +1,26 @@
+.prompt {
+  padding: 16px;
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+.prompt p {
+  margin: 0 0 16px 0;
+  color: #172b4d;
+}
+
+.button {
+  width: 100%;
+  padding: 10px 16px;
+  background: #0052cc;
+  color: white;
+  border: none;
+  border-radius: 3px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.button:hover {
+  background: #0065ff;
+}

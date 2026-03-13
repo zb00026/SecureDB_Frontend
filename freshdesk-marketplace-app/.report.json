@@ -1,31 +1,6 @@
 {
   "lints": [],
-  "coverageSummary": {
-    "lines": {
-      "total": 9760,
-      "covered": 3627,
-      "skipped": 0,
-      "pct": 37.16
-    },
-    "statements": {
-      "total": 11655,
-      "covered": 4430,
-      "skipped": 0,
-      "pct": 38
-    },
-    "functions": {
-      "total": 1321,
-      "covered": 540,
-      "skipped": 0,
-      "pct": 40.87
-    },
-    "branches": {
-      "total": 10411,
-      "covered": 2621,
-      "skipped": 0,
-      "pct": 25.17
-    }
-  },
+  "coverageSummary": {},
   "coverage": {
     "app\\app.js": {
       "path": "app\\app.js",

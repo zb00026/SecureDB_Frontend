@@ -5,6 +5,13 @@
     "type": "text",
     "required": true,
     "secure": false
+  },
+  "hagrids_secret_key": {
+    "display_name": "Hagrids Secret Key",
+    "description": "Secret key for authenticating with Hagrids backend API. Get this from your backend team (FRESHDESK_APP_SECRET_KEY from backend .env file).",
+    "type": "text",
+    "required": true,
+    "secure": false
   }
 }
 

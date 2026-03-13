@@ -7100,7 +7100,7 @@
   }
   var propTypesExports = /* @__PURE__ */ requirePropTypes();
   const PropTypes = /* @__PURE__ */ getDefaultExportFromCjs(propTypesExports);
-  function QueryApp({ apiBaseUrl, freshdeskUser, client: client2 }) {
+  function QueryApp({ apiBaseUrl, secretKey, freshdeskUser, client: client2 }) {
     const [isAuthenticating, setIsAuthenticating] = reactExports.useState(true);
     const [authError, setAuthError] = reactExports.useState(null);
     const [authToken, setAuthToken] = reactExports.useState(null);
@@ -7117,9 +7117,13 @@
     const isFullScreen = !client2;
     const makeRequest = async (url, options = {}) => {
       const method = (options.method || "GET").toUpperCase();
+      const headers = {
+        "X-Freshdesk-App-Secret-Key": secretKey || "",
+        ...options.headers || {}
+      };
       const fetchOptions = {
         method,
-        headers: options.headers || {},
+        headers,
         mode: "cors"
       };
       if (options.body && method !== "GET") {
@@ -7727,6 +7731,7 @@
       try {
         const appData = {
           apiBaseUrl,
+          secretKey,
           freshdeskUser,
           timestamp: Date.now()
         };
@@ -7855,6 +7860,7 @@
   }
   QueryApp.propTypes = {
     apiBaseUrl: PropTypes.string.isRequired,
+    secretKey: PropTypes.string.isRequired,
     freshdeskUser: PropTypes.shape({
       email: PropTypes.string.isRequired,
       name: PropTypes.string
@@ -7885,7 +7891,7 @@
           appData = null;
           sessionStorage.removeItem("hagrids_query_app_data");
         }
-        if (!appData.apiBaseUrl || !appData.freshdeskUser) {
+        if (!appData.apiBaseUrl || !appData.secretKey || !appData.freshdeskUser) {
           console.warn("[Hagrids] Missing required fields in data");
           appData = null;
         }
@@ -7894,7 +7900,7 @@
       console.error("[Hagrids] Failed to read data:", error);
       appData = null;
     }
-    if (!appData || !appData.apiBaseUrl || !appData.freshdeskUser) {
+    if (!appData || !appData.apiBaseUrl || !appData.secretKey || !appData.freshdeskUser) {
       container.innerHTML = `
       <div style="padding: 40px; text-align: center; max-width: 600px; margin: 100px auto; background: white; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
         <h2 style="margin-bottom: 20px; color: #d32f2f;">⚠️ Session Expired</h2>
@@ -7918,6 +7924,7 @@
         QueryApp,
         {
           apiBaseUrl: appData.apiBaseUrl,
+          secretKey: appData.secretKey,
           freshdeskUser: appData.freshdeskUser,
           client: null
         }

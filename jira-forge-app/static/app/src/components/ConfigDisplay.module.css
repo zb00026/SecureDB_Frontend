@@ -1,0 +1,137 @@
+.config {
+  padding: 16px 0;
+}
+
+.status {
+  padding: 8px 12px;
+  border-radius: 3px;
+  color: white;
+  font-weight: 600;
+  font-size: 14px;
+  margin-bottom: 16px;
+  text-align: center;
+}
+
+.info {
+  background: #f4f5f7;
+  padding: 16px;
+  border-radius: 3px;
+}
+
+.row {
+  display: flex;
+  margin-bottom: 12px;
+}
+
+.row:last-child {
+  margin-bottom: 0;
+}
+
+.label {
+  font-weight: 600;
+  min-width: 120px;
+  font-size: 14px;
+}
+
+.value {
+  flex: 1;
+  font-size: 14px;
+  color: #172b4d;
+}
+
+.locked {
+  margin-top: 16px;
+  padding: 12px;
+  background: #fff4e5;
+  border: 1px solid #ffab00;
+  border-radius: 3px;
+  color: #974f00;
+  font-size: 14px;
+}
+
+.approveReject {
+  margin-top: 16px;
+  padding-top: 16px;
+  border-top: 1px solid #dfe1e6;
+}
+
+.actionError {
+  margin-bottom: 12px;
+  padding: 8px 12px;
+  background: #ffebee;
+  color: #c62828;
+  border-radius: 3px;
+  font-size: 13px;
+}
+
+.approveRejectActions {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.buttonApprove {
+  padding: 8px 16px;
+  background: #79f2c0;
+  color: #172b4d;
+  border: none;
+  border-radius: 3px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.buttonApprove:hover:not(:disabled) {
+  background: #57d9a3;
+}
+
+.buttonReject {
+  padding: 8px 16px;
+  background: #ffbdad;
+  color: #172b4d;
+  border: none;
+  border-radius: 3px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.buttonReject:hover:not(:disabled) {
+  background: #ff7452;
+}
+
+.buttonSecondary {
+  padding: 8px 16px;
+  background: #f4f5f7;
+  color: #172b4d;
+  border: 1px solid #dfe1e6;
+  border-radius: 3px;
+  font-size: 14px;
+  cursor: pointer;
+}
+
+.buttonSecondary:hover:not(:disabled) {
+  background: #ebecf0;
+}
+
+.rejectInput {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.rejectLabel {
+  font-size: 13px;
+  font-weight: 600;
+  color: #172b4d;
+}
+
+.rejectTextarea {
+  width: 100%;
+  padding: 8px;
+  border: 1px solid #dfe1e6;
+  border-radius: 3px;
+  font-size: 14px;
+  font-family: inherit;
+  box-sizing: border-box;
+}

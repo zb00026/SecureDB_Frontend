@@ -8,7 +8,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import PropTypes from 'prop-types';
 
-export function QueryApp({ apiBaseUrl, freshdeskUser, client }) {
+export function QueryApp({ apiBaseUrl, secretKey, freshdeskUser, client }) {
   const [isAuthenticating, setIsAuthenticating] = useState(true);
   const [authError, setAuthError] = useState(null);
   const [authToken, setAuthToken] = useState(null);
@@ -29,13 +29,20 @@ export function QueryApp({ apiBaseUrl, freshdeskUser, client }) {
   /**
    * Helper function to make API requests
    * Uses native fetch() - backend must have CORS enabled
+   * Automatically includes X-Freshdesk-App-Secret-Key header
    */
   const makeRequest = async (url, options = {}) => {
     const method = (options.method || 'GET').toUpperCase();
     
+    // Always include the secret key header
+    const headers = {
+      'X-Freshdesk-App-Secret-Key': secretKey || '',
+      ...options.headers,
+    };
+    
     const fetchOptions = {
       method,
-      headers: options.headers || {},
+      headers,
       mode: 'cors',
     };
     
@@ -793,6 +800,7 @@ export function QueryApp({ apiBaseUrl, freshdeskUser, client }) {
       // Store data in both sessionStorage (backup) and pass via URL parameters
       const appData = {
         apiBaseUrl,
+        secretKey,
         freshdeskUser,
         timestamp: Date.now(),
       };
@@ -944,6 +952,7 @@ export function QueryApp({ apiBaseUrl, freshdeskUser, client }) {
 
 QueryApp.propTypes = {
   apiBaseUrl: PropTypes.string.isRequired,
+  secretKey: PropTypes.string.isRequired,
   freshdeskUser: PropTypes.shape({
     email: PropTypes.string.isRequired,
     name: PropTypes.string,

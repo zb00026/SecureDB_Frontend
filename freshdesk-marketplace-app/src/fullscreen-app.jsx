@@ -41,7 +41,7 @@ function initializeFullScreenApp() {
       }
       
       // Validate required fields
-      if (!appData.apiBaseUrl || !appData.freshdeskUser) {
+      if (!appData.apiBaseUrl || !appData.secretKey || !appData.freshdeskUser) {
         console.warn('[Hagrids] Missing required fields in data');
         appData = null;
       }
@@ -51,7 +51,7 @@ function initializeFullScreenApp() {
     appData = null;
   }
 
-  if (!appData || !appData.apiBaseUrl || !appData.freshdeskUser) {
+  if (!appData?.apiBaseUrl || !appData?.secretKey || !appData?.freshdeskUser) {
     container.innerHTML = `
       <div style="padding: 40px; text-align: center; max-width: 600px; margin: 100px auto; background: white; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
         <h2 style="margin-bottom: 20px; color: #d32f2f;">⚠️ Session Expired</h2>
@@ -76,6 +76,7 @@ function initializeFullScreenApp() {
     <React.StrictMode>
       <QueryApp
         apiBaseUrl={appData.apiBaseUrl}
+        secretKey={appData.secretKey}
         freshdeskUser={appData.freshdeskUser}
         client={null} // Not needed for full screen version
       />
